@@ -4,10 +4,11 @@ import Link from "next/link";
 export default function Sidebar() {
   const menuItems = [
     { name: "Dashboard", href: "/dashboard" },
-    { name: "Tables", href: "/tables" },
-    { name: "Menu Items", href: "/menu" },
-    { name: "Orders", href: "/orders" },
+    { name: "Tables", href: "/dashboard/tables" },
+    { name: "Menu Items", href: "/dashboard/menu" },
+    { name: "Bill", href: "/dashboard/bills" },
     { name: "Sales Report", href: "/reports" },
+    { name: "Kitchen", href: "/dashboard/kitchen" },
   ];
 
   return (

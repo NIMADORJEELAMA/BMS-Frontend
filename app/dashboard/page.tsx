@@ -8,12 +8,14 @@ import DashboardHeader from "../../components/dashboard/DashboardHeader";
 import TableGrid from "../../components/dashboard/TableGrid";
 import LiveOrderFeed from "../../components/dashboard/LiveOrderFeed";
 import OrderModal from "../../components/OrderModal";
+import { io } from "socket.io-client";
 
 export default function DashboardPage() {
-  const [tables, setTables] = useState([]);
+  const [tables, setTables] = useState<any[]>([]);
   const [selectedTable, setSelectedTable] = useState<any>(null);
   // const [liveOrders, setLiveOrders] = useState<any[]>([]);
   const [searchQuery, setSearchQuery] = useState(""); // Search state
+  const SOCKET_URL = "http://localhost:3000"; // Your NestJS port
 
   const [liveOrders, setLiveOrders] = useState<any[]>(() => {
     if (typeof window !== "undefined") {
@@ -41,6 +43,49 @@ export default function DashboardPage() {
     fetchLayout();
   }, [fetchLayout]);
 
+  useEffect(() => {
+    const socket = io(SOCKET_URL);
+    socket.on("tableUpdated", (data) => {
+      // This will trigger a fresh fetch of all tables,
+      // making the billed table appear FREE again.
+      fetchLayout();
+      // toast.success("Table is now free!");
+    });
+
+    return () => {
+      socket.off("tableUpdated");
+    };
+  }, [fetchLayout]);
+
+  // DashboardPage.tsx
+
+  useEffect(() => {
+    const socket = io(SOCKET_URL);
+
+    socket.on("itemStatusUpdated", (data) => {
+      if (data.status === "READY") {
+        // Find table number from your tables state
+        const table = tables.find((t) => t?.activeOrder?.id === data.orderId);
+
+        toast(`Table ${table?.number || ""}: Food is READY!`, {
+          icon: "🍳",
+          duration: 6000,
+          style: {
+            background: "#10b981",
+            color: "#fff",
+            fontWeight: "bold",
+          },
+        });
+
+        // Refresh layout to show the notification badge on the table
+        fetchLayout();
+      }
+    });
+
+    return () => {
+      socket.off("itemStatusUpdated");
+    };
+  }, [tables, fetchLayout]);
   useSocket(
     useCallback(
       (orderData: any) => {
