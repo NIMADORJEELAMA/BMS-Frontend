@@ -7,7 +7,9 @@ export default function Sidebar() {
     { name: "Tables", href: "/dashboard/tables" },
     { name: "Menu Items", href: "/dashboard/menu" },
     { name: "Bill", href: "/dashboard/bills" },
-    { name: "Sales Report", href: "/reports" },
+    { name: "Sales Report", href: "/dashboard/reports" },
+    { name: "Sales Report Month", href: "/dashboard/customReport" },
+
     { name: "Kitchen", href: "/dashboard/kitchen" },
   ];
 
