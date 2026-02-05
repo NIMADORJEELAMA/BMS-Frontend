@@ -1,22 +1,27 @@
 "use client";
 import { useState, useEffect, useCallback } from "react";
-import axios from "axios";
 import { Toaster, toast } from "react-hot-toast";
 import { useSocket } from "../../hooks/useSocket";
+import { useTableLayout } from "../../hooks/useDashboard";
+import { useQueryClient } from "@tanstack/react-query";
+import { io } from "socket.io-client";
 
 import DashboardHeader from "../../components/dashboard/DashboardHeader";
 import TableGrid from "../../components/dashboard/TableGrid";
 import LiveOrderFeed from "../../components/dashboard/LiveOrderFeed";
 import OrderModal from "../../components/OrderModal";
-import { io } from "socket.io-client";
+
+const SOCKET_URL = "http://localhost:3000";
 
 export default function DashboardPage() {
-  const [tables, setTables] = useState<any[]>([]);
+  const queryClient = useQueryClient();
   const [selectedTable, setSelectedTable] = useState<any>(null);
-  // const [liveOrders, setLiveOrders] = useState<any[]>([]);
-  const [searchQuery, setSearchQuery] = useState(""); // Search state
-  const SOCKET_URL = "http://localhost:3000"; // Your NestJS port
+  const [searchQuery, setSearchQuery] = useState("");
 
+  // TanStack Query replaces fetchLayout, tables state, and loading states
+  const { data: tables = [], refetch: refreshLayout } = useTableLayout();
+
+  // Keep Live Orders in local state (or a separate Query if saved to DB)
   const [liveOrders, setLiveOrders] = useState<any[]>(() => {
     if (typeof window !== "undefined") {
       const saved = localStorage.getItem("minizeo_live_orders");
@@ -24,99 +29,63 @@ export default function DashboardPage() {
     }
     return [];
   });
+
   useEffect(() => {
     localStorage.setItem("minizeo_live_orders", JSON.stringify(liveOrders));
   }, [liveOrders]);
-  const fetchLayout = useCallback(async () => {
-    try {
-      const token = localStorage.getItem("token");
-      const res = await axios.get("http://localhost:3000/orders/table-layout", {
-        headers: { Authorization: `Bearer ${token}` },
-      });
-      setTables(res.data);
-    } catch (err) {
-      console.error("Fetch error:", err);
-    }
-  }, []);
 
-  useEffect(() => {
-    fetchLayout();
-  }, [fetchLayout]);
-
+  // Handle Socket Events
   useEffect(() => {
     const socket = io(SOCKET_URL);
-    socket.on("tableUpdated", (data) => {
-      // This will trigger a fresh fetch of all tables,
-      // making the billed table appear FREE again.
-      fetchLayout();
-      // toast.success("Table is now free!");
+
+    socket.on("tableUpdated", () => {
+      // Instead of manual fetch, we tell TanStack to refresh
+      queryClient.invalidateQueries({ queryKey: ["table-layout"] });
     });
-
-    return () => {
-      socket.off("tableUpdated");
-    };
-  }, [fetchLayout]);
-
-  // DashboardPage.tsx
-
-  useEffect(() => {
-    const socket = io(SOCKET_URL);
 
     socket.on("itemStatusUpdated", (data) => {
       if (data.status === "READY") {
-        // Find table number from your tables state
-        const table = tables.find((t) => t?.activeOrder?.id === data.orderId);
-
+        const table = tables.find(
+          (t: any) => t?.activeOrder?.id === data.orderId,
+        );
         toast(`Table ${table?.number || ""}: Food is READY!`, {
           icon: "🍳",
-          duration: 6000,
-          style: {
-            background: "#10b981",
-            color: "#fff",
-            fontWeight: "bold",
-          },
+          style: { background: "#10b981", color: "#fff" },
         });
-
-        // Refresh layout to show the notification badge on the table
-        fetchLayout();
+        queryClient.invalidateQueries({ queryKey: ["table-layout"] });
       }
     });
 
     return () => {
+      socket.off("tableUpdated");
       socket.off("itemStatusUpdated");
     };
-  }, [tables, fetchLayout]);
+  }, [tables, queryClient]);
+
+  // Socket for New Orders
   useSocket(
     useCallback(
       (orderData: any) => {
-        // 1. Add the timestamp the moment it arrives
         const orderWithTimestamp = {
           ...orderData,
           receivedAt: new Date().toISOString(),
         };
 
-        setLiveOrders((prev) => {
-          const updated = [...prev, orderWithTimestamp]; // Use the timestamped order
-          return updated.slice(-50); // Keep only latest 50
-        });
-
+        setLiveOrders((prev) => [...prev, orderWithTimestamp].slice(-50));
         toast.success(`New Order: Table ${orderData.table?.number}`, {
           icon: "🔔",
         });
 
-        fetchLayout();
+        queryClient.invalidateQueries({ queryKey: ["table-layout"] });
       },
-      [fetchLayout],
+      [queryClient],
     ),
   );
 
   const handleViewTableFromFeed = (tableId: string) => {
     const table = tables.find((t: any) => t.id === tableId);
-    if (table) {
-      setSelectedTable(table);
-    } else {
-      toast.error("Table not found in current layout");
-    }
+    if (table) setSelectedTable(table);
+    else toast.error("Table not found");
   };
 
   return (
@@ -124,7 +93,6 @@ export default function DashboardPage() {
       <Toaster position="top-right" />
 
       <div className="flex-1 flex flex-col min-w-0">
-        {/* Pass search state to header */}
         <DashboardHeader
           searchQuery={searchQuery}
           setSearchQuery={setSearchQuery}
@@ -133,7 +101,7 @@ export default function DashboardPage() {
         <main className="flex-1 overflow-y-auto p-6">
           <TableGrid
             tables={tables}
-            searchQuery={searchQuery} // Pass to grid for filtering
+            searchQuery={searchQuery}
             onTableClick={(table: any) => setSelectedTable(table)}
           />
         </main>
@@ -149,7 +117,9 @@ export default function DashboardPage() {
         <OrderModal
           table={selectedTable}
           onClose={() => setSelectedTable(null)}
-          onRefresh={fetchLayout}
+          onRefresh={() =>
+            queryClient.invalidateQueries({ queryKey: ["table-layout"] })
+          }
         />
       )}
     </div>

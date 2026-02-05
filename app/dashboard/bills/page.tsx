@@ -1,6 +1,6 @@
 "use client";
-import { useEffect, useState, useMemo, useCallback } from "react";
-import api from "@/lib/axios";
+import { useState, useMemo } from "react";
+import { useBillHistory } from "@/hooks/useHistory";
 import OrderModal from "@/components/OrderModal";
 import {
   useReactTable,
@@ -18,68 +18,39 @@ import {
   ChevronRight,
   Eye,
   Search,
-  X,
   TrendingUp,
   Wallet,
   Clock,
-  Calendar as CalendarIcon,
   FilterX,
+  Loader2,
 } from "lucide-react";
 import DateRangePicker from "@/components/DateRangePicker";
-import toast from "react-hot-toast";
 
 const columnHelper = createColumnHelper<any>();
 
 export default function BillHistoryPage() {
-  const [data, setData] = useState([]);
+  const getFormattedDate = (date: Date) => date.toISOString().split("T")[0];
+
+  // 1. Local state for Date Filters
+  const [startDate, setStartDate] = useState(() => {
+    const d = new Date();
+    d.setDate(d.getDate() - 7);
+    return getFormattedDate(d);
+  });
+  const [endDate, setEndDate] = useState(() => getFormattedDate(new Date()));
+
+  // 2. TanStack Query Hook
+  const {
+    data = [],
+    isLoading,
+    isFetching,
+  } = useBillHistory(startDate, endDate);
 
   const [sorting, setSorting] = useState<SortingState>([]);
   const [globalFilter, setGlobalFilter] = useState("");
   const [selectedTable, setSelectedTable] = useState<any>(null);
-  const [loading, setLoading] = useState(false);
-  const getFormattedDate = (date: Date) => date.toISOString().split("T")[0];
-  const [startDate, setStartDate] = useState(() => {
-    const d = new Date();
-    d.setDate(d.getDate() - 7); // Go back 7 days
-    return getFormattedDate(d);
-  });
 
-  const [endDate, setEndDate] = useState(() => {
-    return getFormattedDate(new Date()); // Today
-  });
-  const fetchBills = async () => {
-    try {
-      setLoading(true);
-      const res = await api.get("/orders/history/bills", {
-        params: {
-          // Only send if there is a value
-          startDate: startDate || undefined,
-          endDate: endDate || undefined,
-        },
-      });
-      setData(res.data);
-    } catch (err) {
-      console.error(err);
-    } finally {
-      setLoading(false);
-    }
-  };
-  useEffect(() => {
-    fetchBills();
-  }, []);
-
-  const handleSearch = () => {
-    fetchBills(); // This is called by the DateRangePicker's submit button
-  };
-  const filteredData = useMemo(() => {
-    return data.filter((bill: any) => {
-      const billDate = new Date(bill.createdAt).toISOString().split("T")[0];
-      if (startDate && billDate < startDate) return false;
-      if (endDate && billDate > endDate) return false;
-      return true;
-    });
-  }, [data, startDate, endDate]);
-  // Summary Stats Logic
+  // 3. Stats Calculation (now uses 'data' from Query)
   const stats = useMemo(() => {
     const paidBills = data.filter((b: any) => b.status === "PAID");
     const totalRevenue = paidBills.reduce(
@@ -87,11 +58,10 @@ export default function BillHistoryPage() {
       0,
     );
     const pendingCount = data.filter((b: any) => b.status === "BILLED").length;
-
     return { totalRevenue, pendingCount, totalOrders: data.length };
   }, [data]);
 
-  // Table Column Definitions
+  // 4. Columns Definition (Same as your original)
   const columns = useMemo(
     () => [
       columnHelper.accessor("table.number", {
@@ -116,7 +86,6 @@ export default function BillHistoryPage() {
             Amount <ArrowUpDown size={12} />
           </button>
         ),
-        // Force numeric sorting
         sortingFn: "basic",
         cell: (info) => (
           <span className="font-mono font-bold text-gray-900">
@@ -130,11 +99,7 @@ export default function BillHistoryPage() {
           const status = info.getValue();
           return (
             <span
-              className={`px-3 py-1 rounded-full text-[9px] font-black uppercase tracking-widest ${
-                status === "PAID"
-                  ? "bg-green-100 text-green-700"
-                  : "bg-amber-100 text-amber-700 animate-pulse"
-              }`}
+              className={`px-3 py-1 rounded-full text-[9px] font-black uppercase tracking-widest ${status === "PAID" ? "bg-green-100 text-green-700" : "bg-amber-100 text-amber-700 animate-pulse"}`}
             >
               {status}
             </span>
@@ -195,7 +160,7 @@ export default function BillHistoryPage() {
   );
 
   const table = useReactTable({
-    data: data,
+    data,
     columns,
     state: { sorting, globalFilter },
     onSortingChange: setSorting,
@@ -208,184 +173,145 @@ export default function BillHistoryPage() {
   });
 
   return (
-    <div className="p-8 bg-[#F8F9FC] min-h-screen">
-      <div className="max-w-6xl mx-auto space-y-6">
-        <DateRangePicker
-          startDate={startDate}
-          endDate={endDate}
-          onStartChange={setStartDate}
-          onEndChange={setEndDate}
-          onClear={() => {
-            setStartDate("");
-            setEndDate("");
-            // Optional: immediately fetch all if cleared
-            setTimeout(fetchBills, 0);
-          }}
-          onSubmit={handleSearch} // Pass the submit function here
-          loading={loading}
+    <div className="max-w-[1400px] mx-auto p-6 space-y-8 min-h-screen bg-white">
+      {/* Header & Date Picker */}
+      <header className="flex flex-col md:flex-row md:items-end justify-between gap-6">
+        <div>
+          <h1 className="text-5xl font-black italic uppercase tracking-tighter text-gray-900">
+            Revenue Logs
+          </h1>
+          <p className="text-gray-400 font-bold text-[10px] uppercase tracking-[0.3em] mt-1">
+            minizeo resort • Financial Records
+          </p>
+        </div>
+        <div className="flex items-center gap-4">
+          <DateRangePicker
+            startDate={startDate}
+            endDate={endDate}
+            onStartChange={setStartDate}
+            onEndChange={setEndDate}
+            onSubmit={() => {}} // Query handles this automatically on date change
+          />
+          {isFetching && (
+            <Loader2 className="animate-spin text-blue-600" size={20} />
+          )}
+        </div>
+      </header>
+
+      {/* Stats Cards */}
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+        <div className="bg-gray-900 p-8 rounded-[40px] text-white">
+          <TrendingUp className="text-blue-400 mb-4" />
+          <p className="text-[10px] font-black uppercase tracking-widest opacity-50">
+            Total Revenue
+          </p>
+          <h2 className="text-4xl font-black italic">
+            ₹{stats.totalRevenue.toLocaleString()}
+          </h2>
+        </div>
+        <div className="bg-gray-50 p-8 rounded-[40px] border border-gray-100">
+          <Wallet className="text-amber-500 mb-4" />
+          <p className="text-[10px] font-black uppercase tracking-widest text-gray-400">
+            Pending Bills
+          </p>
+          <h2 className="text-4xl font-black italic text-gray-900">
+            {stats.pendingCount}
+          </h2>
+        </div>
+        <div className="bg-gray-50 p-8 rounded-[40px] border border-gray-100">
+          <Clock className="text-gray-400 mb-4" />
+          <p className="text-[10px] font-black uppercase tracking-widest text-gray-400">
+            Total Orders
+          </p>
+          <h2 className="text-4xl font-black italic text-gray-900">
+            {stats.totalOrders}
+          </h2>
+        </div>
+      </div>
+
+      {/* Search Bar */}
+      <div className="relative">
+        <Search
+          className="absolute left-6 top-1/2 -translate-y-1/2 text-gray-400"
+          size={18}
         />
+        <input
+          value={globalFilter ?? ""}
+          onChange={(e) => setGlobalFilter(e.target.value)}
+          placeholder="SEARCH BY TABLE, AMOUNT, OR STATUS..."
+          className="w-full pl-16 pr-8 py-6 bg-gray-50 rounded-[30px] border-none font-black uppercase text-xs tracking-widest focus:ring-2 focus:ring-gray-900 transition-all text-black"
+        />
+      </div>
 
-        {/* STATS OVERVIEW */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-          <div className="bg-white p-6 rounded-3xl border border-gray-100 shadow-sm">
-            <div className="flex justify-between items-start mb-4">
-              <div className="p-3 bg-blue-50 text-blue-600 rounded-2xl">
-                <TrendingUp size={20} />
-              </div>
-              <span className="text-[10px] font-black text-gray-300 uppercase tracking-widest">
-                Revenue
-              </span>
-            </div>
-            <p className="text-xs font-bold text-gray-500 mb-1">
-              Total Paid Sales
+      {/* Table Section */}
+      <div className="bg-white rounded-[40px] border border-gray-100 shadow-sm overflow-hidden">
+        {isLoading ? (
+          <div className="py-20 flex flex-col items-center justify-center gap-4">
+            <Loader2 className="animate-spin text-gray-200" size={40} />
+            <p className="text-[10px] font-black text-gray-300 uppercase tracking-widest">
+              Compiling Records...
             </p>
-            <h2 className="text-3xl font-black text-gray-900">
-              ₹{stats.totalRevenue}
-            </h2>
           </div>
-          <div className="bg-white p-6 rounded-3xl border border-gray-100 shadow-sm">
-            <div className="flex justify-between items-start mb-4">
-              <div className="p-3 bg-amber-50 text-amber-600 rounded-2xl">
-                <Clock size={20} />
-              </div>
-              <span className="text-[10px] font-black text-gray-300 uppercase tracking-widest">
-                Pending
-              </span>
-            </div>
-            <p className="text-xs font-bold text-gray-500 mb-1">
-              Unpaid Receipts
-            </p>
-            <h2 className="text-3xl font-black text-gray-900">
-              {stats.pendingCount}
-            </h2>
-          </div>
-          <div className="bg-white p-6 rounded-3xl border border-gray-100 shadow-sm">
-            <div className="flex justify-between items-start mb-4">
-              <div className="p-3 bg-purple-50 text-purple-600 rounded-2xl">
-                <Wallet size={20} />
-              </div>
-              <span className="text-[10px] font-black text-gray-300 uppercase tracking-widest">
-                Activity
-              </span>
-            </div>
-            <p className="text-xs font-bold text-gray-500 mb-1">
-              Total Transactions
-            </p>
-            <h2 className="text-3xl font-black text-gray-900">
-              {stats.totalOrders}
-            </h2>
-          </div>
-        </div>
-
-        {/* TABLE HEADER & SEARCH */}
-        <div className="flex flex-col md:flex-row gap-4 items-center justify-between">
-          <div className="relative w-full md:w-96 group">
-            <Search
-              className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400 group-focus-within:text-blue-600 transition-colors"
-              size={18}
-            />
-            <input
-              value={globalFilter ?? ""}
-              onChange={(e) => setGlobalFilter(e.target.value)}
-              placeholder="Search by amount, table, or status..."
-              className="w-full pl-11 pr-10 py-3 bg-white border border-gray-200 rounded-2xl text-sm shadow-sm focus:ring-4 focus:ring-blue-500/5 focus:border-blue-500 outline-none transition-all"
-            />
-            {globalFilter && (
-              <button
-                onClick={() => setGlobalFilter("")}
-                className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
-              >
-                <X size={16} />
-              </button>
-            )}
-          </div>
-        </div>
-
-        {/* MAIN DATA GRID */}
-        <div className="bg-white rounded-[32px] shadow-sm border border-gray-100 overflow-hidden">
-          <div className="overflow-x-auto">
-            <table className="w-full text-left">
-              <thead>
-                {table.getHeaderGroups().map((headerGroup) => (
-                  <tr
-                    key={headerGroup.id}
-                    className="bg-gray-50/50 border-b border-gray-100"
-                  >
-                    {headerGroup.headers.map((header) => (
-                      <th
-                        key={header.id}
-                        className="px-8 py-5 text-[10px] font-black text-gray-400 uppercase tracking-widest"
-                      >
-                        {header.isPlaceholder
-                          ? null
-                          : flexRender(
-                              header.column.columnDef.header,
-                              header.getContext(),
-                            )}
-                      </th>
-                    ))}
-                  </tr>
-                ))}
-              </thead>
-              <tbody className="divide-y divide-gray-50">
-                {table.getRowModel().rows.length > 0 ? (
-                  table.getRowModel().rows.map((row) => (
-                    <tr
-                      key={row.id}
-                      onClick={() =>
-                        setSelectedTable({
-                          ...row.original.table,
-                          activeOrder: row.original,
-                        })
-                      }
-                      className="hover:bg-blue-50/20 transition-all cursor-pointer group"
+        ) : (
+          <table className="w-full text-left">
+            <thead className="bg-gray-50/50 border-b border-gray-100">
+              {table.getHeaderGroups().map((headerGroup) => (
+                <tr key={headerGroup.id}>
+                  {headerGroup.headers.map((header) => (
+                    <th
+                      key={header.id}
+                      className="px-10 py-5 text-[10px] font-black text-gray-400 uppercase tracking-widest"
                     >
-                      {row.getVisibleCells().map((cell) => (
-                        <td key={cell.id} className="px-8 py-5">
-                          {flexRender(
-                            cell.column.columnDef.cell,
-                            cell.getContext(),
+                      {header.isPlaceholder
+                        ? null
+                        : flexRender(
+                            header.column.columnDef.header,
+                            header.getContext(),
                           )}
-                        </td>
-                      ))}
-                    </tr>
-                  ))
-                ) : (
-                  <tr>
-                    <td colSpan={columns.length} className="py-24 text-center">
-                      <p className="text-gray-400 font-medium italic">
-                        No transactions found matching your search.
-                      </p>
+                    </th>
+                  ))}
+                </tr>
+              ))}
+            </thead>
+            <tbody className="divide-y divide-gray-50 text-black">
+              {table.getRowModel().rows.map((row) => (
+                <tr key={row.id} className="hover:bg-gray-50/50 transition-all">
+                  {row.getVisibleCells().map((cell) => (
+                    <td key={cell.id} className="px-10 py-6">
+                      {flexRender(
+                        cell.column.columnDef.cell,
+                        cell.getContext(),
+                      )}
                     </td>
-                  </tr>
-                )}
-              </tbody>
-            </table>
-          </div>
+                  ))}
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        )}
+      </div>
 
-          {/* PAGINATION */}
-          <div className="px-8 py-5 bg-gray-50/50 border-t border-gray-100 flex items-center justify-between">
-            <div className="flex gap-2">
-              <button
-                onClick={() => table.previousPage()}
-                disabled={!table.getCanPreviousPage()}
-                className="p-2 bg-white border border-gray-200 rounded-xl disabled:opacity-30 hover:bg-gray-50 transition-colors"
-              >
-                <ChevronLeft size={20} />
-              </button>
-              <button
-                onClick={() => table.nextPage()}
-                disabled={!table.getCanNextPage()}
-                className="p-2 bg-white border border-gray-200 rounded-xl disabled:opacity-30 hover:bg-gray-50 transition-colors"
-              >
-                <ChevronRight size={20} />
-              </button>
-            </div>
-            <span className="text-[10px] font-black text-gray-400 uppercase tracking-widest">
-              Page {table.getState().pagination.pageIndex + 1} of{" "}
-              {table.getPageCount()}
-            </span>
-          </div>
+      {/* Pagination */}
+      <div className="flex items-center justify-between px-4">
+        <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest">
+          Showing Page {table.getState().pagination.pageIndex + 1} of{" "}
+          {table.getPageCount()}
+        </p>
+        <div className="flex gap-2">
+          <button
+            onClick={() => table.previousPage()}
+            disabled={!table.getCanPreviousPage()}
+            className="p-4 bg-gray-50 rounded-2xl disabled:opacity-20 hover:bg-gray-100 transition-all"
+          >
+            <ChevronLeft size={20} />
+          </button>
+          <button
+            onClick={() => table.nextPage()}
+            disabled={!table.getCanNextPage()}
+            className="p-4 bg-gray-50 rounded-2xl disabled:opacity-20 hover:bg-gray-100 transition-all"
+          >
+            <ChevronRight size={20} />
+          </button>
         </div>
       </div>
 
@@ -393,7 +319,7 @@ export default function BillHistoryPage() {
         <OrderModal
           table={selectedTable}
           onClose={() => setSelectedTable(null)}
-          onRefresh={fetchBills}
+          onRefresh={() => {}} // Read-only view
         />
       )}
     </div>

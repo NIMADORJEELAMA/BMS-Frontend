@@ -9,6 +9,7 @@ export default function Sidebar() {
     { name: "Bill", href: "/dashboard/bills" },
     { name: "Sales Report", href: "/dashboard/reports" },
     { name: "Sales Report Month", href: "/dashboard/customReport" },
+    { name: "Stock", href: "/dashboard/Stock" },
 
     { name: "Kitchen", href: "/dashboard/kitchen" },
   ];
