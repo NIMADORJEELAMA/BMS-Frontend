@@ -33,7 +33,8 @@ export default function StaffModal({
         email: editingUser.email,
         password: "", // Leave blank for security during edit
         role: editingUser.role,
-      });
+        isActive: editingUser.isActive ?? true,
+      } as any);
     } else {
       setForm({ name: "", email: "", password: "", role: "WAITER" });
     }
@@ -157,6 +158,30 @@ export default function StaffModal({
                 <option value="FRONT_OFFICE">FRONT OFFICE</option>
               </select>
             </div>
+            {editingUser && (
+              <div className="flex flex-col gap-1">
+                <label className="text-[10px] font-black text-gray-400 uppercase ml-2">
+                  Account Status
+                </label>
+                <select
+                  className={`px-5 py-4 rounded-2xl border-none font-bold text-sm cursor-pointer ${
+                    (form as any).isActive
+                      ? "bg-emerald-50 text-emerald-700"
+                      : "bg-red-50 text-red-600"
+                  }`}
+                  value={(form as any).isActive ? "true" : "false"}
+                  onChange={(e) =>
+                    setForm({
+                      ...form,
+                      isActive: e.target.value === "true",
+                    } as any)
+                  }
+                >
+                  <option value="true">ACTIVE</option>
+                  <option value="false">INACTIVE / DISABLED</option>
+                </select>
+              </div>
+            )}
           </div>
 
           <button
