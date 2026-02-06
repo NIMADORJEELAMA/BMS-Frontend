@@ -12,6 +12,7 @@ export default function Sidebar() {
     { name: "Stock", href: "/dashboard/Stock" },
 
     { name: "Kitchen", href: "/dashboard/kitchen" },
+    { name: "Users", href: "/dashboard/staff" },
   ];
 
   return (
