@@ -11,6 +11,7 @@ import {
 // import AttendanceTab from "@/components/operations/AttendanceTab";
 import PettyCashTab from "@/components/operations/PettyCashTab";
 import AttendanceTab from "@/components/operations/AttendanceTab";
+import PayrollTab from "@/components/operations/PayrollTab";
 // import PayrollTab from "@/components/operations/PayrollTab";
 
 export default function OperationsPage() {
@@ -58,7 +59,7 @@ export default function OperationsPage() {
       <div className="bg-white border border-slate-200 rounded-xl shadow-sm min-h-[600px]">
         {activeTab === "attendance" && <AttendanceTab />}
         {activeTab === "cash" && <PettyCashTab />}
-        {/* {activeTab === "payroll" && <PayrollTab />} */}
+        {activeTab === "payroll" && <PayrollTab />}
       </div>
     </div>
   );
