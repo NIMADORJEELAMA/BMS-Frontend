@@ -44,7 +44,7 @@ export default function BookingsPage() {
             Front Desk
           </h1>
           <p className="text-slate-400 text-[10px] font-bold uppercase tracking-widest">
-            Live Guest List
+            Live Guest Lists
           </p>
         </div>
         <button
