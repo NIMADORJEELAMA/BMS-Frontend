@@ -16,6 +16,7 @@ export default function Sidebar() {
     { name: "Attendance", href: "/dashboard/operations" },
     { name: "Rooms", href: "/dashboard/rooms" },
     { name: "Check In", href: "/dashboard/bookings" },
+    { name: "History", href: "/dashboard/history" },
   ];
 
   return (

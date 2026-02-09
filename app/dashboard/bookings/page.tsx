@@ -11,7 +11,7 @@ export default function BookingsPage() {
   const queryClient = useQueryClient();
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [checkoutData, setCheckoutData] = useState<any>(null);
-
+  const [activeBookingId, setActiveBookingId] = useState<string | null>(null);
   const { data: bookings = [], isLoading } = useQuery({
     queryKey: ["active-bookings"],
     queryFn: async () => (await api.get("/rooms/bookings/active")).data,
@@ -99,12 +99,18 @@ export default function BookingsPage() {
                   </td>
                   <td className="px-8 py-5 text-right">
                     <button
+                      onClick={() => setActiveBookingId(booking.id)}
+                      className="bg-slate-900 text-white px-4 py-2 rounded-xl text-[10px] font-black uppercase"
+                    >
+                      View Bill & Checkout
+                    </button>
+                    {/* <button
                       onClick={() => handleCheckOut(booking)}
                       disabled={checkoutMutation.isPending}
                       className="bg-red-50 text-red-600 px-4 py-2 rounded-xl text-[10px] font-black uppercase hover:bg-red-600 hover:text-white transition-all disabled:opacity-50"
                     >
                       {checkoutMutation.isPending ? "..." : "Checkout"}
-                    </button>
+                    </button> */}
                   </td>
                 </tr>
               ))
@@ -123,6 +129,13 @@ export default function BookingsPage() {
         <CheckOutSummary
           data={checkoutData}
           onClose={() => setCheckoutData(null)}
+        />
+      )}
+
+      {activeBookingId && (
+        <CheckOutSummary
+          bookingId={activeBookingId}
+          onClose={() => setActiveBookingId(null)}
         />
       )}
     </div>
