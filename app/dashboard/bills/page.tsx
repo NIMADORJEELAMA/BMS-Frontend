@@ -50,6 +50,8 @@ export default function BillHistoryPage() {
   const [globalFilter, setGlobalFilter] = useState("");
   const [selectedTable, setSelectedTable] = useState<any>(null);
 
+  console.log("selectedTable", selectedTable);
+
   // 3. Stats Calculation (now uses 'data' from Query)
   const stats = useMemo(() => {
     const paidBills = data.filter((b: any) => b.status === "PAID");

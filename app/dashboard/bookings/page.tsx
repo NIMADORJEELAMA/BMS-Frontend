@@ -11,6 +11,7 @@ export default function BookingsPage() {
   const queryClient = useQueryClient();
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [checkoutData, setCheckoutData] = useState<any>(null);
+  const [activeBookingId, setActiveBookingId] = useState<string | null>(null);
 
   const { data: bookings = [], isLoading } = useQuery({
     queryKey: ["active-bookings"],
@@ -31,9 +32,9 @@ export default function BookingsPage() {
   });
 
   const handleCheckOut = (booking: any) => {
-    if (window.confirm(`Process checkout for ${booking.guestName}?`)) {
-      checkoutMutation.mutate(booking.id);
-    }
+    // if (window.confirm(`Process checkout for ${booking.guestName}?`)) {
+    checkoutMutation.mutate(booking.id);
+    // }
   };
 
   return (
@@ -99,11 +100,10 @@ export default function BookingsPage() {
                   </td>
                   <td className="px-8 py-5 text-right">
                     <button
-                      onClick={() => handleCheckOut(booking)}
-                      disabled={checkoutMutation.isPending}
-                      className="bg-red-50 text-red-600 px-4 py-2 rounded-xl text-[10px] font-black uppercase hover:bg-red-600 hover:text-white transition-all disabled:opacity-50"
+                      onClick={() => setActiveBookingId(booking.id)}
+                      className="bg-slate-900 text-white px-4 py-2 rounded-xl text-[10px] font-black uppercase"
                     >
-                      {checkoutMutation.isPending ? "..." : "Checkout"}
+                      View Bill & Checkout
                     </button>
                   </td>
                 </tr>
@@ -122,7 +122,19 @@ export default function BookingsPage() {
       {checkoutData && (
         <CheckOutSummary
           data={checkoutData}
-          onClose={() => setCheckoutData(null)}
+          onClose={() => {
+            setCheckoutData(null);
+            // Optional: refresh data again on close to be safe
+            queryClient.invalidateQueries({ queryKey: ["active-bookings"] });
+          }}
+          //onClose={() => setCheckoutData(null)}
+        />
+      )}
+
+      {activeBookingId && (
+        <CheckOutSummary
+          bookingId={activeBookingId}
+          onClose={() => setActiveBookingId(null)}
         />
       )}
     </div>
