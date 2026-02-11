@@ -1,5 +1,5 @@
 "use client";
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useMemo } from "react";
 import { Toaster, toast } from "react-hot-toast";
 import { useSocket } from "../../hooks/useSocket";
 import { useTableLayout } from "../../hooks/useDashboard";
@@ -10,6 +10,8 @@ import DashboardHeader from "../../components/dashboard/DashboardHeader";
 import TableGrid from "../../components/dashboard/TableGrid";
 import LiveOrderFeed from "../../components/dashboard/LiveOrderFeed";
 import OrderModal from "../../components/OrderModal";
+import { twMerge } from "tailwind-merge";
+import { ClassValue, clsx } from "clsx";
 
 const SOCKET_URL = "http://localhost:3000";
 
@@ -17,6 +19,10 @@ export default function DashboardPage() {
   const queryClient = useQueryClient();
   const [selectedTable, setSelectedTable] = useState<any>(null);
   const [searchQuery, setSearchQuery] = useState("");
+
+  const [areaType, setAreaType] = useState<"all" | "rooms" | "tables">("all");
+
+  const [statusFilter, setStatusFilter] = useState<string>("all");
 
   // TanStack Query replaces fetchLayout, tables state, and loading states
   const { data: tables = [], refetch: refreshLayout } = useTableLayout();
@@ -29,6 +35,36 @@ export default function DashboardPage() {
     }
     return [];
   });
+
+  // 2. Extract Unique Rooms from data
+  const rooms = useMemo(() => {
+    const allRooms = tables.map((t: any) => t.room).filter(Boolean);
+    // Unique by ID
+    return Array.from(new Map(allRooms.map((r: any) => [r.id, r])).values());
+  }, [tables]);
+
+  const filteredTables = useMemo(() => {
+    return tables.filter((table: any) => {
+      // Search filter
+      const matchesSearch = table.name
+        .toLowerCase()
+        .includes(searchQuery.toLowerCase());
+
+      // Area filter
+      let matchesArea = true;
+      if (areaType === "rooms") {
+        matchesArea = table.room !== null;
+      } else if (areaType === "tables") {
+        matchesArea = table.room === null;
+      }
+
+      // Status filter
+      const matchesStatus =
+        statusFilter === "all" || table.status === statusFilter;
+
+      return matchesSearch && matchesArea && matchesStatus;
+    });
+  }, [tables, searchQuery, areaType, statusFilter]);
 
   useEffect(() => {
     localStorage.setItem("minizeo_live_orders", JSON.stringify(liveOrders));
@@ -89,18 +125,33 @@ export default function DashboardPage() {
   };
 
   return (
-    <div className="flex h-screen bg-gray-50 overflow-hidden">
+    <div className="flex h-screen bg-gray-50 overflow-hidden font-sans">
       <Toaster position="top-right" />
 
       <div className="flex-1 flex flex-col min-w-0">
+        {/* Unified Header with all props */}
         <DashboardHeader
           searchQuery={searchQuery}
           setSearchQuery={setSearchQuery}
+          areaType={areaType}
+          setAreaType={setAreaType}
+          statusFilter={statusFilter}
+          setStatusFilter={setStatusFilter}
         />
 
         <main className="flex-1 overflow-y-auto p-6">
+          {/* Subtle result counter */}
+          <div className="mb-4 flex justify-between items-center">
+            <h2 className="text-sm font-semibold text-gray-500">
+              Floor Map{" "}
+              <span className="ml-2 px-2 py-0.5 bg-gray-200 rounded-full text-[10px]">
+                {filteredTables.length} Tables
+              </span>
+            </h2>
+          </div>
+
           <TableGrid
-            tables={tables}
+            tables={filteredTables}
             searchQuery={searchQuery}
             onTableClick={(table: any) => setSelectedTable(table)}
           />

@@ -1,47 +1,91 @@
-export default function DashboardHeader({ searchQuery, setSearchQuery }: any) {
-  return (
-    <header className="bg-white border-b border-gray-200 px-8 py-4 flex justify-between items-center shadow-sm">
-      <div className="flex items-center gap-8">
-        <div>
-          <h2 className="text-xl font-black text-gray-800 tracking-tight">
-            minizeo
-          </h2>
-          <p className="text-[10px] text-gray-400 font-bold uppercase tracking-widest">
-            Floor Plan
-          </p>
-        </div>
+import clsx, { ClassValue } from "clsx";
+import { twMerge } from "tailwind-merge";
 
-        {/* Search Bar */}
-        <div className="relative hidden md:block w-64">
-          <input
-            type="text"
-            placeholder="Search table or waiter..."
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-            className="w-full pl-10 pr-4 py-2 bg-gray-100 border-transparent rounded-xl text-sm focus:bg-white focus:ring-2 focus:ring-blue-500 transition-all outline-none"
-          />
-          <svg
-            className="absolute left-3 top-2.5 text-gray-400"
-            width="16"
-            height="16"
-            fill="none"
-            stroke="currentColor"
-            strokeWidth="2"
-            viewBox="0 0 24 24"
-          >
-            <circle cx="11" cy="11" r="8" />
-            <path d="m21 21-4.3-4.3" />
-          </svg>
-        </div>
+function cn(...inputs: ClassValue[]) {
+  return twMerge(clsx(inputs));
+}
+
+export default function DashboardHeader({
+  searchQuery,
+  setSearchQuery,
+  areaType,
+  setAreaType,
+  statusFilter,
+  setStatusFilter,
+}: any) {
+  return (
+    <header className="bg-white border-b border-gray-200 px-6 py-3 flex flex-wrap items-center justify-between gap-4 shadow-sm">
+      {/* LEFT: Search Bar */}
+      <div className="relative w-full md:w-64">
+        <input
+          type="text"
+          placeholder="Search table..."
+          value={searchQuery}
+          onChange={(e) => setSearchQuery(e.target.value)}
+          className="w-full pl-10 pr-4 py-2 bg-gray-100 border-none rounded-xl text-sm focus:bg-white focus:ring-2 focus:ring-blue-500 transition-all outline-none"
+        />
+        <svg
+          className="absolute left-3 top-2.5 text-gray-400"
+          width="16"
+          height="16"
+          fill="none"
+          stroke="currentColor"
+          strokeWidth="2"
+          viewBox="0 0 24 24"
+        >
+          <circle cx="11" cy="11" r="8" />
+          <path d="m21 21-4.3-4.3" />
+        </svg>
       </div>
 
-      <div className="flex items-center gap-4">
-        <div className="flex items-center gap-2 bg-green-50 text-green-700 px-3 py-1.5 rounded-full text-[10px] font-black border border-green-100">
-          <span className="relative flex h-2 w-2">
-            <span className="animate-ping absolute h-full w-full rounded-full bg-green-400 opacity-75"></span>
-            <span className="relative h-2 w-2 rounded-full bg-green-500"></span>
+      {/* RIGHT: Filters Group */}
+      <div className="flex items-center gap-6">
+        {/* Area Type Filter */}
+        <div className="flex items-center gap-2">
+          <span className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">
+            Type
           </span>
-          SYSTEM LIVE
+          <div className="flex bg-gray-100 p-1 rounded-lg">
+            {["all", "rooms", "tables"].map((type) => (
+              <button
+                key={type}
+                onClick={() => setAreaType(type)}
+                className={cn(
+                  "px-4 py-1.5 text-xs rounded-md transition capitalize",
+                  areaType === type
+                    ? "bg-white shadow-sm text-blue-600 font-bold"
+                    : "text-gray-500 hover:text-gray-700",
+                )}
+              >
+                {type}
+              </button>
+            ))}
+          </div>
+        </div>
+
+        <div className="h-6 w-[1px] bg-gray-200 hidden lg:block" />
+
+        {/* Status Filter */}
+        <div className="flex items-center gap-2">
+          <span className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">
+            Status
+          </span>
+          <div className="flex bg-gray-100 p-1 rounded-lg">
+            {["all", "FREE", "OCCUPIED", "BILLED"].map((status) => (
+              <button
+                key={status}
+                onClick={() => setStatusFilter(status)}
+                className={cn(
+                  "px-3 py-1.5 text-xs rounded-md transition capitalize",
+                  statusFilter === status
+                    ? "bg-white shadow-sm text-blue-600 font-bold"
+                    : "text-gray-500 hover:text-gray-700",
+                )}
+              >
+                {status.toLowerCase()}
+              </button>
+            ))}
+          </div>
         </div>
       </div>
     </header>

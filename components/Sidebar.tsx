@@ -1,7 +1,10 @@
-// components/Sidebar.tsx
+"use client"; // Needs to be client component for usePathname
 import Link from "next/link";
+import { usePathname } from "next/navigation";
 
 export default function Sidebar() {
+  const pathname = usePathname();
+
   const menuItems = [
     { name: "Dashboard", href: "/dashboard" },
     { name: "Tables", href: "/dashboard/tables" },
@@ -10,7 +13,6 @@ export default function Sidebar() {
     { name: "Sales Report", href: "/dashboard/reports" },
     { name: "Sales Report Month", href: "/dashboard/customReport" },
     { name: "Stock", href: "/dashboard/Stock" },
-
     { name: "Kitchen", href: "/dashboard/kitchen" },
     { name: "Users", href: "/dashboard/staff" },
     { name: "Attendance", href: "/dashboard/operations" },
@@ -26,15 +28,22 @@ export default function Sidebar() {
         <p className="text-xs text-slate-400">Admin Portal</p>
       </div>
       <nav className="mt-6">
-        {menuItems.map((item) => (
-          <Link
-            key={item.name}
-            href={item.href}
-            className="block px-6 py-3 hover:bg-slate-800 transition-colors border-l-4 border-transparent hover:border-blue-500"
-          >
-            {item.name}
-          </Link>
-        ))}
+        {menuItems.map((item) => {
+          const isActive = pathname === item.href;
+          return (
+            <Link
+              key={item.name}
+              href={item.href}
+              className={`block px-6 py-3 transition-colors border-l-4 ${
+                isActive
+                  ? "bg-slate-800 border-blue-500 text-white"
+                  : "border-transparent text-slate-400 hover:text-white hover:bg-slate-800"
+              }`}
+            >
+              {item.name}
+            </Link>
+          );
+        })}
       </nav>
     </aside>
   );

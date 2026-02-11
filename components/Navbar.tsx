@@ -1,13 +1,32 @@
-// components/Navbar.tsx
 "use client";
-import { useRouter } from "next/navigation";
+import { useRouter, usePathname } from "next/navigation"; // Added usePathname
 import { useState } from "react";
 
 export default function Navbar() {
   const router = useRouter();
+  const pathname = usePathname();
   const [isOpen, setIsOpen] = useState(false);
 
-  // Retrieve user info from localStorage (safety check for SSR)
+  // Mapping routes to friendly titles
+  const routeTitles: { [key: string]: string } = {
+    "/dashboard": "Dashboard Overview",
+    "/dashboard/tables": "Table Management",
+    "/dashboard/menu": "Menu Items",
+    "/dashboard/bills": "Billing & Invoices",
+    "/dashboard/reports": "Sales Reports",
+    "/dashboard/customReport": "Monthly Analysis",
+    "/dashboard/Stock": "Inventory & Stock",
+    "/dashboard/kitchen": "Kitchen Display",
+    "/dashboard/staff": "User Management",
+    "/dashboard/operations": "Attendance Tracker",
+    "/dashboard/rooms": "Room Management",
+    "/dashboard/bookings": "Check-In Desk",
+    "/dashboard/history": "System History",
+  };
+
+  // Fallback to "Admin Panel" if the route isn't in our list
+  const currentTitle = routeTitles[pathname] || "Admin Panel";
+
   const user =
     typeof window !== "undefined"
       ? JSON.parse(localStorage.getItem("user") || "{}")
@@ -20,10 +39,9 @@ export default function Navbar() {
   };
 
   return (
-    <header className="h-16 bg-white shadow-sm flex items-center justify-between px-8">
-      <div className="text-gray-500 font-medium">
-        Welcome back, {user?.name || "Admin"}
-      </div>
+    <header className="h-16 bg-white shadow-sm flex items-center justify-between px-8 border-b border-gray-200">
+      {/* Updated Dynamic Title */}
+      <div className="text-gray-800 font-semibold text-lg">{currentTitle}</div>
 
       <div className="relative">
         <button
@@ -38,6 +56,10 @@ export default function Navbar() {
 
         {isOpen && (
           <div className="absolute right-0 mt-2 w-48 bg-white border rounded-lg shadow-lg py-2 z-50">
+            <div className="px-4 py-2 text-xs text-gray-400">
+              Signed in as {user?.name}
+            </div>
+            <hr className="my-1" />
             <button className="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">
               Profile Settings
             </button>
