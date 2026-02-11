@@ -24,3 +24,34 @@ body {
   color: var(--foreground);
   font-family: Arial, Helvetica, sans-serif;
 }
+
+@layer utilities {
+  /* Hide scrollbar for Chrome, Safari and Opera */
+  .no-scrollbar::-webkit-scrollbar {
+    display: none;
+  }
+
+  /* Hide scrollbar for IE, Edge and Firefox */
+  .no-scrollbar {
+    -ms-overflow-style: none; /* IE and Edge */
+    scrollbar-width: none; /* Firefox */
+  }
+}
+
+.invisible-scrollbar::-webkit-scrollbar {
+  width: 6px;
+}
+
+.invisible-scrollbar::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.invisible-scrollbar::-webkit-scrollbar-thumb {
+  background: transparent; /* Makes the "handle" invisible */
+}
+
+/* Optional: Show only on hover */
+.invisible-scrollbar:hover::-webkit-scrollbar-thumb {
+  background: rgba(0, 0, 0, 0.1); /* Light gray appears on hover */
+  border-radius: 10px;
+}

@@ -19,7 +19,26 @@ export default function OrderModal({
   const [order, setOrder] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   // Track if we are in "Receipt Mode"
+  // Inside OrderModal component
+  const [isSplitPay, setIsSplitPay] = useState(false);
+  const [cashAmount, setCashAmount] = useState<number>(0);
+  const [onlineAmount, setOnlineAmount] = useState<number>(0);
 
+  // Update amounts whenever order total changes or split is toggled
+  useEffect(() => {
+    if (order) {
+      const total = Number(order.totalAmount || calculateTotal());
+      setOnlineAmount(total);
+      setCashAmount(0);
+    }
+  }, [order, isSplitPay]);
+
+  // Helper to auto-calculate the other field
+  const handleCashChange = (val: number) => {
+    const total = Number(order.totalAmount || calculateTotal());
+    setCashAmount(val);
+    setOnlineAmount(Math.max(0, total - val));
+  };
   console.log("table", table);
   const [isBilled, setIsBilled] = useState(false);
   const fetchActiveOrder = useCallback(async () => {
@@ -143,27 +162,60 @@ export default function OrderModal({
     order?.items?.filter((i: any) => i.status === "SERVED") || [];
   const hasPending = pendingItems?.length > 0;
 
-  const handlePayment = async (method: "CASH" | "CARD" | "UPI") => {
+  const handlePayment = async (type: "FULL_CASH" | "FULL_UPI" | "SPLIT") => {
     if (!order) return;
 
-    try {
-      const loadingToast = toast.loading(`Processing ${method} payment...`);
+    const total = Number(order.totalAmount || calculateTotal());
+    let payload = { cash: 0, online: 0 };
 
-      await api.patch(`/orders/${order.id}/confirm-payment`, {
-        paymentMode: method,
-      });
+    if (type === "FULL_CASH") payload = { cash: total, online: 0 };
+    else if (type === "FULL_UPI") payload = { cash: 0, online: total };
+    else payload = { cash: cashAmount, online: onlineAmount };
+
+    // Validation: Ensure total matches
+    if (payload.cash + payload.online !== total) {
+      toast.error(`Total must equal ₹${total}`);
+      return;
+    }
+
+    try {
+      const loadingToast = toast.loading("Processing Payment...");
+      await api.patch(`/orders/${order.id}/confirm-payment`, payload);
 
       toast.dismiss(loadingToast);
-      toast.success(`Payment successful via ${method}!`);
-
-      // Finalize the UI state
-      onRefresh(); // Ensure dashboard is synced
-      onClose(); // Close modal after successful payment
+      toast.success("Payment successful!");
+      onRefresh();
+      onClose();
     } catch (err) {
       toast.error("Payment confirmation failed");
-      console.error(err);
     }
   };
+  // const handlePayment = async (method: "CASH" | "CARD" | "UPI") => {
+  //   if (!order) return;
+
+  //   try {
+  //     const loadingToast = toast.loading(`Processing ${method} payment...`);
+
+  //     await api.patch(`/orders/${order.id}/confirm-payment`, {
+  //       cash: cashAmount, // e.g., 500
+  //       online: onlineAmount, // e.g., 200
+  //     });
+
+  //     // await api.patch(`/orders/${order.id}/confirm-payment`, {
+  //     //   paymentMode: method,
+  //     // });
+
+  //     toast.dismiss(loadingToast);
+  //     toast.success(`Payment successful via ${method}!`);
+
+  //     // Finalize the UI state
+  //     onRefresh(); // Ensure dashboard is synced
+  //     onClose(); // Close modal after successful payment
+  //   } catch (err) {
+  //     toast.error("Payment confirmation failed");
+  //     console.error(err);
+  //   }
+  // };
 
   const TypeBadge = ({ type }: { type: "FOOD" | "ALCOHOL" }) => {
     const isAlcohol = type === "ALCOHOL";
@@ -205,13 +257,13 @@ export default function OrderModal({
             <p
               className={`text-[10px] font-bold uppercase tracking-widest ${isBilled ? "text-blue-600" : "text-gray-400"}`}
             >
-              {`Order #${order?.id?.slice(0, 8)}`}
-              {/* {isBilled ? `Order #${order?.id?.slice(0, 8)}` : "Guest Check"} */}
+              {/* {`Order #${order?.id?.slice(0, 8)}`} */}
+              {isBilled ? `Order #${order?.id?.slice(0, 8)}` : "Guest Check"}
             </p>
           </div>
           <button
             onClick={onClose}
-            className="text-gray-400 hover:text-red-500 transition-colors text-2xl"
+            className="text-gray-400 hover:text-red-500 transition-colors text-2xl cursor-pointer "
           >
             <X />
           </button>
@@ -238,7 +290,7 @@ export default function OrderModal({
                       </span>{" "}
                       {item.menuItem.name}
                     </span>
-                    <TypeBadge type={item.menuItem.type} />
+                    {/* <TypeBadge type={item.menuItem.type} /> */}
                     <span className="font-mono text-sm font-bold text-gray-800">
                       ₹{item.priceAtOrder * item.quantity}
                     </span>
@@ -257,8 +309,86 @@ export default function OrderModal({
                 </div>
               </div>
 
+              {/* /////split */}
+
+              {/* --- PAYMENT SECTION --- */}
+              <div className="space-y-4 mt-8 pt-6 border-t border-gray-100">
+                <div className="flex justify-between items-center">
+                  <h4 className="text-[10px] font-black text-gray-400 uppercase tracking-widest">
+                    Settlement Method
+                  </h4>
+                  <button
+                    onClick={() => setIsSplitPay(!isSplitPay)}
+                    className="text-[10px] font-bold text-blue-600 hover:underline uppercase cursor-pointer tracking-wider"
+                  >
+                    {isSplitPay ? "← Back to Quick Pay" : "Split Payment"}
+                  </button>
+                </div>
+
+                {!isSplitPay ? (
+                  /* Quick Actions */
+                  <div className="grid grid-cols-2 gap-3">
+                    <button
+                      onClick={() => handlePayment("FULL_CASH")}
+                      className="flex flex-col items-center p-4 bg-green-50 rounded-2xl border border-green-100 hover:bg-green-600 hover:text-white transition-all group"
+                    >
+                      <span className="text-xl mb-1">💵</span>
+                      <span className="text-[10px] font-black uppercase">
+                        Full Cash
+                      </span>
+                    </button>
+                    <button
+                      onClick={() => handlePayment("FULL_UPI")}
+                      className="flex flex-col items-center p-4 bg-blue-50 rounded-2xl border border-blue-100 hover:bg-blue-600 hover:text-white transition-all group"
+                    >
+                      <span className="text-xl mb-1">📱</span>
+                      <span className="text-[10px] font-black uppercase">
+                        Full UPI
+                      </span>
+                    </button>
+                  </div>
+                ) : (
+                  /* Split Input View */
+                  <div className="p-4 bg-gray-50 rounded-2xl border border-gray-200 space-y-4 animate-in fade-in zoom-in-95 duration-200">
+                    <div className="grid grid-cols-2 gap-4">
+                      <div className="space-y-1">
+                        <label className="text-[9px] font-bold text-gray-400 uppercase ml-1">
+                          Cash Amount
+                        </label>
+                        <input
+                          type="text"
+                          value={cashAmount}
+                          onChange={(e) =>
+                            handleCashChange(Number(e.target.value))
+                          }
+                          className="w-full bg-white border border-gray-200 rounded-xl p-2 text-sm font-bold outline-none focus:ring-2 focus:ring-green-500"
+                        />
+                      </div>
+                      <div className="space-y-1">
+                        <label className="text-[9px] font-bold text-gray-400 uppercase ml-1">
+                          Online/UPI
+                        </label>
+                        <input
+                          type="text"
+                          value={onlineAmount}
+                          onChange={(e) =>
+                            setOnlineAmount(Number(e.target.value))
+                          }
+                          className="w-full bg-white border border-gray-200 rounded-xl p-2 text-sm font-bold outline-none focus:ring-2 focus:ring-blue-500"
+                        />
+                      </div>
+                    </div>
+                    <button
+                      onClick={() => handlePayment("SPLIT")}
+                      className="w-full py-3 bg-gray-700 text-white rounded-xl font-bold text-[11px] uppercase tracking-widest hover:bg-black transition-colors cursor-pointer tracking-wider"
+                    >
+                      Confirm Split Settlement
+                    </button>
+                  </div>
+                )}
+              </div>
               {/* Payment Quick Actions */}
-              <div className="grid grid-cols-2 gap-3 mt-8">
+              {/* <div className="grid grid-cols-2 gap-3 mt-8">
                 <button
                   onClick={() => handlePayment("CASH")}
                   className="flex flex-col items-center justify-center p-4 bg-gray-50 rounded-2xl border border-gray-100 hover:bg-green-600 hover:text-white transition-all group"
@@ -282,7 +412,7 @@ export default function OrderModal({
                     Confirm UPI
                   </span>
                 </button>
-              </div>
+              </div> */}
             </div>
           ) : (
             /* --- ORIGINAL MANAGEMENT VIEW --- */
@@ -410,15 +540,19 @@ export default function OrderModal({
         {/* FOOTER */}
         <div className="p-4 bg-gray-50 border-t flex gap-3">
           {isBilled ? (
-            <button
-              onClick={onClose}
-              className="w-full py-4 bg-gray-900 text-white rounded-2xl font-bold text-sm hover:bg-black transition-all uppercase tracking-widest"
-            >
-              Finished & Close
-            </button>
+            ""
           ) : (
+            // <button
+            //   onClick={onClose}
+            //   className="w-full py-4 bg-gray-900 text-white rounded-2xl font-bold text-sm hover:bg-black transition-all uppercase tracking-widest"
+            // >
+            //   Finished & Close
+            // </button>
             <>
-              <button className="flex-1 py-4 bg-white border border-gray-200 text-gray-600 rounded-2xl font-bold text-sm hover:bg-gray-100 transition-all cursor-pointer tracking-wider">
+              <button
+                disabled={!order}
+                className="flex-1 py-4 bg-white border border-gray-200 text-gray-600 rounded-2xl font-bold text-sm hover:bg-gray-100 transition-all cursor-pointer tracking-wider"
+              >
                 Print KOT
               </button>
               <button

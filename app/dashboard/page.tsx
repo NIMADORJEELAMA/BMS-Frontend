@@ -125,7 +125,7 @@ export default function DashboardPage() {
   };
 
   return (
-    <div className="flex h-screen bg-gray-50 overflow-hidden font-sans">
+    <div className="flex h-screen bg-gray-50 overflow-hidden font-sans no-scrollbar">
       <Toaster position="top-right" />
 
       <div className="flex-1 flex flex-col min-w-0">
@@ -139,15 +139,15 @@ export default function DashboardPage() {
           setStatusFilter={setStatusFilter}
         />
 
-        <main className="flex-1 overflow-y-auto p-6">
+        <main className="flex-1 overflow-y-auto p-6 no-scrollbar">
           {/* Subtle result counter */}
           <div className="mb-4 flex justify-between items-center">
-            <h2 className="text-sm font-semibold text-gray-500">
-              Floor Map{" "}
-              <span className="ml-2 px-2 py-0.5 bg-gray-200 rounded-full text-[10px]">
+            {/* <h2 className="text-sm font-semibold text-gray-500">
+              Tables :{" "}
+              <span className="ml-2 px-2 py-2  text-[10px]">
                 {filteredTables.length} Tables
               </span>
-            </h2>
+            </h2> */}
           </div>
 
           <TableGrid
