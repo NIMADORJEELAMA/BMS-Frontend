@@ -71,7 +71,7 @@ export default function DashboardHeader({
             Status
           </span>
           <div className="flex bg-gray-100 p-1 rounded-lg">
-            {["all", "FREE", "OCCUPIED", "BILLED"].map((status) => (
+            {["all", "FREE", "OCCUPIED"].map((status) => (
               <button
                 key={status}
                 onClick={() => setStatusFilter(status)}

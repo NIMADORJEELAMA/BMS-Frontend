@@ -141,13 +141,13 @@ export default function DashboardPage() {
 
         <main className="flex-1 overflow-y-auto p-6 no-scrollbar">
           {/* Subtle result counter */}
-          <div className="mb-4 flex justify-between items-center">
-            {/* <h2 className="text-sm font-semibold text-gray-500">
-              Tables :{" "}
-              <span className="ml-2 px-2 py-2  text-[10px]">
-                {filteredTables.length} Tables
+          <div className="mb-4 flex justify-end items-center">
+            <h2 className="text-sm font-semibold text-gray-500">
+              Tables Count :{" "}
+              <span className="ml-2 px-2 py-2  text-[12px]">
+                {filteredTables.length}
               </span>
-            </h2> */}
+            </h2>
           </div>
 
           <TableGrid

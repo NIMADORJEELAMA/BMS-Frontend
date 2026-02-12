@@ -1,394 +1,348 @@
-// "use client";
-// import { useState, useEffect, useCallback } from "react";
-// import api from "@/lib/axios";
-// import { io } from "socket.io-client";
-// import toast from "react-hot-toast";
-
-// const socket = io("http://localhost:3000");
-
-// export default function TablesPage() {
-//   const [tables, setTables] = useState([]);
-//   const [selectedTable, setSelectedTable] = useState<any>(null);
-//   const [activeOrder, setActiveOrder] = useState<any>(null);
-
-//   // States for Table Management
-//   const [isManageMode, setIsManageMode] = useState(false);
-//   const [newTableLabel, setNewTableLabel] = useState("");
-//   const [isAdding, setIsAdding] = useState(false);
-
-//   const fetchTables = useCallback(async () => {
-//     try {
-//       const res = await api.get("/tables");
-//       setTables(res.data);
-//     } catch (err) {
-//       console.error("Failed to fetch tables", err);
-//     }
-//   }, []);
-
-//   useEffect(() => {
-//     fetchTables();
-//     socket.on("newOrder", (orderData) => {
-//       fetchTables();
-//       toast.success(`New Order: Table ${orderData.table.number}`, {
-//         icon: "🔔",
-//       });
-//       if (selectedTable?.id === orderData.tableId) setActiveOrder(orderData);
-//     });
-//     return () => {
-//       socket.off("newOrder");
-//     };
-//   }, [fetchTables, selectedTable]);
-
-//   // --- ADMIN ACTIONS ---
-
-//   const handleCreateTable = async (e: React.FormEvent) => {
-//     e.preventDefault();
-//     if (!newTableLabel.trim()) return;
-//     setIsAdding(true);
-//     try {
-//       await api.post("/tables", { number: newTableLabel });
-//       setNewTableLabel("");
-//       fetchTables();
-//       toast.success("Table created successfully");
-//     } catch (err) {
-//       toast.error("Error creating table. Number might exist.");
-//     } finally {
-//       setIsAdding(false);
-//     }
-//   };
-
-//   const handleDeleteTable = async (e: React.MouseEvent, id: string) => {
-//     e.stopPropagation(); // Prevent opening the modal
-//     if (!confirm("Are you sure? This will permanently remove the table."))
-//       return;
-//     try {
-//       await api.delete(`/tables/${id}`);
-//       fetchTables();
-//       toast.success("Table deleted");
-//     } catch (err: any) {
-//       toast.error(
-//         err.response?.data?.message ||
-//           "Cannot delete table with order history.",
-//       );
-//     }
-//   };
-
-//   const handleTableClick = async (table: any) => {
-//     if (isManageMode) return; // Don't open order modal in manage mode
-//     setSelectedTable(table);
-//     if (table.status === "OCCUPIED") {
-//       try {
-//         const res = await api.get(`/orders/active/${table.id}`);
-//         setActiveOrder(res.data);
-//       } catch (err) {
-//         setActiveOrder(null);
-//       }
-//     } else {
-//       setActiveOrder(null);
-//     }
-//   };
-
-//   return (
-//     <div className="space-y-8 p-4">
-//       <div className="flex justify-between items-center">
-//         <div>
-//           <h1 className="text-2xl font-bold text-gray-800">Floor Plan</h1>
-//           <p className="text-gray-500 text-sm">
-//             Real-time table status for minizeo
-//           </p>
-//         </div>
-//         <button
-//           onClick={() => setIsManageMode(!isManageMode)}
-//           className={`px-4 py-2 rounded-lg font-semibold transition-all ${
-//             isManageMode
-//               ? "bg-amber-100 text-amber-700 border border-amber-300"
-//               : "bg-gray-100 text-gray-700 hover:bg-gray-200"
-//           }`}
-//         >
-//           {isManageMode ? "Exit Manage Mode" : "Manage Layout"}
-//         </button>
-//       </div>
-
-//       {/* Admin Panel: Add Table */}
-//       {isManageMode && (
-//         <div className="bg-white p-6 rounded-2xl shadow-sm border border-blue-100 animate-in slide-in-from-top duration-300">
-//           <h2 className="text-sm font-bold uppercase tracking-widest text-blue-600 mb-4">
-//             Add New Table
-//           </h2>
-//           <form onSubmit={handleCreateTable} className="flex gap-3">
-//             <input
-//               type="text"
-//               placeholder="e.g., T-05 or Window-1"
-//               value={newTableLabel}
-//               onChange={(e) => setNewTableLabel(e.target.value)}
-//               className="flex-1 px-4 py-2 border rounded-xl focus:ring-2 focus:ring-blue-500 outline-none"
-//             />
-//             <button
-//               type="submit"
-//               disabled={isAdding}
-//               className="bg-blue-600 text-white px-6 py-2 rounded-xl font-bold hover:bg-blue-700 disabled:opacity-50"
-//             >
-//               {isAdding ? "Saving..." : "Create Table"}
-//             </button>
-//           </form>
-//         </div>
-//       )}
-
-//       {/* Tables Grid */}
-//       <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-6">
-//         {tables.map((table: any) => (
-//           <div key={table.id} className="relative group">
-//             {isManageMode && (
-//               <button
-//                 onClick={(e) => handleDeleteTable(e, table.id)}
-//                 className="absolute -top-2 -right-2 bg-red-500 text-white rounded-full p-1.5 shadow-lg z-10 hover:bg-red-600 transition-colors"
-//               >
-//                 <svg
-//                   xmlns="http://www.w3.org/2000/svg"
-//                   width="14"
-//                   height="14"
-//                   viewBox="0 0 24 24"
-//                   fill="none"
-//                   stroke="currentColor"
-//                   strokeWidth="3"
-//                   strokeLinecap="round"
-//                   strokeLinejoin="round"
-//                 >
-//                   <path d="M18 6 6 18" />
-//                   <path d="m6 6 12 12" />
-//                 </svg>
-//               </button>
-//             )}
-
-//             <button
-//               onClick={() => handleTableClick(table)}
-//               className={`w-full p-8 rounded-3xl border-2 flex flex-col items-center gap-2 transition-all ${
-//                 isManageMode
-//                   ? "cursor-default opacity-80"
-//                   : "hover:shadow-xl active:scale-95"
-//               } ${
-//                 table.status === "FREE"
-//                   ? "bg-white border-gray-100 text-gray-400"
-//                   : "bg-blue-50 border-blue-200 text-blue-700 ring-4 ring-blue-50/50"
-//               }`}
-//             >
-//               <span className="text-2xl font-black">{table.number}</span>
-//               <span className="text-[10px] uppercase font-bold tracking-widest px-2 py-0.5 rounded-md bg-current bg-opacity-10">
-//                 {table.status}
-//               </span>
-//             </button>
-//           </div>
-//         ))}
-//       </div>
-
-//       {/* --- ORDER MODAL (Remains the same as your previous working version) --- */}
-//       {selectedTable && !isManageMode && (
-//         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4 animate-in fade-in duration-200">
-//           <div className="bg-white rounded-3xl w-full max-w-md shadow-2xl overflow-hidden">
-//             {/* ... Modal content ... */}
-//             <div className="p-6 border-b flex justify-between items-center bg-gray-50">
-//               <div>
-//                 <h2 className="text-xl font-bold text-gray-800">
-//                   Table {selectedTable.number}
-//                 </h2>
-//                 <p className="text-sm text-gray-500">Active Order Details</p>
-//               </div>
-//               <button
-//                 onClick={() => setSelectedTable(null)}
-//                 className="text-gray-400 hover:text-gray-600 text-2xl p-2"
-//               >
-//                 &times;
-//               </button>
-//             </div>
-//             <div className="p-6 min-h-[250px]">
-//               {/* Same Logic as before for FREE/OCCUPIED items */}
-//               {selectedTable.status === "FREE" ? (
-//                 <div className="text-center py-10">
-//                   <p className="text-gray-400">Empty Table</p>
-//                 </div>
-//               ) : (
-//                 <div className="space-y-4">
-//                   {activeOrder?.items?.map((item: any) => (
-//                     <div key={item.id} className="flex justify-between">
-//                       <span>
-//                         {item.quantity}x {item.menuItem.name}
-//                       </span>
-//                       <span className="font-bold">
-//                         ₹{item.priceAtOrder * item.quantity}
-//                       </span>
-//                     </div>
-//                   ))}
-//                   <div className="border-t pt-4 flex justify-between font-bold text-xl">
-//                     <span>Total</span>
-//                     <span>₹{activeOrder?.totalAmount || 0}</span>
-//                   </div>
-//                 </div>
-//               )}
-//             </div>
-//             <div className="p-4 bg-gray-50 flex gap-3">
-//               <button className="flex-1 py-3 bg-white border border-gray-300 rounded-xl font-bold">
-//                 KOT
-//               </button>
-//               <button className="flex-1 py-3 bg-green-600 text-white rounded-xl font-bold">
-//                 Generate Bill
-//               </button>
-//             </div>
-//           </div>
-//         </div>
-//       )}
-//     </div>
-//   );
-// }
-
 "use client";
 import { useState, useEffect, useCallback } from "react";
 import api from "@/lib/axios";
 import toast from "react-hot-toast";
+import {
+  Plus,
+  Trash2,
+  Search,
+  DoorOpen,
+  Coffee,
+  X,
+  Edit3,
+  AlertTriangle,
+  Tag,
+  Filter,
+} from "lucide-react";
+import { motion, AnimatePresence } from "framer-motion";
+import CategoryManager from "@/components/Tables/CategoryManager";
+import { div, span } from "framer-motion/client";
+import CategoryDropdown from "@/components/Tables/CategoryDropdown";
+import TableModal from "@/components/Tables/TableModal";
 
 export default function TablesPage() {
   const [tables, setTables] = useState([]);
-  const [newTableNumber, setNewTableNumber] = useState("");
+  const [categories, setCategories] = useState([]);
   const [isAdding, setIsAdding] = useState(false);
+  const [filter, setFilter] = useState("");
+  const [selectedCategory, setSelectedCategory] = useState("ALL"); // For filtering view
 
-  // 1. Fetch current layout
-  const fetchTables = useCallback(async () => {
+  const [modalType, setModalType] = useState<"add" | "edit" | "delete" | null>(
+    null,
+  );
+  const [activeTable, setActiveTable] = useState<any>(null);
+  const [formData, setFormData] = useState({
+    number: "",
+    roomId: "",
+    categoryId: "",
+    isActive: true,
+  });
+
+  const fetchData = useCallback(async () => {
     try {
-      const res = await api.get("/tables");
-      setTables(res.data);
+      const [tablesRes, categoriesRes] = await Promise.all([
+        api.get("/tables"),
+        api.get("/tables/categories"),
+      ]);
+      setTables(tablesRes.data);
+      setCategories(categoriesRes.data);
     } catch (err) {
-      console.error("Failed to fetch tables", err);
+      console.error("Fetch error:", err);
     }
   }, []);
+  const onRefreshCategories = async () => {
+    try {
+      const res = await api.get("/tables/categories");
+      // Explicitly update the categories state
+      setCategories(res.data);
+    } catch (err) {
+      console.error("Refresh failed", err);
+    }
+  };
 
   useEffect(() => {
-    fetchTables();
-  }, [fetchTables]);
+    fetchData();
+  }, [fetchData]);
 
-  // 2. Handle Create Table
-  const handleCreateTable = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!newTableNumber.trim()) return;
-
-    setIsAdding(true);
-    try {
-      // Body matches your BE: { number: string }
-      await api.post("/tables", { number: newTableNumber });
-      setNewTableNumber("");
-      fetchTables();
-      toast.success(`Table ${newTableNumber} added!`);
-    } catch (err) {
-      toast.error("Error creating table. Number might already exist.");
-    } finally {
-      setIsAdding(false);
-    }
+  const onCategoryCreated = (newCat: any) => {
+    setCategories((prev) => [...prev, newCat]);
+    setFormData((prev) => ({ ...prev, categoryId: newCat.id }));
   };
 
-  // 3. Handle Delete Table
-  const handleDeleteTable = async (id: string, number: string) => {
-    if (!confirm(`Are you sure you want to delete Table ${number}?`)) return;
+  const openDeleteModal = (table: any) => {
+    setActiveTable(table);
+    setModalType("delete");
+  };
 
+  const openEditModal = (table: any) => {
+    setActiveTable(table);
+    setFormData({
+      number: table.number,
+      roomId: table.roomId || "",
+      categoryId: table.categoryId || "",
+      isActive: table.status !== "INACTIVE",
+    });
+    setModalType("edit");
+  };
+
+  const handleModalConfirm = async (formData: any) => {
     try {
-      await api.delete(`/tables/${id}`);
-      fetchTables();
-      toast.success(`Table ${number} removed`);
+      if (modalType === "add") {
+        await api.post("/tables", {
+          number: formData.number,
+          categoryId: formData.categoryId || null,
+        });
+        toast.success("Table created");
+      } else if (modalType === "edit") {
+        await api.patch(`/tables/${activeTable.id}`, {
+          number: formData.number,
+          categoryId: formData.categoryId || null,
+          isActive: formData.isActive,
+        });
+        toast.success("Table updated");
+      } else if (modalType === "delete") {
+        await api.delete(`/tables/${activeTable.id}`);
+        toast.success("Table removed");
+      }
+      fetchData();
+      closeModal();
     } catch (err: any) {
-      toast.error(
-        err.response?.data?.message ||
-          "Cannot delete table with active history.",
-      );
+      toast.error(err.response?.data?.message || "Action failed");
+      throw err; // Allow modal to handle loading state
     }
   };
+  // const handleModalConfirm = async (e: React.FormEvent) => {
+  //   e.preventDefault();
+  //   setIsAdding(true);
+  //   try {
+  //     const payload = {
+  //       number: formData.number,
+  //       roomId: formData.roomId || null,
+  //       categoryId: formData.categoryId || null,
+  //     };
 
-  return (
-    <div className="max-w-6xl mx-auto space-y-8 p-4">
-      <header>
-        <h1 className="text-3xl font-bold text-gray-800 tracking-tight">
-          Table Management
-        </h1>
-        <p className="text-gray-500">
-          Configure your restaurant floor plan layout
-        </p>
-      </header>
+  //     if (modalType === "add") {
+  //       await api.post("/tables", payload);
+  //       toast.success("Table created");
+  //     } else if (modalType === "edit") {
+  //       await api.patch(`/tables/${activeTable.id}`, {
+  //         ...payload,
+  //         isActive: formData.isActive,
+  //       });
+  //       toast.success("Table updated");
+  //     } else if (modalType === "delete") {
+  //       await api.delete(`/tables/${activeTable.id}`);
+  //       toast.success("Table removed");
+  //     }
+  //     fetchData();
+  //     closeModal();
+  //   } catch (err: any) {
+  //     toast.error(err.response?.data?.message || "Action failed");
+  //   } finally {
+  //     setIsAdding(false);
+  //   }
+  // };
 
-      {/* Admin Panel: Add Table */}
-      <section className="bg-white p-6 rounded-2xl shadow-sm border border-blue-100">
-        <h2 className="text-sm font-bold uppercase tracking-widest text-blue-600 mb-4">
-          Add New Table
-        </h2>
-        <form
-          onSubmit={handleCreateTable}
-          className="flex flex-col sm:flex-row gap-3"
-        >
-          <input
-            type="text"
-            placeholder="Enter Table Number (e.g., T-05)"
-            value={newTableNumber}
-            onChange={(e) => setNewTableNumber(e.target.value)}
-            className="flex-1 px-4 py-3 border rounded-xl focus:ring-2 focus:ring-blue-500 outline-none text-black transition-all"
-            required
-          />
-          <button
-            type="submit"
-            disabled={isAdding}
-            className="bg-blue-600 text-white px-8 py-3 rounded-xl font-bold hover:bg-blue-700 transition-colors disabled:bg-blue-300"
-          >
-            {isAdding ? "Saving..." : "Create Table"}
-          </button>
-        </form>
-      </section>
+  const closeModal = () => {
+    setModalType(null);
+    setActiveTable(null);
+    setFormData({ number: "", roomId: "", categoryId: "", isActive: true });
+  };
 
-      {/* Grid: View and Delete */}
-      <section className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-6">
-        {tables.map((table: any) => (
+  // --- FILTER LOGIC ---
+  const displayedTables = tables.filter((t: any) => {
+    const matchesSearch = t.number.toLowerCase().includes(filter.toLowerCase());
+    const matchesCategory =
+      selectedCategory === "ALL" || t.categoryId === selectedCategory;
+    return matchesSearch && matchesCategory;
+  });
+
+  const renderTableCard = (table: any) => (
+    <motion.div
+      layout
+      key={table.id}
+      className="group relative bg-white p-4 rounded-[2rem] border-2 border-slate-200 hover:border-blue-200 transition-all hover:shadow-xl"
+    >
+      <div>
+        <div className="flex  items-center gap-2">
+          {/* ICON CONTAINER */}
           <div
-            key={table.id}
-            className="group relative bg-white p-8 rounded-3xl border-2 border-gray-100 flex flex-col items-center gap-3 transition-all hover:border-red-200 hover:shadow-md"
+            className={`w-8 h-8 rounded-2xl flex items-center justify-center transition-all duration-300 bg-slate-100 `}
           >
-            {/* Red Delete Button */}
-            <button
-              onClick={() => handleDeleteTable(table.id, table.number)}
-              className="absolute top-3 right-3 bg-red-50 text-red-500 rounded-full p-2 opacity-0 group-hover:opacity-100 transition-all hover:bg-red-500 hover:text-white"
-              title="Delete Table"
-            >
-              <svg
-                xmlns="http://www.w3.org/2000/svg"
-                width="16"
-                height="16"
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="currentColor"
-                strokeWidth="3"
-                strokeLinecap="round"
-                strokeLinejoin="round"
-              >
-                <path d="M18 6 6 18" />
-                <path d="m6 6 12 12" />
-              </svg>
-            </button>
+            {table.roomId ? <DoorOpen size={18} /> : <Coffee size={18} />}
+          </div>
 
-            <span className="text-3xl font-black text-gray-800">
-              {table.number}
+          {/* STYLED TABLE NUMBER */}
+          <h2 className="text-[16px] font-black text-slate-800 tracking-tighter tabular-nums group-hover:text-blue-600 transition-colors duration-200">
+            {table.number}
+          </h2>
+        </div>
+
+        {/* <h5>
+          {table.category ? (
+            <span className="mb-2 text-[9px] font-bold px-2 py-0.5 rounded-md bg-blue-50 text-blue-600 border border-blue-100 uppercase tracking-wider">
+              {table.category.name}
             </span>
+          ) : (
+            <span className="mb-2 text-[9px] font-bold px-2 py-0.5 rounded-md bg-blue-50 text-blue-600 border border-blue-100 uppercase tracking-wider">
+              No Category
+            </span>
+          )}
+        </h5> */}
+        <div className="flex justify-center py-4">
+          <div className="flex flex-col items-center">
+            {table.category ? (
+              <span
+                className="  text-[9px] font-bold px-2 py-0.5 rounded-md bg-white border uppercase tracking-wider shadow-sm flex items-center gap-1.5"
+                style={{
+                  borderColor: `${table.category.color}40`, // 40 adds 25% opacity to the hex border
+                  color: table.category.color,
+                  borderLeft: `3px solid ${table.category.color}`, // Accent line
+                }}
+              >
+                {table.category.name}
+              </span>
+            ) : (
+              <span className="  text-[9px] font-bold px-2 py-0.5 rounded-md bg-slate-50 text-slate-400 border border-slate-100 uppercase tracking-wider">
+                No Category
+              </span>
+            )}
+          </div>
+        </div>
+        <div>
+          <div>
+            {" "}
             <span
-              className={`text-[10px] font-bold uppercase px-2 py-0.5 rounded ${
-                table.status === "FREE"
-                  ? "bg-green-50 text-green-600"
-                  : "bg-amber-50 text-amber-600"
-              }`}
+              className={`mt-2 text-[10px] font-black px-3 py-1 rounded-full ${table.status === "FREE" ? "bg-emerald-100 text-emerald-700" : "bg-slate-200 text-slate-600"}`}
             >
               {table.status}
             </span>
           </div>
-        ))}
-
-        {tables.length === 0 && (
-          <div className="col-span-full py-20 text-center border-2 border-dashed border-gray-200 rounded-3xl">
-            <p className="text-gray-400">
-              Your floor is empty. Add your first table above.
-            </p>
+          <div className="absolute bottom-4 right-4 flex gap-1   transition-all z-10">
+            <button
+              onClick={() => openEditModal(table)}
+              className="p-2 text-slate-400 hover:text-blue-600 hover:bg-blue-50 rounded-full cursor-pointer"
+            >
+              <Edit3 size={16} />
+            </button>
+            <button
+              onClick={() => openDeleteModal(table)}
+              className="p-2 text-slate-400 hover:text-red-600 hover:bg-red-50 rounded-full cursor-pointer"
+            >
+              <Trash2 size={16} />
+            </button>
           </div>
+        </div>
+      </div>
+    </motion.div>
+  );
+
+  const renderTableCar = (table: any) => (
+    <motion.div
+      layout
+      key={table.id}
+      className="group relative bg-white p-6 rounded-[2rem] border-2 border-slate-50 hover:border-blue-200 transition-all hover:shadow-xl"
+    >
+      <div className="absolute top-4 right-4 flex gap-1 opacity-0 group-hover:opacity-100 transition-all z-10">
+        <button
+          onClick={() => openEditModal(table)}
+          className="p-2 text-slate-400 hover:text-blue-600 hover:bg-blue-50 rounded-full"
+        >
+          <Edit3 size={16} />
+        </button>
+        <button
+          onClick={() => openDeleteModal(table)}
+          className="p-2 text-slate-400 hover:text-red-600 hover:bg-red-50 rounded-full"
+        >
+          <Trash2 size={16} />
+        </button>
+      </div>
+
+      <div className="flex flex-col items-center">
+        {table.category && (
+          <span className="mb-2 text-[9px] font-bold px-2 py-0.5 rounded-md bg-blue-50 text-blue-600 border border-blue-100 uppercase tracking-wider">
+            {table.category.name}
+          </span>
         )}
-      </section>
+        <div
+          className={`w-14 h-14 rounded-2xl flex items-center justify-center mb-4 ${table.status === "FREE" ? "bg-emerald-50 text-emerald-600" : "bg-slate-100 text-slate-400"}`}
+        >
+          {table.roomId ? <DoorOpen size={24} /> : <Coffee size={24} />}
+        </div>
+        <h3 className="text-lg font-bold text-slate-800">{table.number}</h3>
+        <span
+          className={`mt-2 text-[10px] font-black px-3 py-1 rounded-full ${table.status === "FREE" ? "bg-emerald-100 text-emerald-700" : "bg-slate-200 text-slate-600"}`}
+        >
+          {table.status}
+        </span>
+      </div>
+    </motion.div>
+  );
+
+  return (
+    <div className=" bg-[#FBFDFF] flex">
+      <div className=" w-[80%] mx-auto p-12 ">
+        <header className="flex flex-col md:flex-row justify-between items-start md:items-center gap-6 mb-12">
+          <div className="flex flex-col md:flex-row items-stretch md:items-center justify-between gap-6 w-full">
+            {/* LEFT SIDE: SEARCH BOX */}
+            <div className="relative w-full md:w-80">
+              <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 w-4.5 h-4.5" />
+              <input
+                type="text"
+                placeholder="Search tables..."
+                className="w-full pl-11 pr-4 py-3 rounded-2xl border border-slate-200 outline-none focus:ring-2 focus:ring-blue-500 bg-white shadow-sm transition-all font-medium"
+                value={filter}
+                onChange={(e) => setFilter(e.target.value)}
+              />
+            </div>
+
+            {/* RIGHT SIDE: FILTER & ACTION GROUP */}
+            <div className="flex items-center gap-3">
+              <CategoryDropdown
+                categories={categories}
+                selectedCategory={selectedCategory}
+                setSelectedCategory={setSelectedCategory}
+              />
+
+              {/* SEPARATOR */}
+              <div className="h-8 w-px bg-slate-200 mx-2 hidden md:block" />
+
+              {/* NEW TABLE BUTTON */}
+              <button
+                onClick={() => setModalType("add")}
+                className="bg-slate-900 text-white px-6 py-3 rounded-2xl font-bold hover:bg-blue-600 transition-all shadow-lg flex items-center gap-2 active:scale-95 whitespace-nowrap cursor-pointer"
+              >
+                <Plus size={18} strokeWidth={3} />
+                <span>New Table</span>
+              </button>
+            </div>
+          </div>
+        </header>
+
+        {/* TABLES GRID */}
+        <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-5 gap-6 max-h-[70vh] overflow-y-auto no-scrollbar ">
+          <AnimatePresence mode="popLayout">
+            {displayedTables.map(renderTableCard)}
+          </AnimatePresence>
+        </div>
+
+        {/* MODAL SYSTEM */}
+        <TableModal
+          isOpen={!!modalType}
+          type={modalType}
+          activeTable={activeTable}
+          categories={categories}
+          onClose={closeModal}
+          onConfirm={handleModalConfirm}
+          onCategoryCreated={onCategoryCreated}
+        />
+      </div>
+
+      <CategoryManager
+        categories={categories}
+        onCategoryCreated={onCategoryCreated}
+        onRefreshCategories={onRefreshCategories}
+      />
     </div>
   );
 }
