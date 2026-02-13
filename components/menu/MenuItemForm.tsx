@@ -132,43 +132,72 @@ export default function MenuItemForm({
 
           {/* Dietary */}
           <AnimatePresence>
-            {formData.type === "FOOD" && (
-              <motion.div
-                initial={{ opacity: 0, y: 10 }}
-                animate={{ opacity: 1, y: 0 }}
-                exit={{ opacity: 0, y: 10 }}
-                className="w-full md:w-72"
-              >
-                <label className="text-xs font-medium text-slate-600 mb-1 block">
-                  Dietary Preference
-                </label>
-                <div className="flex bg-slate-100 p-1 rounded-xl">
-                  {[
-                    { label: "Veg", value: true, icon: <Leaf size={14} /> },
-                    {
-                      label: "Non-Veg",
-                      value: false,
-                      icon: <Flame size={14} />,
-                    },
-                  ].map((diet) => (
-                    <button
-                      key={diet.label}
-                      type="button"
-                      onClick={() => updateField("isVeg", diet.value)}
-                      className={`flex-1 py-2.5 rounded-lg text-xs font-semibold flex items-center justify-center gap-2 transition-all ${
-                        formData.isVeg === diet.value
-                          ? "bg-white shadow-sm text-slate-900"
-                          : "text-slate-500 hover:text-slate-700"
-                      }`}
-                    >
-                      {diet.icon}
-                      {diet.label}
-                    </button>
-                  ))}
-                </div>
-              </motion.div>
-            )}
+            <motion.div
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: 10 }}
+              className="w-full md:w-72"
+            >
+              <label className="text-xs font-medium text-slate-600 mb-1 block">
+                Dietary Preference
+              </label>
+              <div className="flex bg-slate-100 p-1 rounded-xl">
+                {[
+                  { label: "Veg", value: true, icon: <Leaf size={14} /> },
+                  {
+                    label: "Non-Veg",
+                    value: false,
+                    icon: <Flame size={14} />,
+                  },
+                ].map((diet) => (
+                  <button
+                    key={diet.label}
+                    type="button"
+                    onClick={() => updateField("isVeg", diet.value)}
+                    className={`flex-1 py-2.5 rounded-lg text-xs font-semibold flex items-center justify-center gap-2 transition-all ${
+                      formData.isVeg === diet.value
+                        ? "bg-white shadow-sm text-slate-900"
+                        : "text-slate-500 hover:text-slate-700"
+                    }`}
+                  >
+                    {diet.icon}
+                    {diet.label}
+                  </button>
+                ))}
+              </div>
+            </motion.div>
           </AnimatePresence>
+
+          {/* STATUS TOGGLE - Add this below the TYPE + DIET section */}
+          <div className="w-full md:w-72">
+            <label className="text-xs font-medium text-slate-600 mb-1 block">
+              Item Status
+            </label>
+            <div className="flex bg-slate-100 p-1 rounded-xl">
+              {[
+                { label: "Active", value: true, color: "text-emerald-600" },
+                { label: "Disabled", value: false, color: "text-slate-500" },
+              ].map((status) => (
+                <button
+                  key={status.label}
+                  type="button"
+                  onClick={() => updateField("isActive", status.value)}
+                  className={`flex-1 py-2.5 rounded-lg text-xs font-semibold flex items-center justify-center gap-2 transition-all ${
+                    formData.isActive === status.value
+                      ? "bg-white shadow-sm text-slate-900"
+                      : "text-slate-500 hover:text-slate-700"
+                  }`}
+                >
+                  <div
+                    className={`w-1.5 h-1.5 rounded-full ${
+                      status.value ? "bg-emerald-500" : "bg-slate-400"
+                    }`}
+                  />
+                  {status.label}
+                </button>
+              ))}
+            </div>
+          </div>
         </div>
 
         {/* INVENTORY LINK */}
@@ -181,8 +210,10 @@ export default function MenuItemForm({
               className="space-y-2"
             >
               <label className="text-xs font-medium text-slate-600 block">
-                Link Inventory Item
+                Link Inventory Item{" "}
+                <span className="text-red-700 text-l">*</span>
               </label>
+
               <div className="relative">
                 <Link className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
                 <select
@@ -207,20 +238,35 @@ export default function MenuItemForm({
       </div>
 
       {/* FOOTER */}
-      <div className="px-8 py-6 border-t border-slate-100 bg-slate-50">
-        <button
-          disabled={isPending}
-          className="w-full py-3.5 rounded-xl bg-slate-900 text-white font-semibold text-sm flex items-center justify-center gap-2 hover:bg-black transition-all disabled:opacity-60"
-        >
-          {isPending ? (
-            <Loader2 className="animate-spin w-4 h-4" />
-          ) : (
-            <>
-              <Plus size={16} />
-              Create Menu Item
-            </>
-          )}
-        </button>
+      <div className="flex px-8 py-6 border-t border-slate-100 bg-slate-50 justify-around">
+        <div className="w-md">
+          <button
+            disabled={isPending}
+            className="w-full py-3.5 rounded-xl bg-white-100 text-slate-900 border-1 font-semibold text-sm flex items-center justify-center gap-2 hover:text-white hover:bg-slate-800 transition-all disabled:opacity-60 cursor-pointer"
+          >
+            {isPending ? (
+              <Loader2 className="animate-spin w-4 h-4" />
+            ) : (
+              <>
+                <h3>Cancel</h3>
+              </>
+            )}
+          </button>
+        </div>
+        <div className="w-md">
+          <button
+            disabled={isPending}
+            className="w-full py-3.5 rounded-xl bg-black text-white font-semibold text-sm flex items-center justify-center gap-2 hover:bg-slate-800 transition-all disabled:opacity-60 border-2 cursor-pointer"
+          >
+            {isPending ? (
+              <Loader2 className="animate-spin w-4 h-4" />
+            ) : (
+              <>
+                <h3>Confirm</h3>
+              </>
+            )}
+          </button>
+        </div>
       </div>
     </form>
   );

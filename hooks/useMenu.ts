@@ -1,5 +1,6 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import api from "@/lib/axios";
+import { toast } from "react-hot-toast/headless";
 
 export const useMenu = () =>
   useQuery({
@@ -25,5 +26,20 @@ export const useUpdateMenuItem = () => {
   return useMutation({
     mutationFn: ({ id, payload }: any) => api.patch(`/menu/${id}`, payload),
     onSuccess: () => qc.invalidateQueries({ queryKey: ["menu"] }),
+  });
+};
+
+export const useDeleteMenuItem = () => {
+  const qc = useQueryClient();
+
+  return useMutation({
+    mutationFn: (id: string) => api.delete(`/menu/${id}`),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["menu"] });
+      toast.success("Item deleted forever");
+    },
+    onError: () => {
+      toast.error("Failed to delete item");
+    },
   });
 };

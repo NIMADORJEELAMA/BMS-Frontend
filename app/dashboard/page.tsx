@@ -125,7 +125,7 @@ export default function DashboardPage() {
   };
 
   return (
-    <div className="flex h-screen bg-gray-50 overflow-hidden font-sans no-scrollbar">
+    <div className="flex h-[92vh] bg-gray-50 overflow-hidden font-sans no-scrollbar">
       <Toaster position="top-right" />
 
       <div className="flex-1 flex flex-col min-w-0">
