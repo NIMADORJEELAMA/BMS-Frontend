@@ -4,6 +4,16 @@ import api from "@/lib/axios";
 import toast from "react-hot-toast";
 import { io } from "socket.io-client";
 import { Printer, CheckCircle, Clock } from "lucide-react";
+import {
+  Card,
+  CardHeader,
+  CardContent,
+  CardFooter,
+} from "@/components/ui/card";
+
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { Separator } from "@/components/ui/separator";
 
 export default function KitchenPage() {
   const [rawItems, setRawItems] = useState([]);
@@ -98,115 +108,128 @@ export default function KitchenPage() {
       toast.error("Failed to mark order as ready");
     }
   };
+
   return (
-    <div className="p-8 bg-zinc-950 min-h-screen text-white">
-      <header className="flex justify-between items-center mb-10">
-        <div>
-          <h1 className="text-4xl font-black tracking-tighter uppercase italic">
-            minizeo kitchen
-          </h1>
-          <p className="text-zinc-500 font-bold text-xs uppercase tracking-widest">
-            Live Production Feed
-          </p>
-        </div>
-        <div className="bg-zinc-900 px-6 py-2 rounded-full border border-zinc-800 text-green-500 font-black">
-          {groupedOrders.length} ACTIVE TICKETS
-        </div>
-      </header>
+    <div className="min-h-screen bg-muted/40 p-8">
+      <div className="  mx-auto space-y-8">
+        {/* HEADER */}
+        <div className="flex items-center justify-between">
+          <div>
+            <h1 className="text-3xl font-bold tracking-tight">
+              Kitchen Dashboard
+            </h1>
+            <p className="text-muted-foreground text-sm">
+              Live Production Queue
+            </p>
+          </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
-        {groupedOrders.map((order: any) => (
-          <div
-            key={order.id}
-            className="bg-zinc-900 border-2 border-zinc-800 rounded-[32px] flex flex-col shadow-2xl"
-          >
-            {/* Ticket Header */}
-            <div className="p-6 border-b border-zinc-800 flex justify-between items-center bg-zinc-800/30">
-              <div className="flex items-center gap-3">
-                <span className="bg-white text-black w-12 h-12 rounded-2xl flex items-center justify-center font-black text-xl">
-                  {order.tableNumber}
-                </span>
-                <div>
-                  <p className="text-[10px] font-black text-zinc-500 uppercase">
-                    Table
-                  </p>
-                  <p className="text-xs font-bold font-mono">
-                    #{order.id.slice(0, 5)}
-                  </p>
-                </div>
-              </div>
-              <div className="text-right">
-                <Clock size={16} className="text-zinc-600 mb-1 ml-auto" />
-                <p className="text-[10px] font-black text-zinc-500">
-                  {new Date(order.createdAt).toLocaleTimeString([], {
-                    hour: "2-digit",
-                    minute: "2-digit",
-                  })}
-                </p>
-              </div>
-            </div>
+          <div className="flex items-center gap-3">
+            <Badge variant="outline" className="text-lg px-4 py-2">
+              {groupedOrders.length} Active Tickets
+            </Badge>
+          </div>
+        </div>
 
-            {/* Item List */}
-            <div className="p-6 space-y-4 flex-1">
-              {order.items.map((item: any) => (
-                <div
-                  key={item.id}
-                  className="flex justify-between items-center group"
-                >
+        {/* GRID */}
+        {groupedOrders.length > 0 ? (
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+            {groupedOrders.map((order: any) => (
+              <Card
+                key={order.id}
+                className="rounded-2xl shadow-sm hover:shadow-md transition-all"
+              >
+                {/* Ticket Header */}
+                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-4">
                   <div className="flex items-center gap-4">
-                    <span className="text-2xl font-black text-zinc-700 group-hover:text-amber-500 transition-colors">
-                      {item.quantity}×
-                    </span>
+                    <div className="h-12 w-12 rounded-xl bg-primary text-primary-foreground flex items-center justify-center font-bold text-lg">
+                      {order.tableNumber}
+                    </div>
+
                     <div>
-                      <p className="text-lg font-bold text-zinc-200 uppercase tracking-tight">
-                        {item.menuItem?.name}
+                      <p className="text-xs text-muted-foreground">
+                        Order #{order.id.slice(0, 6)}
                       </p>
-                      {item.status === "PREPARING" && (
-                        <span className="text-[9px] font-black text-amber-500 uppercase tracking-widest">
-                          Cooking...
-                        </span>
-                      )}
+                      <p className="text-xs text-muted-foreground flex items-center gap-1 mt-1">
+                        <Clock size={14} />
+                        {new Date(order.createdAt).toLocaleTimeString([], {
+                          hour: "2-digit",
+                          minute: "2-digit",
+                        })}
+                      </p>
                     </div>
                   </div>
-                  <button
-                    onClick={() => handleMarkItemReady(item.id)}
-                    className="p-3 bg-zinc-800 hover:bg-green-600 rounded-2xl transition-all text-zinc-500 hover:text-white"
+
+                  <Badge variant="secondary">Preparing</Badge>
+                </CardHeader>
+
+                <Separator />
+
+                {/* Items */}
+                <CardContent className="space-y-4 py-4">
+                  {order.items.map((item: any) => (
+                    <div
+                      key={item.id}
+                      className="flex items-center justify-between"
+                    >
+                      <div className="flex items-center gap-4">
+                        <span className="text-lg font-semibold text-muted-foreground">
+                          {item.quantity}×
+                        </span>
+
+                        <div>
+                          <p className="font-medium">{item.menuItem?.name}</p>
+
+                          {item.status === "PREPARING" && (
+                            <Badge variant="outline" className="text-xs mt-1">
+                              Cooking
+                            </Badge>
+                          )}
+                        </div>
+                      </div>
+
+                      <Button
+                        size="icon"
+                        variant="outline"
+                        onClick={() => handleMarkItemReady(item.id)}
+                      >
+                        <CheckCircle size={18} />
+                      </Button>
+                    </div>
+                  ))}
+                </CardContent>
+
+                <Separator />
+
+                {/* Footer */}
+                <CardFooter className="flex gap-3">
+                  <Button variant="secondary" className="flex-1" disabled>
+                    <Printer size={16} className="mr-2" />
+                    Print KOT
+                  </Button>
+
+                  <Button
+                    className="flex-1"
+                    onClick={() => handleMarkEntireOrderReady(order)}
                   >
-                    <CheckCircle size={20} />
-                  </button>
-                </div>
-              ))}
-            </div>
-
-            {/* Footer Actions */}
-            <div className="p-4 bg-zinc-800/50 flex gap-3">
-              <button
-                disabled
-                className="flex-1 py-4 bg-zinc-800 text-zinc-600 rounded-2xl font-black text-[10px] uppercase tracking-widest flex items-center justify-center gap-2 cursor-not-allowed"
-              >
-                <Printer size={16} /> Print KOT
-              </button>
-              <button
-                onClick={() => handleMarkEntireOrderReady(order)}
-                className="flex-[2] py-4 bg-green-600 hover:bg-green-500 text-white rounded-2xl font-black text-[10px] uppercase tracking-widest flex items-center justify-center gap-2 transition-all active:scale-95 shadow-lg shadow-green-900/20"
-              >
-                <CheckCircle size={16} /> Mark Order Ready
-              </button>
-            </div>
+                    <CheckCircle size={16} className="mr-2" />
+                    Mark Ready
+                  </Button>
+                </CardFooter>
+              </Card>
+            ))}
           </div>
-        ))}
+        ) : (
+          <Card className="rounded-2xl">
+            <CardContent className="flex flex-col items-center justify-center py-24 text-center">
+              <CheckCircle size={40} className="text-green-500 mb-4" />
+              <h2 className="text-xl font-semibold">Kitchen Clear</h2>
+              <p className="text-muted-foreground mt-2">
+                Waiting for new orders...
+              </p>
+            </CardContent>
+          </Card>
+        )}
       </div>
-
-      {groupedOrders.length === 0 && (
-        <div className="text-center py-40">
-          <p className="text-zinc-800 text-6xl font-black uppercase italic">
-            Kitchen Clear
-          </p>
-          <p className="text-zinc-600 font-bold uppercase tracking-[0.5em] mt-4">
-            Waiting for orders
-          </p>
-        </div>
-      )}
     </div>
   );
 }

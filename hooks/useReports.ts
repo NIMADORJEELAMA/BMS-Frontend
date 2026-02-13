@@ -1,16 +1,27 @@
 import { useQuery } from "@tanstack/react-query";
 import api from "@/lib/axios";
 
-export const usePerformanceReport = (startDate: string, endDate: string) => {
+export const usePerformanceReport = (
+  startDate: string,
+  endDate: string,
+  page: number,
+  limit: number,
+  search: string,
+) => {
   return useQuery({
-    queryKey: ["performance-report", startDate, endDate],
+    queryKey: ["performance-report", startDate, endDate, page, limit, search],
     queryFn: async () => {
       const { data } = await api.get("/orders/reports/performance", {
-        params: { startDate, endDate },
+        params: {
+          startDate,
+          endDate,
+          page,
+          limit,
+          search,
+        },
       });
       return data;
     },
-    // We keep reports for 2 minutes before considering them "stale"
     staleTime: 1000 * 60 * 2,
   });
 };

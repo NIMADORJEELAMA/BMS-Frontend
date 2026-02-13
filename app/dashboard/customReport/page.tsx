@@ -1,186 +1,302 @@
 "use client";
-import { useState } from "react";
+
+import { useState, useMemo, useEffect } from "react";
 import { usePerformanceReport } from "@/hooks/useReports";
-import DateRangePicker from "@/components/DateRangePicker";
 import {
   BarChart3,
   Receipt,
   IndianRupee,
-  Star,
-  ExternalLink,
+  TrendingUp,
   Loader2,
 } from "lucide-react";
-import toast from "react-hot-toast";
-import ItemDrilldownModal from "@/components/ItemDrilldownModal";
 
-export default function PerformanceReport() {
+import {
+  ResponsiveContainer,
+  LineChart,
+  Line,
+  CartesianGrid,
+  XAxis,
+  YAxis,
+  Tooltip,
+  BarChart,
+  Bar,
+} from "recharts";
+
+import DoubleDateRangePicker from "@/components/DoubleDateRangePicker";
+
+export default function EnterprisePerformanceReport() {
   const today = new Date().toISOString().split("T")[0];
+
   const [startDate, setStartDate] = useState(today);
   const [endDate, setEndDate] = useState(today);
-  const [selectedDrilldown, setSelectedDrilldown] = useState<any>(null);
-  // TanStack Query Hook replacing useEffect and local loading state
+  const [page, setPage] = useState(1);
+  const [limit] = useState(10);
+  const [search, setSearch] = useState("");
+  const [debouncedSearch, setDebouncedSearch] = useState("");
+
+  // Reset page when date changes
+  useEffect(() => {
+    setPage(1);
+  }, [startDate, endDate]);
+
   const {
     data: report,
     isLoading,
     isFetching,
-  } = usePerformanceReport(startDate, endDate);
+  } = usePerformanceReport(startDate, endDate, page, limit, debouncedSearch);
+  const totalPages = Math.max(1, Math.ceil((report?.totalItems || 0) / limit));
+
+  const getPageNumbers = () => {
+    const pages = [];
+    const windowSize = 2;
+
+    const start = Math.max(1, page - windowSize);
+    const end = Math.min(totalPages, page + windowSize);
+
+    for (let i = start; i <= end; i++) {
+      pages.push(i);
+    }
+
+    return pages;
+  };
+
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setDebouncedSearch(search);
+      setPage(1);
+    }, 1000);
+
+    return () => clearTimeout(timer);
+  }, [search]);
+
+  // const totalPages = useMemo(() => {
+  //   if (!report?.totalItems) return 1;
+  //   return Math.ceil(report.totalItems / limit);
+  // }, [report, limit]);
+
+  const revenueTrendData = useMemo(() => {
+    return (
+      report?.dailyRevenue?.map((d: any) => ({
+        date: d.date,
+        revenue: d.total,
+      })) || []
+    );
+  }, [report]);
+
+  const topItemsChartData = useMemo(() => {
+    return report?.topSellingItems?.slice(0, 5) || [];
+  }, [report]);
 
   return (
-    <div className="p-8 bg-gray-50 min-h-screen font-sans">
-      <div className="max-w-6xl mx-auto space-y-6">
-        {/* FILTERS & HEADER */}
-        <div className="flex flex-col md:flex-row justify-between items-center bg-white p-6 rounded-[32px] border border-gray-100 shadow-sm gap-4">
+    <div className="min-h-screen bg-slate-50 p-8">
+      <div className="  mx-auto space-y-8">
+        {/* HEADER */}
+        <div className="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm flex justify-between items-center">
           <div className="flex items-center gap-4">
-            <div className="p-3 bg-blue-600 text-white rounded-2xl shadow-lg shadow-blue-200">
-              <BarChart3 size={24} />
+            <div className="p-3 bg-indigo-600 text-white rounded-xl">
+              <BarChart3 size={22} />
             </div>
             <div>
-              <h1 className="text-2xl font-black text-gray-900 uppercase italic leading-none">
-                Revenue Intelligence
+              <h1 className="text-xl font-bold text-slate-900">
+                Performance Analytics
               </h1>
-              <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mt-1">
-                minizeo data analytics
+              <p className="text-sm text-slate-500">
+                Revenue & Product Insights
               </p>
             </div>
           </div>
 
-          <div className="flex items-center gap-3">
-            {isFetching && (
-              <Loader2 className="animate-spin text-blue-600" size={18} />
-            )}
-            <DateRangePicker
+          <div className="flex items-center gap-4">
+            <DoubleDateRangePicker
               startDate={startDate}
               endDate={endDate}
-              onStartChange={setStartDate}
-              onEndChange={setEndDate}
-              onClear={() => {
-                setStartDate(today);
-                setEndDate(today);
+              onChange={(start, end) => {
+                setStartDate(start);
+                setEndDate(end);
               }}
-              onSubmit={() => {}} // Hook refetches automatically on date change
-              loading={isLoading}
             />
           </div>
         </div>
 
-        {isLoading ? (
-          <div className="h-96 flex flex-col items-center justify-center gap-4">
-            <div className="w-12 h-12 border-4 border-blue-600 border-t-transparent rounded-full animate-spin"></div>
-            <p className="font-black italic text-gray-400 uppercase tracking-tighter">
-              Analyzing minizeo Performance...
-            </p>
+        {/* KPI SECTION */}
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+          <KPI
+            title="Total Revenue"
+            value={`₹${report?.totalRevenue || 0}`}
+            icon={<IndianRupee />}
+          />
+          <KPI
+            title="Total Orders"
+            value={report?.orderCount || 0}
+            icon={<Receipt />}
+          />
+          <KPI
+            title="Avg Order Value"
+            value={`₹${(report?.avgOrderValue || 0).toFixed(2)}`}
+            icon={<TrendingUp />}
+          />
+        </div>
+
+        {/* CHART SECTION */}
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          <div className="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm">
+            <h3 className="text-sm font-semibold text-slate-600 mb-4">
+              Revenue Trend
+            </h3>
+            <ResponsiveContainer width="100%" height={300}>
+              <LineChart data={revenueTrendData}>
+                <CartesianGrid strokeDasharray="3 3" />
+                <XAxis dataKey="date" />
+                <YAxis />
+                <Tooltip />
+                <Line
+                  type="monotone"
+                  dataKey="revenue"
+                  stroke="#6366F1"
+                  strokeWidth={3}
+                />
+              </LineChart>
+            </ResponsiveContainer>
           </div>
-        ) : (
-          report && (
-            <>
-              {/* KPI GRID */}
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                <ReportCard
-                  title="Total Revenue"
-                  value={`₹${report.totalRevenue}`}
-                  icon={<IndianRupee />}
-                  color="text-green-600"
-                />
-                <ReportCard
-                  title="Total Orders"
-                  value={report.orderCount}
-                  icon={<Receipt />}
-                  color="text-blue-600"
-                />
-                <ReportCard
-                  title="Avg. Ticket Size"
-                  value={`₹${(report?.avgOrderValue || 0).toFixed(2)}`}
-                  icon={<Star />}
-                  color="text-purple-600"
-                />
-              </div>
 
-              {/* PERFORMANCE TABLE */}
-              <div className="bg-white rounded-[40px] border border-gray-100 shadow-sm overflow-hidden">
-                <div className="p-8 border-b border-gray-50 flex justify-between items-center">
-                  <h3 className="font-black text-gray-900 uppercase tracking-widest text-sm italic">
-                    Product Performance
-                  </h3>
-                  <span className="text-[10px] font-black bg-gray-100 px-3 py-1 rounded-full text-gray-500">
-                    TOP {report.topSellingItems.length} ITEMS
-                  </span>
-                </div>
+          <div className="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm">
+            <h3 className="text-sm font-semibold text-slate-600 mb-4">
+              Top Selling Items
+            </h3>
+            <ResponsiveContainer width="100%" height={300}>
+              <BarChart data={topItemsChartData}>
+                <CartesianGrid strokeDasharray="3 3" />
+                <XAxis dataKey="name" />
+                <YAxis />
+                <Tooltip />
+                <Bar dataKey="quantity" fill="#10B981" />
+              </BarChart>
+            </ResponsiveContainer>
+          </div>
+        </div>
+        <div className="flex justify-between items-center px-6 py-4 border-b border-slate-200">
+          <input
+            type="text"
+            placeholder="Search product..."
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            className="px-4 py-2 border border-slate-300 rounded-lg text-sm w-64 focus:ring-2 focus:ring-indigo-500 outline-none"
+          />
 
-                <table className="w-full text-left">
-                  <thead className="bg-gray-50/50">
-                    <tr className="text-[10px] font-black text-gray-400 uppercase tracking-widest">
-                      <th className="px-8 py-4">Rank</th>
-                      <th className="px-8 py-4">Dish Name</th>
-                      <th className="px-8 py-4">Qty Sold</th>
-                      <th className="px-8 py-4 text-right">Trend</th>
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y divide-gray-50">
-                    {report.topSellingItems.map((item: any, index: number) => (
-                      <tr
-                        key={index}
-                        className="hover:bg-blue-50/20 transition-all cursor-pointer group"
-                        onClick={() => setSelectedDrilldown(item)}
-                        // onClick={() =>
-                        //   toast(`Performance drilldown: ${item.name}`)
-                        // }
-                      >
-                        <td className="px-8 py-5">
-                          <span
-                            className={`w-7 h-7 flex items-center justify-center rounded-lg text-[10px] font-black ${
-                              index < 3
-                                ? "bg-amber-100 text-amber-600"
-                                : "bg-gray-100 text-gray-400"
-                            }`}
-                          >
-                            #{index + 1}
-                          </span>
-                        </td>
-                        <td className="px-8 py-5 font-black text-gray-900 uppercase text-sm tracking-tight">
-                          {item.name}
-                        </td>
-                        <td className="px-8 py-5 font-bold text-gray-500">
-                          {item.quantity}
-                        </td>
-                        <td className="px-8 py-5 text-right">
-                          <button className="text-blue-600 opacity-0 group-hover:opacity-100 transition-all">
-                            <ExternalLink size={16} />
-                          </button>
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-              {selectedDrilldown && (
-                <ItemDrilldownModal
-                  itemId={selectedDrilldown.id}
-                  itemName={selectedDrilldown.name}
-                  startDate={startDate}
-                  endDate={endDate}
-                  onClose={() => setSelectedDrilldown(null)}
-                />
+          <span className="text-xs text-slate-500">
+            {report?.totalItems || 0} Records
+          </span>
+        </div>
+
+        {/* TABLE */}
+        <div className="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
+          <div className="px-6 py-4 border-b border-slate-200 flex justify-between items-center">
+            <h3 className="text-sm font-semibold text-slate-700">
+              Product Performance
+            </h3>
+            <span className="text-xs text-slate-500">
+              {report?.totalItems === 0 ? (
+                "No records found"
+              ) : (
+                <>
+                  Showing {(page - 1) * limit + 1}–
+                  {Math.min(page * limit, report?.totalItems || 0)} of{" "}
+                  {report?.totalItems} records
+                </>
               )}
+            </span>
+          </div>
+
+          <div className="overflow-x-auto">
+            <table className="w-full text-sm">
+              <thead className="bg-slate-50 text-slate-600 text-xs uppercase">
+                <tr>
+                  <th className="px-6 py-4 text-left">Rank</th>
+                  <th className="px-6 py-4 text-left">Product</th>
+                  <th className="px-6 py-4 text-left">Quantity</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-slate-100">
+                {report?.topSellingItems.map((item: any, index: number) => (
+                  <tr key={item.id}>
+                    <td className="px-6 py-4 font-medium">
+                      #{(page - 1) * limit + index + 1}
+                    </td>
+                    <td className="px-6 py-4 font-semibold text-slate-800">
+                      {item.name}
+                    </td>
+                    <td className="px-6 py-4">{item.quantity}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+
+          {/* PAGINATION */}
+          <div className="flex justify-between items-center px-6 py-4 border-t border-slate-200">
+            <p className="text-sm text-slate-500">
+              Page {page} of {totalPages}
+            </p>
+
+            <div className="flex gap-2">
+              <button
+                disabled={page === 1}
+                onClick={() => setPage(page - 1)}
+                className="px-3 py-1 border rounded disabled:opacity-50"
+              >
+                Prev
+              </button>
+
+              {getPageNumbers().map((p) => (
+                <button
+                  key={p}
+                  onClick={() => setPage(p)}
+                  className={`px-3 py-1 border rounded ${
+                    page === p
+                      ? "bg-indigo-600 text-white border-indigo-600"
+                      : ""
+                  }`}
+                >
+                  {p}
+                </button>
+              ))}
+
+              <button
+                disabled={page === totalPages}
+                onClick={() => setPage(page + 1)}
+                className="px-3 py-1 border rounded disabled:opacity-50"
+              >
+                Next
+              </button>
+            </div>
+          </div>
+          {page < totalPages - 2 && (
+            <>
+              <span className="px-2">...</span>
+              <button
+                onClick={() => setPage(totalPages)}
+                className="px-3 py-1 border rounded"
+              >
+                {totalPages}
+              </button>
             </>
-          )
-        )}
+          )}
+        </div>
       </div>
     </div>
   );
 }
 
-function ReportCard({ title, value, icon, color }: any) {
+function KPI({ title, value, icon }: any) {
   return (
-    <div className="bg-white p-8 rounded-[40px] border border-gray-100 shadow-sm transition-transform hover:scale-[1.02]">
-      <div className={`p-3 w-fit rounded-2xl mb-4 bg-gray-50 ${color}`}>
-        {icon}
+    <div className="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm">
+      <div className="flex items-center gap-3 mb-4">
+        <div className="p-2 bg-indigo-100 text-indigo-600 rounded-lg">
+          {icon}
+        </div>
+        <p className="text-sm font-medium text-slate-500">{title}</p>
       </div>
-      <p className="text-[10px] font-black text-gray-400 uppercase tracking-[0.2em]">
-        {title}
-      </p>
-      <h2 className={`text-4xl font-black mt-2 tracking-tighter ${color}`}>
-        {value}
-      </h2>
+      <h2 className="text-3xl font-bold text-slate-900">{value}</h2>
     </div>
   );
 }
