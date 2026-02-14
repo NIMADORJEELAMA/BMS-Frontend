@@ -1,79 +1,170 @@
 "use client";
+
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import axios from "axios";
+import api from "@/lib/axios"; // Using your configured axios instance
+import { Loader2, Lock, Mail, ShieldCheck, Hotel } from "lucide-react";
+import toast from "react-hot-toast";
+
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Card, CardContent } from "@/components/ui/card";
 
 export default function LoginPage() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
-  const [error, setError] = useState("");
+  const [loading, setLoading] = useState(false);
   const router = useRouter();
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
+    setLoading(true);
+
     try {
-      const response = await axios.post("http://localhost:3000/auth/login", {
+      const response = await api.post("/auth/login", {
         email,
         password,
       });
 
-      // Save token and user info
+      // Save credentials
       localStorage.setItem("token", response.data.access_token);
       localStorage.setItem("user", JSON.stringify(response.data.user));
 
-      // Redirect to the Table Dashboard
+      toast.success("Authentication successful. Welcome back!");
+
+      // Force redirect to dashboard
       router.push("/dashboard");
     } catch (err: any) {
-      setError("Invalid email or password. Please try again.");
+      toast.error(
+        err.response?.data?.message || "Invalid credentials. Please try again.",
+      );
+    } finally {
+      setLoading(false);
     }
   };
 
   return (
-    <div className="flex min-h-screen items-center justify-center bg-gray-100">
-      <div className="w-full max-all-md p-8 bg-white rounded-2xl shadow-xl">
-        <h1 className="text-3xl font-bold text-center text-blue-600 mb-2">
-          minizeo
-        </h1>
-        <p className="text-center text-gray-500 mb-8">
-          Restaurant Management System
-        </p>
+    <div className="flex min-h-screen bg-white">
+      {/* LEFT SIDE: BRANDING VISUAL */}
+      <div className="hidden lg:flex w-1/2 bg-slate-950 p-12 flex-col justify-between relative overflow-hidden">
+        {/* Subtle decorative background pattern */}
+        <div className="absolute inset-0 opacity-10 pointer-events-none">
+          <div className="absolute top-[-10%] left-[-10%] w-[40%] h-[40%] bg-indigo-500 rounded-full blur-[120px]" />
+          <div className="absolute bottom-[-10%] right-[-10%] w-[40%] h-[40%] bg-slate-500 rounded-full blur-[120px]" />
+        </div>
 
-        <form onSubmit={handleLogin} className="space-y-6">
-          <div>
-            <label className="block text-sm font-medium text-gray-700">
-              Email Address
-            </label>
-            <input
-              type="email"
-              required
-              className="mt-1 block w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-blue-500 focus:border-blue-500"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-            />
+        <div className="relative z-10 flex items-center gap-3">
+          <div className="h-10 w-10 bg-indigo-600 rounded-xl flex items-center justify-center text-white shadow-lg shadow-indigo-500/20">
+            <Hotel size={20} />
+          </div>
+          <span className="text-xl font-black text-white uppercase tracking-tighter italic">
+            minizeo
+          </span>
+        </div>
+
+        <div className="relative z-10">
+          <h2 className="text-5xl font-black text-white leading-tight tracking-tighter uppercase italic mb-6">
+            The next generation <br />
+            <span className="text-indigo-500">of Hospitality.</span>
+          </h2>
+          <p className="text-slate-400 max-w-md font-medium leading-relaxed">
+            Unified Front Desk, Inventory, and Personnel management designed for
+            modern resorts and restaurants.
+          </p>
+        </div>
+
+        <div className="relative z-10 flex gap-4">
+          <div className="h-1 w-12 bg-indigo-600 rounded-full" />
+          <div className="h-1 w-4 bg-slate-800 rounded-full" />
+          <div className="h-1 w-4 bg-slate-800 rounded-full" />
+        </div>
+      </div>
+
+      {/* RIGHT SIDE: LOGIN FORM */}
+      <div className="w-full lg:w-1/2 flex items-center justify-center p-8 bg-slate-50/30">
+        <div className="w-full max-w-md space-y-8">
+          <div className="space-y-2">
+            <h1 className="text-3xl font-black text-slate-900 tracking-tighter uppercase italic">
+              Terminal Login
+            </h1>
+            <p className="text-sm font-medium text-slate-500">
+              Enter your secure credentials to access the resort dashboard.
+            </p>
           </div>
 
-          <div>
-            <label className="block text-sm font-medium text-gray-700">
-              Password
-            </label>
-            <input
-              type="password"
-              required
-              className="mt-1 block w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-blue-500 focus:border-blue-500"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-            />
+          <form onSubmit={handleLogin} className="space-y-6">
+            <div className="space-y-4">
+              <div className="space-y-2">
+                <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">
+                  Email Address
+                </label>
+                <div className="relative">
+                  <Mail
+                    className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400"
+                    size={16}
+                  />
+                  <Input
+                    type="email"
+                    required
+                    placeholder="admin@minizeo.com"
+                    className="h-14 pl-12 rounded-2xl border-slate-200 bg-white focus-visible:ring-indigo-500/20 transition-all font-medium"
+                    value={email}
+                    onChange={(e) => setEmail(e.target.value)}
+                  />
+                </div>
+              </div>
+
+              <div className="space-y-2">
+                <div className="flex justify-between items-center px-1">
+                  <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest">
+                    Security Password
+                  </label>
+                  <button
+                    type="button"
+                    className="text-[10px] font-black text-indigo-600 uppercase hover:underline"
+                  >
+                    Forgot?
+                  </button>
+                </div>
+                <div className="relative">
+                  <Lock
+                    className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400"
+                    size={16}
+                  />
+                  <Input
+                    type="password"
+                    required
+                    placeholder="••••••••"
+                    className="h-14 pl-12 rounded-2xl border-slate-200 bg-white focus-visible:ring-indigo-500/20 transition-all font-medium"
+                    value={password}
+                    onChange={(e) => setPassword(e.target.value)}
+                  />
+                </div>
+              </div>
+            </div>
+
+            <Button
+              type="submit"
+              disabled={loading}
+              className="w-full h-14 bg-slate-900 hover:bg-slate-800 text-white rounded-2xl font-black text-[11px] uppercase tracking-[0.2em] shadow-xl shadow-slate-200 transition-all active:scale-[0.98]"
+            >
+              {loading ? (
+                <Loader2 className="animate-spin" size={20} />
+              ) : (
+                <>
+                  <ShieldCheck className="mr-2" size={18} /> Authenticate
+                  Session
+                </>
+              )}
+            </Button>
+          </form>
+
+          <div className="pt-8 text-center">
+            <p className="text-[10px] font-black text-slate-300 uppercase tracking-widest">
+              Authorized Personnel Only • Secure 256-bit Encryption
+            </p>
           </div>
-
-          {error && <p className="text-red-500 text-sm text-center">{error}</p>}
-
-          <button
-            type="submit"
-            className="w-full py-3 px-4 bg-blue-600 hover:bg-blue-700 text-white font-bold rounded-lg transition duration-200"
-          >
-            Sign In
-          </button>
-        </form>
+        </div>
       </div>
     </div>
   );

@@ -10,7 +10,7 @@ const outfit = Outfit({
 });
 
 export const metadata: Metadata = {
-  title: "minizeo | Admin Portal",
+  title: "Hill Top Resort",
   description: "Advanced Restaurant & Logistics Management",
 };
 
