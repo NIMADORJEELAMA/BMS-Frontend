@@ -212,7 +212,7 @@ export default function CategoryManager({
           </AnimatePresence>
 
           {categories.length === 0 && (
-            <div className="text-center py-10 text-slate-400 italic text-xs">
+            <div className="text-center py-10 text-slate-400   text-xs">
               No areas created yet.
             </div>
           )}

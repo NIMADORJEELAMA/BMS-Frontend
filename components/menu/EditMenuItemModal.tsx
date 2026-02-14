@@ -66,7 +66,7 @@ export default function EditMenuItemModal({
       <div className="w-full max-w-2xl rounded-[36px] bg-white shadow-2xl animate-in zoom-in-95 duration-200">
         {/* HEADER */}
         <div className="flex items-center justify-between px-8 py-6 border-b">
-          <h2 className="text-2xl font-black uppercase italic tracking-tighter">
+          <h2 className="text-2xl font-black uppercase   tracking-tighter">
             Edit Menu Item
           </h2>
           <button

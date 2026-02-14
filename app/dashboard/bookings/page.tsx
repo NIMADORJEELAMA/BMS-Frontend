@@ -1,136 +1,233 @@
 "use client";
+
 import { useState } from "react";
-import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import api from "@/lib/axios";
-import { UserPlus, Phone, Loader2, Receipt } from "lucide-react";
+import {
+  UserPlus,
+  Phone,
+  Loader2,
+  Search,
+  CalendarDays,
+  MoreHorizontal,
+  Receipt,
+  UserCheck,
+} from "lucide-react";
+
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import { Skeleton } from "@/components/ui/skeleton";
 import CheckInModal from "@/components/rooms/CheckInModal";
-import CheckOutSummary from "@/components/rooms/CheckOutSummary"; // We'll create this next
-import toast from "react-hot-toast";
+import CheckOutSummary from "@/components/rooms/CheckOutSummary";
 
 export default function BookingsPage() {
   const queryClient = useQueryClient();
   const [isModalOpen, setIsModalOpen] = useState(false);
-  const [checkoutData, setCheckoutData] = useState<any>(null);
   const [activeBookingId, setActiveBookingId] = useState<string | null>(null);
+  const [searchQuery, setSearchQuery] = useState("");
+
   const { data: bookings = [], isLoading } = useQuery({
     queryKey: ["active-bookings"],
     queryFn: async () => (await api.get("/rooms/bookings/active")).data,
   });
 
-  const checkoutMutation = useMutation({
-    mutationFn: async (id: string) =>
-      (await api.post(`/rooms/check-out/${id}`)).data,
-    onSuccess: (data) => {
-      // Data contains the breakdown (Room Total + Food Total)
-      setCheckoutData(data);
-      queryClient.invalidateQueries({ queryKey: ["active-bookings"] });
-      queryClient.invalidateQueries({ queryKey: ["rooms"] });
-      toast.success("Checkout processed");
-    },
-    onError: () => toast.error("Checkout failed"),
-  });
-
-  const handleCheckOut = (booking: any) => {
-    if (window.confirm(`Process checkout for ${booking.guestName}?`)) {
-      checkoutMutation.mutate(booking.id);
-    }
-  };
+  const filteredBookings = bookings.filter(
+    (b: any) =>
+      b.guestName.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      b.room.roomNumber.toString().includes(searchQuery),
+  );
 
   return (
-    <div className="space-y-6">
-      <div className="flex justify-between items-center">
+    <div className="p-8 space-y-8   mx-auto">
+      {/* Header Section */}
+      <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
         <div>
-          <h1 className="text-2xl font-black uppercase italic tracking-tighter text-slate-900">
+          <div className="flex items-center gap-2 mb-1">
+            <div className="p-1.5 bg-black rounded-md text-white">
+              <UserCheck size={16} />
+            </div>
+            <p className="text-[10px] text-slate-500 font-bold uppercase tracking-[0.2em]">
+              Front Office Operations
+            </p>
+          </div>
+          <h1 className="text-3xl font-black  tracking-tighter text-slate-900 uppercase">
             Front Desk
           </h1>
-          <p className="text-slate-400 text-[10px] font-bold uppercase tracking-widest">
-            Live Guest Lists
-          </p>
         </div>
-        <button
+
+        <Button
           onClick={() => setIsModalOpen(true)}
-          className="bg-slate-900 text-white px-6 py-3 rounded-2xl text-[10px] font-black uppercase tracking-widest flex items-center gap-2 hover:bg-blue-600 transition-all shadow-lg"
+          className="flex items-center gap-2 bg-slate-900 text-white px-4 py-2 rounded-lg text-sm font-semibold hover:bg-slate-800 transition-all shadow-sm cursor-pointer"
         >
-          <UserPlus size={16} /> New Check-In
-        </button>
+          <UserPlus className="mr-2 h-4 w-4" /> New Check-In
+        </Button>
       </div>
 
-      <div className="bg-white border border-slate-100 rounded-[32px] overflow-hidden">
-        <table className="w-full text-left">
-          <thead className="bg-slate-50/50 border-b border-slate-100">
-            <tr className="text-[10px] font-black text-slate-400 uppercase tracking-widest">
-              <th className="px-8 py-5">Guest Details</th>
-              <th className="px-8 py-5">Room</th>
-              <th className="px-8 py-5">Check-In Date</th>
-              <th className="px-8 py-5 text-right">Actions</th>
-            </tr>
-          </thead>
-          <tbody className="divide-y divide-slate-50">
+      {/* Control Bar */}
+      <div className="flex items-center justify-between gap-4 bg-white p-4 rounded-[24px] border border-slate-100 shadow-sm">
+        <div className="relative flex-1 max-w-sm">
+          <Search
+            className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400"
+            size={16}
+          />
+          <Input
+            placeholder="Search guests or rooms..."
+            className="pl-10 h-11 bg-slate-50 border-none rounded-xl text-sm font-medium focus-visible:ring-indigo-500/20"
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+          />
+        </div>
+        <div className="hidden md:flex items-center gap-2">
+          <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">
+            Live Guest Count:
+          </span>
+          <span className="text-sm font-black text-indigo-600 bg-indigo-50 px-3 py-1 rounded-lg">
+            {bookings.length}
+          </span>
+        </div>
+      </div>
+
+      {/* Bookings Table */}
+      <div className="bg-white border border-slate-100 rounded-[32px] overflow-hidden shadow-sm">
+        <Table>
+          <TableHeader className="bg-slate-50/50">
+            <TableRow className="hover:bg-transparent border-slate-100">
+              <TableHead className="px-8 h-14 text-[10px] font-black text-slate-400 uppercase tracking-widest">
+                Guest Details
+              </TableHead>
+              <TableHead className="px-8 h-14 text-[10px] font-black text-slate-400 uppercase tracking-widest">
+                Room
+              </TableHead>
+              <TableHead className="px-8 h-14 text-[10px] font-black text-slate-400 uppercase tracking-widest">
+                Check-In
+              </TableHead>
+              <TableHead className="px-8 h-14 text-right text-[10px] font-black text-slate-400 uppercase tracking-widest">
+                Actions
+              </TableHead>
+            </TableRow>
+          </TableHeader>
+          <TableBody>
             {isLoading ? (
-              <tr>
-                <td colSpan={4} className="py-20 text-center">
-                  <Loader2 className="animate-spin mx-auto text-slate-200" />
-                </td>
-              </tr>
-            ) : (
-              bookings.map((booking: any) => (
-                <tr
-                  key={booking.id}
-                  className="hover:bg-slate-50/50 transition-all"
+              Array.from({ length: 5 }).map((_, i) => (
+                <TableRow key={i}>
+                  <TableCell colSpan={4} className="px-8 py-6">
+                    <Skeleton className="h-12 w-full rounded-xl" />
+                  </TableCell>
+                </TableRow>
+              ))
+            ) : filteredBookings.length === 0 ? (
+              <TableRow>
+                <TableCell
+                  colSpan={4}
+                  className="py-20 text-center text-slate-400 font-medium "
                 >
-                  <td className="px-8 py-5">
-                    <p className="text-sm font-black text-slate-900 uppercase italic">
-                      {booking.guestName}
-                    </p>
-                    <div className="flex items-center gap-1 text-[10px] text-slate-400 font-bold mt-1">
-                      <Phone size={10} /> {booking.guestPhone || "No Phone"}
+                  No active bookings found.
+                </TableCell>
+              </TableRow>
+            ) : (
+              filteredBookings.map((booking: any) => (
+                <TableRow
+                  key={booking.id}
+                  className="group border-slate-50 hover:bg-slate-50/50 transition-colors"
+                >
+                  <TableCell className="px-8 py-5">
+                    <div className="flex flex-col">
+                      <span className="text-sm font-black text-slate-900 uppercase  tracking-tight">
+                        {booking.guestName}
+                      </span>
+                      <span className="flex items-center gap-1.5 text-[11px] text-slate-400 font-bold mt-0.5">
+                        <Phone size={12} className="text-slate-300" />
+                        {booking.guestPhone || "No Phone"}
+                      </span>
                     </div>
-                  </td>
-                  <td className="px-8 py-5">
-                    <span className="px-3 py-1 bg-slate-900 text-white rounded-lg text-[10px] font-black italic">
-                      ROOM {booking.room.roomNumber}
-                    </span>
-                  </td>
-                  <td className="px-8 py-5 text-xs font-bold text-slate-500">
-                    {new Date(booking.checkIn).toLocaleString("en-IN", {
-                      dateStyle: "medium",
-                      timeStyle: "short",
-                    })}
-                  </td>
-                  <td className="px-8 py-5 text-right">
-                    <button
-                      onClick={() => setActiveBookingId(booking.id)}
-                      className="bg-slate-900 text-white px-4 py-2 rounded-xl text-[10px] font-black uppercase"
-                    >
-                      View Bill & Checkout
-                    </button>
-                    {/* <button
-                      onClick={() => handleCheckOut(booking)}
-                      disabled={checkoutMutation.isPending}
-                      className="bg-red-50 text-red-600 px-4 py-2 rounded-xl text-[10px] font-black uppercase hover:bg-red-600 hover:text-white transition-all disabled:opacity-50"
-                    >
-                      {checkoutMutation.isPending ? "..." : "Checkout"}
-                    </button> */}
-                  </td>
-                </tr>
+                  </TableCell>
+                  <TableCell className="px-8 py-5">
+                    <div className="inline-flex items-center gap-2 px-3 py-1.5  text-slate-900 rounded-xl">
+                      <span className="text-[12px] font-black ">
+                        {booking.room.roomNumber}
+                      </span>
+                    </div>
+                  </TableCell>
+                  <TableCell className="px-8 py-5">
+                    <div className="flex items-center gap-2 text-xs font-bold text-slate-600">
+                      <CalendarDays size={14} className="text-indigo-400" />
+                      {new Date(booking.checkIn).toLocaleString("en-IN", {
+                        dateStyle: "medium",
+                        timeStyle: "short",
+                      })}
+                    </div>
+                  </TableCell>
+                  <TableCell className="px-8 py-5 text-right">
+                    <div className="flex items-center justify-end gap-2">
+                      <Button
+                        onClick={() => setActiveBookingId(booking.id)}
+                        className="bg-white border border-slate-200 text-slate-900 hover:bg-slate-900 hover:text-white h-9 px-4 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all"
+                      >
+                        <Receipt className="mr-2 h-3.5 w-3.5" /> Billing &
+                        Checkout
+                      </Button>
+
+                      <DropdownMenu>
+                        <DropdownMenuTrigger asChild>
+                          <Button
+                            variant="ghost"
+                            className="h-9 w-9 p-0 rounded-xl"
+                          >
+                            <MoreHorizontal
+                              size={16}
+                              className="text-slate-400"
+                            />
+                          </Button>
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent
+                          align="end"
+                          className="w-48 rounded-xl"
+                        >
+                          <DropdownMenuLabel className="text-[10px] uppercase text-slate-400 font-black">
+                            Management
+                          </DropdownMenuLabel>
+                          <DropdownMenuSeparator />
+                          <DropdownMenuItem className="text-xs font-bold">
+                            Edit Guest Info
+                          </DropdownMenuItem>
+                          <DropdownMenuItem className="text-xs font-bold">
+                            Add Service Charge
+                          </DropdownMenuItem>
+                          <DropdownMenuItem className="text-xs font-bold text-red-600">
+                            Cancel Booking
+                          </DropdownMenuItem>
+                        </DropdownMenuContent>
+                      </DropdownMenu>
+                    </div>
+                  </TableCell>
+                </TableRow>
               ))
             )}
-          </tbody>
-        </table>
+          </TableBody>
+        </Table>
       </div>
 
-      {/* MODALS */}
+      {/* Modals */}
       <CheckInModal
         isOpen={isModalOpen}
         onClose={() => setIsModalOpen(false)}
       />
-
-      {checkoutData && (
-        <CheckOutSummary
-          data={checkoutData}
-          onClose={() => setCheckoutData(null)}
-        />
-      )}
 
       {activeBookingId && (
         <CheckOutSummary

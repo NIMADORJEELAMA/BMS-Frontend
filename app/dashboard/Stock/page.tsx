@@ -7,7 +7,7 @@ import {
   getCoreRowModel,
   flexRender,
   getFilteredRowModel,
-  getPaginationRowModel, // Added for pagination
+  getPaginationRowModel,
   ColumnDef,
 } from "@tanstack/react-table";
 import {
@@ -18,10 +18,15 @@ import {
   ChevronLeft,
   ChevronRight,
   Calendar,
-  Filter,
   RefreshCcw,
+  AlertCircle,
+  TrendingUp,
+  Package,
+  Layers,
+  ArrowRight,
 } from "lucide-react";
 import StockInForm from "@/components/StockInForm";
+import InventoryAnalytics from "@/components/Stocks/InventoryAnalytics";
 
 export default function StockManagementPage() {
   const [items, setItems] = useState([]);
@@ -30,18 +35,10 @@ export default function StockManagementPage() {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [loading, setLoading] = useState(false);
 
-  // Date Range State
   const today = new Date().toISOString().split("T")[0];
-  const [startDate, setStartDate] = useState(today);
-  const [endDate, setEndDate] = useState(today);
+  const [startDate, setStartDate] = useState("");
+  const [endDate, setEndDate] = useState("");
 
-  const clearFilters = () => {
-    setGlobalFilter("");
-    setTypeFilter("ALL");
-    setStartDate(today);
-    setEndDate(today);
-    toast.success("Filters Reset");
-  };
   const fetchInventory = async () => {
     try {
       setLoading(true);
@@ -59,72 +56,149 @@ export default function StockManagementPage() {
       setLoading(false);
     }
   };
+  const analyticsData = useMemo(() => {
+    if (!items || items.length === 0) return null;
+    // Since stats are repeated in each item, we grab it from the first index
+    return items[0]?.stats;
+  }, [items]);
+  const handleResetFilters = () => {
+    // 1. Reset Category
+    setTypeFilter("ALL");
 
+    // 2. Reset Search (both buffer and active filter)
+    setGlobalFilter("");
+    // setSearchBuffer(""); // If you're using the debounce buffer
+
+    // 3. Reset Dates (Clear both temp and query states)
+    setStartDate("");
+    setEndDate("");
+
+    // 4. Trigger the fetch/refresh logic
+    // If your fetchInventory relies on these states,
+    // ensure it runs after they are cleared.
+    toast.success("Filters Cleared");
+  };
   useEffect(() => {
     fetchInventory();
-  }, [typeFilter, startDate, endDate]); // Refresh when filters change
+  }, [typeFilter, startDate, endDate]);
 
-  const columns = useMemo<ColumnDef<any>[]>(
+  const columns = useMemo(
     () => [
+      {
+        accessorKey: "name",
+        header: "Asset Detail",
+        cell: (info: any) => (
+          <div className="flex flex-col">
+            <span className="font-bold text-slate-900 text-sm tracking-tight uppercase">
+              {info.getValue()}
+            </span>
+            <span className="text-[10px] text-slate-400 font-medium">
+              SKU-{info.row.original.id.split("-")[0]}
+            </span>
+          </div>
+        ),
+      },
       {
         accessorKey: "type",
         header: "Category",
-        cell: ({ row }) => (
-          <div
-            className={`flex items-center gap-2 font-black text-[10px] uppercase tracking-widest ${row.original.type === "ALCOHOL" ? "text-purple-600" : "text-orange-600"}`}
-          >
-            {row.original.type === "ALCOHOL" ? (
-              <Beer size={14} />
-            ) : (
-              <Utensils size={14} />
-            )}
-            {row.original.type}
-          </div>
-        ),
-      },
-      {
-        accessorKey: "name",
-        header: "Item Name",
-        cell: (info) => (
-          <span className="font-black text-gray-900 uppercase italic">
-            {info.getValue() as string}
-          </span>
-        ),
-      },
-      {
-        accessorKey: "stockQty",
-        header: "Current Stock",
-        cell: ({ row }) => (
-          <div className="flex items-center gap-2">
-            <span
-              className={`text-lg font-black ${row.original.stockQty < 10 ? "text-red-600 animate-pulse" : "text-gray-900"}`}
+        cell: ({ row }: any) => {
+          const isAlcohol = row.original.type === "ALCOHOL";
+          return (
+            <div
+              className={`inline-flex items-center gap-2 px-3 py-1 rounded-lg text-[10px] font-black tracking-widest border ${
+                isAlcohol
+                  ? "bg-purple-50 text-purple-700 border-purple-100"
+                  : "bg-orange-50 text-orange-700 border-orange-100"
+              }`}
             >
-              {row.original.stockQty}
+              {isAlcohol ? <Beer size={12} /> : <Utensils size={12} />}
+              {row.original.type}
+            </div>
+          );
+        },
+      },
+      {
+        accessorKey: "currentStock",
+        header: "Stock Level",
+        cell: ({ row }: any) => {
+          const qty = row.original.currentStock;
+          const status = qty < 10 ? "LOW" : qty < 30 ? "MID" : "HEALTHY";
+          return (
+            <div className="flex flex-col gap-2 min-w-[140px]">
+              <div className="flex justify-between items-end">
+                <span
+                  className={`text-sm font-black ${status === "LOW" ? "text-red-600" : "text-slate-900"}`}
+                >
+                  {qty}{" "}
+                  <span className="text-[10px] text-slate-400 font-bold">
+                    {row.original.unit}
+                  </span>
+                </span>
+                <span
+                  className={`text-[9px] font-black px-1.5 py-0.5 rounded ${
+                    status === "LOW"
+                      ? "bg-red-100 text-red-700"
+                      : "bg-slate-100 text-slate-500"
+                  }`}
+                >
+                  {status}
+                </span>
+              </div>
+              <div className="w-full h-1.5 bg-slate-100 rounded-full overflow-hidden">
+                <div
+                  className={`h-full transition-all duration-700 ${status === "LOW" ? "bg-red-500" : status === "MID" ? "bg-amber-500" : "bg-emerald-500"}`}
+                  style={{ width: `${Math.min((qty / 100) * 100, 100)}%` }}
+                />
+              </div>
+            </div>
+          );
+        },
+      },
+      {
+        id: "lastPurchasePrice",
+        header: "Stock Price",
+        cell: ({ row }: any) => (
+          <div className="flex flex-col">
+            <span className="text-sm font-black text-slate-900">
+              ₹{row.original.lastPurchasePrice.toLocaleString()}
             </span>
-            <span className="text-[10px] text-gray-400 font-bold uppercase">
-              {row.original.unit}
-            </span>
+            {/* <span className="text-[10px] text-slate-400 font-bold uppercase tracking-tighter">
+              Stock Asset Value
+            </span> */}
           </div>
         ),
       },
       {
-        accessorKey: "lastPurchasePrice",
-        header: "Last Purchase",
-        cell: ({ row }) => (
-          <span className="font-bold text-gray-900">
-            ₹{row.original.lastPurchasePrice || 0}
-          </span>
+        id: "valuation",
+        header: "Equity Value",
+        cell: ({ row }: any) => (
+          <div className="flex flex-col">
+            <span className="text-sm font-black text-slate-900">
+              ₹
+              {(
+                row.original.currentStock * row.original.lastPurchasePrice
+              ).toLocaleString()}
+            </span>
+            {/* <span className="text-[10px] text-slate-400 font-bold uppercase tracking-tighter">
+              Current Asset Value
+            </span> */}
+          </div>
         ),
       },
       {
         accessorKey: "lastStockInDate",
         header: "Last Restock",
-        cell: ({ row }) => (
-          <span className="text-xs font-bold text-gray-500">
-            {row.original.lastStockInDate
-              ? new Date(row.original.lastStockInDate).toLocaleDateString()
-              : "N/A"}
-          </span>
+        cell: ({ row }: any) => (
+          <div className="flex flex-col">
+            <span className="text-xs font-bold text-slate-700">
+              {row.original.lastStockInDate
+                ? new Date(row.original.lastStockInDate).toLocaleDateString()
+                : "No Activity"}
+            </span>
+            {/* <span className="text-[10px] text-slate-400 font-bold uppercase tracking-widest">
+              Last Restocked
+            </span> */}
+          </div>
         ),
       },
     ],
@@ -139,162 +213,163 @@ export default function StockManagementPage() {
     getCoreRowModel: getCoreRowModel(),
     getFilteredRowModel: getFilteredRowModel(),
     getPaginationRowModel: getPaginationRowModel(),
-    initialState: { pagination: { pageSize: 8 } }, // Set default page size
+    initialState: { pagination: { pageSize: 8 } },
   });
 
   return (
-    <div className="p-8 bg-gray-50 min-h-screen">
-      <div className="max-w-6xl mx-auto space-y-6">
-        {/* TOP HEADER */}
-        <div className="flex justify-between items-end">
+    <div className="p-8 bg-[#F8FAFC] min-h-screen text-slate-900 font-sans">
+      <div className="  mx-auto space-y-8">
+        {/* ENTERPRISE HEADER */}
+        <div className="flex flex-col lg:flex-row justify-between items-start lg:items-end gap-6">
           <div>
-            <h1 className="text-4xl font-black tracking-tighter italic uppercase text-gray-900">
-              Inventory Feed
-            </h1>
-            <p className="text-gray-400 font-bold text-[10px] uppercase tracking-widest">
-              Real-time Resort Logistics
+            <div className="flex items-center gap-3 mb-2">
+              <div className="p-2.5 bg-slate-900 text-white rounded-xl shadow-lg">
+                <Package size={22} />
+              </div>
+              <h1 className="text-4xl font-black tracking-tight text-slate-900">
+                Stock{" "}
+                <span className="text-slate-400 font-medium ">Dashboard</span>
+              </h1>
+            </div>
+            <p className="text-slate-500 font-medium text-sm">
+              Resort Stock Management & Real-time Stock Logistics
             </p>
           </div>
+
+          <div className="flex items-center gap-3">
+            <button
+              onClick={() => setIsModalOpen(true)}
+              className="bg-slate-900 text-white cursor-pointer px-8 py-4 rounded-2xl font-bold text-xs uppercase tracking-widest flex items-center gap-3 hover:bg-blue-600 transition-all shadow-xl shadow-slate-200"
+            >
+              <Plus size={18} /> Add New Inventory
+            </button>
+          </div>
+        </div>
+
+        {/* inventory analytics */}
+
+        {analyticsData && <InventoryAnalytics stats={analyticsData} />}
+
+        {/* CONTROL CENTER */}
+        <div className="bg-white p-4 rounded-3xl border border-slate-200 shadow-sm flex flex-col lg:flex-row items-center gap-4">
+          <div className="relative flex-1 w-full">
+            <Search
+              className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400"
+              size={16}
+            />
+            <input
+              value={globalFilter ?? ""}
+              onChange={(e) => setGlobalFilter(e.target.value)}
+              placeholder="FILTER BY ITEM NAME OR SKU..."
+              className="w-[360px] pl-12 pr-4 py-3 bg-slate-50 border border-slate-100 rounded-2xl font-bold text-xs focus:ring-2 focus:ring-slate-900 transition-all outline-none"
+            />
+          </div>
+
+          <div className="flex items-center gap-2 bg-slate-50 border border-slate-100 px-4 py-2 rounded-2xl w-full lg:w-auto">
+            <Calendar size={14} className="text-slate-400" />
+            <input
+              type="date"
+              value={startDate}
+              onChange={(e) => setStartDate(e.target.value)}
+              className="bg-transparent border-none text-[10px] font-black outline-none focus:ring-0"
+            />
+            <ArrowRight size={12} className="text-slate-300" />
+            <input
+              type="date"
+              value={endDate}
+              onChange={(e) => setEndDate(e.target.value)}
+              className="bg-transparent border-none text-[10px] font-black outline-none focus:ring-0"
+            />
+          </div>
+
+          <div className="flex bg-slate-100 p-1 rounded-2xl w-full lg:w-auto">
+            {["ALL", "FOOD", "ALCOHOL"].map((t) => (
+              <button
+                key={t}
+                onClick={() => setTypeFilter(t)}
+                className={`flex-1 lg:px-8 py-2.5 rounded-xl text-[10px] font-black transition-all ${typeFilter === t ? "bg-white text-slate-900 shadow-sm" : "text-slate-400 hover:text-slate-600"}`}
+              >
+                {t}
+              </button>
+            ))}
+          </div>
+
           <button
-            onClick={() => setIsModalOpen(true)}
-            className="bg-gray-900 text-white px-8 py-4 rounded-[20px] font-black uppercase text-xs tracking-widest flex items-center gap-3 hover:bg-blue-600 transition-all shadow-xl"
+            onClick={handleResetFilters}
+            className="p-3 bg-slate-900 text-white rounded-2xl hover:bg-blue-600 transition-all shadow-lg"
           >
-            <Plus size={18} /> Update Stock
+            <RefreshCcw size={18} className={loading ? "animate-spin" : ""} />
           </button>
         </div>
 
-        {/* FILTERS PANEL */}
-        <div className="bg-white p-6 rounded-[32px] border border-gray-100 shadow-sm space-y-4">
-          <div className="flex flex-wrap items-center gap-4">
-            {/* Category Filter */}
-            <div className="flex bg-gray-100 p-1 rounded-2xl">
-              {["ALL", "FOOD", "ALCOHOL"].map((t) => (
-                <button
-                  key={t}
-                  onClick={() => setTypeFilter(t)}
-                  className={`px-6 py-2 rounded-xl text-[10px] font-black transition-all ${typeFilter === t ? "bg-white text-black shadow-sm" : "text-gray-400"}`}
-                >
-                  {t}
-                </button>
-              ))}
-            </div>
-
-            {/* Date Range */}
-            <div className="flex items-center gap-2 bg-gray-100 px-4 py-2 rounded-2xl">
-              <Calendar size={14} className="text-gray-400" />
-              <input
-                type="date"
-                value={startDate}
-                onChange={(e) => setStartDate(e.target.value)}
-                className="bg-transparent border-none text-[10px] font-black focus:ring-0"
-              />
-              <span className="text-gray-400 text-[10px] font-black">TO</span>
-              <input
-                type="date"
-                value={endDate}
-                onChange={(e) => setEndDate(e.target.value)}
-                className="bg-transparent border-none text-[10px] font-black focus:ring-0"
-              />
-            </div>
-
-            {/* Search */}
-            <div className="relative flex-1 min-w-[200px]">
-              <Search
-                className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400"
-                size={16}
-              />
-              <input
-                value={globalFilter ?? ""}
-                onChange={(e) => setGlobalFilter(e.target.value)}
-                placeholder="QUICK SEARCH..."
-                className="w-full pl-10 pr-4 py-2 bg-gray-50 border-none rounded-2xl font-bold text-xs focus:ring-1 focus:ring-gray-900"
-              />
-            </div>
-
-            <div className="flex items-center gap-2">
-              <button
-                onClick={clearFilters}
-                className="px-4 py-3 text-[10px] font-black text-red-500 uppercase tracking-widest hover:bg-red-50 rounded-2xl transition-all"
-              >
-                Clear
-              </button>
-              <button
-                onClick={fetchInventory}
-                className="p-3 bg-gray-900 text-white rounded-2xl hover:bg-blue-600 transition-all shadow-lg shadow-gray-200"
-              >
-                <RefreshCcw
-                  size={18}
-                  className={loading ? "animate-spin" : ""}
-                />
-              </button>
-            </div>
+        {/* DATA GRID */}
+        <div className="bg-white rounded-[40px] border border-slate-200 shadow-sm overflow-hidden">
+          <div className="overflow-x-auto">
+            <table className="w-full text-left">
+              <thead className="bg-slate-50/50 border-b border-slate-100">
+                {table.getHeaderGroups().map((headerGroup) => (
+                  <tr key={headerGroup.id}>
+                    {headerGroup.headers.map((header) => (
+                      <th
+                        key={header.id}
+                        className="px-10 py-5 text-[10px] font-black text-slate-400 uppercase tracking-[0.2em]"
+                      >
+                        {flexRender(
+                          header.column.columnDef.header,
+                          header.getContext(),
+                        )}
+                      </th>
+                    ))}
+                  </tr>
+                ))}
+              </thead>
+              <tbody className="divide-y divide-slate-50">
+                {table.getRowModel().rows.map((row) => (
+                  <tr
+                    key={row.id}
+                    className="hover:bg-slate-50/50 transition-all group"
+                  >
+                    {row.getVisibleCells().map((cell) => (
+                      <td key={cell.id} className="px-10 py-6">
+                        {flexRender(
+                          cell.column.columnDef.cell,
+                          cell.getContext(),
+                        )}
+                      </td>
+                    ))}
+                  </tr>
+                ))}
+              </tbody>
+            </table>
           </div>
-        </div>
 
-        {/* TABLE SECTION */}
-        <div className="bg-white rounded-[32px] border border-gray-100 shadow-sm overflow-hidden">
-          <table className="w-full text-left">
-            <thead className="bg-gray-50/50 border-b border-gray-100">
-              {table.getHeaderGroups().map((headerGroup) => (
-                <tr key={headerGroup.id}>
-                  {headerGroup.headers.map((header) => (
-                    <th
-                      key={header.id}
-                      className="px-8 py-4 text-[10px] font-black text-gray-400 uppercase tracking-widest"
-                    >
-                      {flexRender(
-                        header.column.columnDef.header,
-                        header.getContext(),
-                      )}
-                    </th>
-                  ))}
-                </tr>
-              ))}
-            </thead>
-            <tbody className="divide-y divide-gray-50">
-              {table.getRowModel().rows.map((row) => (
-                <tr key={row.id} className="hover:bg-gray-50/50 transition-all">
-                  {row.getVisibleCells().map((cell) => (
-                    <td key={cell.id} className="px-8 py-5">
-                      {flexRender(
-                        cell.column.columnDef.cell,
-                        cell.getContext(),
-                      )}
-                    </td>
-                  ))}
-                </tr>
-              ))}
-            </tbody>
-          </table>
-
-          {/* PAGINATION CONTROLS */}
-          <div className="p-6 bg-gray-50/30 border-t border-gray-100 flex items-center justify-between">
-            <p className="text-[10px] font-black text-gray-400 uppercase">
-              Showing page {table.getState().pagination.pageIndex + 1} of{" "}
-              {table.getPageCount()}
+          <div className="p-8 bg-slate-50/50 border-t border-slate-100 flex items-center justify-between">
+            <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">
+              Audit Trail: {table.getState().pagination.pageIndex + 1} /{" "}
+              {table.getPageCount()} Pages
             </p>
-            <div className="flex gap-2">
+            <div className="flex gap-3">
               <button
                 disabled={!table.getCanPreviousPage()}
                 onClick={() => table.previousPage()}
-                className="p-2 bg-white border border-gray-200 rounded-xl disabled:opacity-30 hover:bg-gray-50 transition-all"
+                className="p-3 bg-white border border-slate-200 rounded-2xl disabled:opacity-30 hover:shadow-md transition-all"
               >
-                <ChevronLeft size={18} />
+                <ChevronLeft size={20} />
               </button>
               <button
                 disabled={!table.getCanNextPage()}
                 onClick={() => table.nextPage()}
-                className="p-2 bg-white border border-gray-200 rounded-xl disabled:opacity-30 hover:bg-gray-50 transition-all"
+                className="p-3 bg-white border border-slate-200 rounded-2xl disabled:opacity-30 hover:shadow-md transition-all"
               >
-                <ChevronRight size={18} />
+                <ChevronRight size={20} />
               </button>
             </div>
           </div>
         </div>
 
-        {/* MODAL */}
+        {/* MODAL OVERLAY */}
         {isModalOpen && (
-          <div className="fixed inset-0 bg-gray-900/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+          <div className="fixed inset-0 bg-slate-900/40 backdrop-blur-md z-[100] flex items-center justify-center p-4">
             <StockInForm
               onClose={() => setIsModalOpen(false)}
               onSuccess={() => {

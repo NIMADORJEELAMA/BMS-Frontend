@@ -58,7 +58,7 @@ export default function BookingHistoryPage() {
       {/* HEADER & STATS */}
       <div className="flex flex-col md:flex-row justify-between gap-6">
         <div>
-          <h1 className="text-3xl font-black uppercase italic tracking-tighter text-slate-900">
+          <h1 className="text-3xl font-black uppercase   tracking-tighter text-slate-900">
             Archive
           </h1>
           <p className="text-slate-400 text-[10px] font-bold uppercase tracking-widest">
@@ -75,7 +75,7 @@ export default function BookingHistoryPage() {
               <p className="text-[9px] font-black text-slate-400 uppercase">
                 Total Revenue
               </p>
-              <p className="text-xl font-black italic text-slate-900">
+              <p className="text-xl font-black   text-slate-900">
                 ₹{data?.stats?.totalRevenue?.toLocaleString()}
               </p>
             </div>
@@ -88,7 +88,7 @@ export default function BookingHistoryPage() {
               <p className="text-[9px] font-black text-slate-400 uppercase">
                 Total Guests
               </p>
-              <p className="text-xl font-black italic text-slate-900">
+              <p className="text-xl font-black   text-slate-900">
                 {data?.stats?.totalBookings}
               </p>
             </div>
@@ -154,7 +154,7 @@ export default function BookingHistoryPage() {
                 className="group hover:bg-slate-50 cursor-pointer transition-all"
               >
                 <td className="px-8 py-6">
-                  <p className="text-sm font-black text-slate-900 uppercase italic">
+                  <p className="text-sm font-black text-slate-900 uppercase  ">
                     {booking.guestName}
                   </p>
                   <p className="text-[10px] font-bold text-slate-400">
@@ -162,7 +162,7 @@ export default function BookingHistoryPage() {
                   </p>
                 </td>
                 <td className="px-8 py-6">
-                  <span className="px-3 py-1 bg-slate-100 rounded-lg text-[10px] font-black italic text-slate-600 uppercase">
+                  <span className="px-3 py-1 bg-slate-100 rounded-lg text-[10px] font-black   text-slate-600 uppercase">
                     {booking.room.roomNumber}
                   </span>
                 </td>
@@ -179,12 +179,12 @@ export default function BookingHistoryPage() {
                   </div>
                 </td>
                 <td className="px-8 py-6">
-                  <p className="text-xs font-black text-red-400 italic">
+                  <p className="text-xs font-black text-red-400  ">
                     {booking.discount > 0 ? `- ₹${booking.discount}` : "—"}
                   </p>
                 </td>
                 <td className="px-8 py-6 text-right">
-                  <p className="text-lg font-black italic text-slate-900">
+                  <p className="text-lg font-black   text-slate-900">
                     ₹{booking.totalBill}
                   </p>
                 </td>

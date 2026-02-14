@@ -127,7 +127,7 @@ export default function CategoryDropdown({
               </div>
 
               {categories.length === 0 && (
-                <div className="px-4 py-3 text-xs text-slate-400 italic">
+                <div className="px-4 py-3 text-xs text-slate-400  ">
                   No categories found
                 </div>
               )}

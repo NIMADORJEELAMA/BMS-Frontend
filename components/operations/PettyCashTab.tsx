@@ -66,7 +66,7 @@ export default function PettyCashTab() {
           <p className="text-[10px] font-black uppercase tracking-widest opacity-50">
             Total Outflow
           </p>
-          <h2 className="text-3xl font-black italic">
+          <h2 className="text-3xl font-black  ">
             ₹{data?.totalAmount?.toLocaleString() || "0"}
           </h2>
         </div>
@@ -126,18 +126,18 @@ export default function PettyCashTab() {
                   })}
                 </td>
                 <td className="px-8 py-5">
-                  <p className="text-sm font-black text-slate-900 uppercase italic leading-none">
+                  <p className="text-sm font-black text-slate-900 uppercase   leading-none">
                     {log.user?.name}
                   </p>
                   <p className="text-[9px] font-bold text-slate-400 uppercase mt-1">
                     {log.user?.role}
                   </p>
                 </td>
-                <td className="px-8 py-5 text-xs text-slate-600 font-medium italic">
+                <td className="px-8 py-5 text-xs text-slate-600 font-medium  ">
                   "{log.reason}"
                 </td>
                 <td className="px-8 py-5 text-right flex items-center justify-end gap-4">
-                  <span className="font-black text-red-600 text-base italic">
+                  <span className="font-black text-red-600 text-base  ">
                     ₹{log.amount.toLocaleString()}
                   </span>
 

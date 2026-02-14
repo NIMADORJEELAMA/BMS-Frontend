@@ -24,12 +24,12 @@ export default function BookingDetailsModal({ booking, onClose }: any) {
         {/* --- TOP SECTION: GUEST IDENTITY --- */}
         <div className="p-6 bg-slate-900 text-white flex justify-between items-center">
           <div className="flex items-center gap-6">
-            <div className="h-14 w-14 rounded-2xl bg-white/10 flex items-center justify-center font-black text-white text-xl uppercase italic border border-white/10">
+            <div className="h-14 w-14 rounded-2xl bg-white/10 flex items-center justify-center font-black text-white text-xl uppercase   border border-white/10">
               {booking.guestName[0]}
             </div>
             <div>
               <div className="flex items-center gap-3">
-                <h2 className="text-2xl font-black italic uppercase tracking-tighter">
+                <h2 className="text-2xl font-black   uppercase tracking-tighter">
                   {booking.guestName}
                 </h2>
                 <span className="text-[10px] bg-emerald-500/20 text-emerald-400 px-2 py-0.5 rounded border border-emerald-500/30 font-black uppercase">
@@ -69,7 +69,7 @@ export default function BookingDetailsModal({ booking, onClose }: any) {
 
             <div className="space-y-6">
               <div className="bg-white p-6 rounded-[32px] border border-slate-100 shadow-sm">
-                <p className="text-4xl font-black italic text-slate-900">
+                <p className="text-4xl font-black   text-slate-900">
                   {booking.room.roomNumber}
                 </p>
                 <p className="text-xs font-bold text-slate-400 uppercase mt-1">
@@ -134,7 +134,7 @@ export default function BookingDetailsModal({ booking, onClose }: any) {
                     className="bg-white border border-slate-100 rounded-2xl overflow-hidden"
                   >
                     <div className="bg-slate-50 px-4 py-2 flex justify-between items-center border-b border-slate-100">
-                      <span className="text-[9px] font-black text-slate-500 uppercase italic">
+                      <span className="text-[9px] font-black text-slate-500 uppercase  ">
                         Ticket #{order.id.slice(0, 5)}
                       </span>
                       <span className="text-[9px] font-bold text-slate-400 uppercase flex items-center gap-1">
@@ -151,8 +151,8 @@ export default function BookingDetailsModal({ booking, onClose }: any) {
                           key={item.id}
                           className="flex justify-between items-center"
                         >
-                          <p className="text-xs text-slate-700 font-medium italic capitalize">
-                            <span className="font-black text-slate-900 mr-2 not-italic">
+                          <p className="text-xs text-slate-700 font-medium   capitalize">
+                            <span className="font-black text-slate-900 mr-2 not- ">
                               x{item.quantity}
                             </span>
                             {item.menuItem.name.toLowerCase()}
@@ -184,7 +184,7 @@ export default function BookingDetailsModal({ booking, onClose }: any) {
               <p className="text-[9px] font-black text-slate-500 uppercase tracking-[0.2em] mb-1">
                 Sub-Total
               </p>
-              <p className="text-xl font-black text-white italic leading-none">
+              <p className="text-xl font-black text-white   leading-none">
                 ₹{booking.totalBill + booking.discount}
               </p>
             </div>
@@ -193,7 +193,7 @@ export default function BookingDetailsModal({ booking, onClose }: any) {
                 <p className="text-[9px] font-black text-red-400 uppercase tracking-[0.2em] mb-1">
                   Discount
                 </p>
-                <p className="text-xl font-black text-red-400 italic leading-none">
+                <p className="text-xl font-black text-red-400   leading-none">
                   -₹{booking.discount}
                 </p>
               </div>
@@ -202,7 +202,7 @@ export default function BookingDetailsModal({ booking, onClose }: any) {
               <p className="text-[9px] font-black text-emerald-400 uppercase tracking-[0.2em] mb-1">
                 Net Payable
               </p>
-              <p className="text-4xl font-black text-emerald-400 italic leading-none tracking-tighter">
+              <p className="text-4xl font-black text-emerald-400   leading-none tracking-tighter">
                 ₹{booking.totalBill}
               </p>
             </div>

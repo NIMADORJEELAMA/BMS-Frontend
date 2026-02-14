@@ -23,7 +23,7 @@ export default function DeleteRoomModal({
             <AlertTriangle size={40} />
           </div>
 
-          <h2 className="text-2xl font-black italic uppercase text-slate-900">
+          <h2 className="text-2xl font-black   uppercase text-slate-900">
             Critical Action
           </h2>
 

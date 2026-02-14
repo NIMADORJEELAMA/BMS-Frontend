@@ -110,7 +110,7 @@ export default function TableCard({
             <div className="w-8 h-8 rounded-full bg-gray-100 flex items-center justify-center mb-2">
               {isRoom ? <BedDouble size={16} /> : <Utensils size={16} />}
             </div>
-            <p className="text-sm text-gray-400 italic">Ready for guests</p>
+            <p className="text-sm text-gray-400  ">Ready for guests</p>
           </div>
         )}
       </div>

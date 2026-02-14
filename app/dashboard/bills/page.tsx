@@ -206,7 +206,7 @@ export default function BillHistoryPage() {
           <div className="text-right">
             <button
               onClick={() => setSelectedBill(info.row.original)} // Set the full bill data
-              className="p-2.5 text-slate-400 hover:text-blue-600 hover:bg-blue-50 rounded-xl transition-all border border-transparent hover:border-blue-100"
+              className="p-2.5 text-slate-400 hover:text-blue-600 hover:bg-blue-50 rounded-xl transition-all border border-transparent hover:border-blue-100 cursor-pointer"
             >
               <Eye size={18} />
             </button>

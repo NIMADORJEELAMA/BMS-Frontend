@@ -272,7 +272,7 @@ export default function OrderModal({
         {/* CONTENT AREA */}
         <div className="p-6 max-h-[65vh] overflow-y-auto">
           {loading ? (
-            <div className="py-20 text-center text-gray-400 italic">
+            <div className="py-20 text-center text-gray-400  ">
               Processing...
             </div>
           ) : isBilled ? (
@@ -418,7 +418,7 @@ export default function OrderModal({
             /* --- ORIGINAL MANAGEMENT VIEW --- */
             <div className="space-y-8">
               {!order ? (
-                <div className="py-20 text-center text-gray-400 italic">
+                <div className="py-20 text-center text-gray-400  ">
                   No active session.
                 </div>
               ) : (
@@ -491,7 +491,7 @@ export default function OrderModal({
                         </div>
                       ))
                     ) : (
-                      <p className="text-xs text-gray-400 italic px-1">
+                      <p className="text-xs text-gray-400   px-1">
                         All items served.
                       </p>
                     )}
@@ -551,16 +551,16 @@ export default function OrderModal({
             <>
               <button
                 disabled={!order}
-                className="flex-1 py-4 bg-white border border-gray-200 text-gray-600 rounded-2xl font-bold text-sm hover:bg-gray-100 transition-all cursor-pointer tracking-wider"
+                className="flex-1 py-4 bg-white border border-2 border-black text-black rounded-2xl font-bold text-sm hover:bg-gray-100 transition-all cursor-pointer tracking-wider"
               >
                 Print KOT
               </button>
               <button
                 onClick={handleSettle}
                 disabled={!order} // Only disable if there is no order at all
-                className={`flex-1 py-4 rounded-2xl font-bold text-sm transition-all shadow-lg cursor-pointer tracking-wider ${
+                className={`flex-2 py-4 rounded-2xl font-bold text-sm transition-all shadow-lg cursor-pointer tracking-wider ${
                   hasPending
-                    ? "bg-amber-600 text-white hover:bg-amber-700"
+                    ? "bg-black text-white hover:bg-slate-700"
                     : "bg-green-600 text-white hover:bg-green-700"
                 }`}
               >

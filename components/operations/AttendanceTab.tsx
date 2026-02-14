@@ -63,7 +63,7 @@ export default function AttendanceTab() {
           >
             <ChevronLeft size={18} />
           </button>
-          <h3 className="text-sm font-black uppercase tracking-widest italic">
+          <h3 className="text-sm font-black uppercase tracking-widest  ">
             {currentDate.toLocaleString("default", { month: "long" })} {year}
           </h3>
           <button
@@ -145,7 +145,7 @@ export default function AttendanceTab() {
                     );
                   })}
                   {/* SUMMARY CELL */}
-                  <td className="px-6 py-4 text-center font-black text-blue-700 bg-blue-50/30 text-sm italic">
+                  <td className="px-6 py-4 text-center font-black text-blue-700 bg-blue-50/30 text-sm  ">
                     {totalPresent}
                   </td>
                 </tr>
