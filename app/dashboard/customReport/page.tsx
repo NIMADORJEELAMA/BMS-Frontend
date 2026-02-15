@@ -73,6 +73,10 @@ export default function EnterprisePerformanceReport() {
   //   if (!report?.totalItems) return 1;
   //   return Math.ceil(report.totalItems / limit);
   // }, [report, limit]);
+  // const totalPages = useMemo(() => {
+  //   if (!report?.totalItems) return 1;
+  //   return Math.ceil(report.totalItems / limit);
+  // }, [report, limit]);
 
   const revenueTrendData = useMemo(() => {
     return (
