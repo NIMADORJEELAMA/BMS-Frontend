@@ -190,32 +190,6 @@ export default function OrderModal({
       toast.error("Payment confirmation failed");
     }
   };
-  // const handlePayment = async (method: "CASH" | "CARD" | "UPI") => {
-  //   if (!order) return;
-
-  //   try {
-  //     const loadingToast = toast.loading(`Processing ${method} payment...`);
-
-  //     await api.patch(`/orders/${order.id}/confirm-payment`, {
-  //       cash: cashAmount, // e.g., 500
-  //       online: onlineAmount, // e.g., 200
-  //     });
-
-  //     // await api.patch(`/orders/${order.id}/confirm-payment`, {
-  //     //   paymentMode: method,
-  //     // });
-
-  //     toast.dismiss(loadingToast);
-  //     toast.success(`Payment successful via ${method}!`);
-
-  //     // Finalize the UI state
-  //     onRefresh(); // Ensure dashboard is synced
-  //     onClose(); // Close modal after successful payment
-  //   } catch (err) {
-  //     toast.error("Payment confirmation failed");
-  //     console.error(err);
-  //   }
-  // };
 
   const TypeBadge = ({ type }: { type: "FOOD" | "ALCOHOL" }) => {
     const isAlcohol = type === "ALCOHOL";
