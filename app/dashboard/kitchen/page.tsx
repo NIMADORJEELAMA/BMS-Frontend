@@ -182,8 +182,11 @@ export default function KitchenPage() {
 
         {/* GRID */}
         {groupedOrders.length > 0 ? (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6  p-4">
+            {/* <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6 max-h-[60px] overflow-auto"> */}
             {groupedOrders.map((order: any) => {
+              console.log("order", order);
+              const tableNumber = order.tableNumber;
               const isRoomService = !!order.roomId;
               const hasPendingItems = order.items.some(
                 (i: any) => i.status === "PENDING",
@@ -204,10 +207,10 @@ export default function KitchenPage() {
               return (
                 <Card
                   key={order.id}
-                  className={`border-l-4 ${hasPendingItems ? "border-l-amber-500" : "border-l-blue-500 shadow-lg"}`}
+                  className={`border-l-4 ${hasPendingItems ? "border-l-amber-500" : "border-l-blue-500 shadow-lg "}`}
                 >
                   <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                    <div className="flex items-center gap-3">
+                    <div className="flex items-center gap-3 ">
                       <div
                         className={`h-8 w-8 rounded-xl flex items-center justify-center shadow-sm transition-colors ${
                           hasPendingItems
@@ -222,6 +225,9 @@ export default function KitchenPage() {
                         )}
                       </div>
                       <div>
+                        <p className="text-[10px] text-slate-700 font-extrabold uppercase text-muted-foreground tracking-widest">
+                          {tableNumber}
+                        </p>
                         <p className="text-[10px] font-black uppercase text-muted-foreground tracking-widest">
                           {hasPendingItems ? "New Ticket" : "Preparing"}
                         </p>
@@ -240,7 +246,7 @@ export default function KitchenPage() {
                     </Badge>
                   </CardHeader>
 
-                  <CardContent className="pt-4 space-y-3">
+                  <CardContent className="pt-4 space-y-3 max-h-[200px] overflow-auto">
                     {/* Inside the CardContent of groupedOrders.map */}
                     <div className="space-y-4 py-4">
                       {order.items.map((item: any) => (

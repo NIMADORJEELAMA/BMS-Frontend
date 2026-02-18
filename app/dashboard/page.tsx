@@ -84,8 +84,9 @@ export default function DashboardPage() {
         const table = tables.find(
           (t: any) => t?.activeOrder?.id === data.orderId,
         );
-        toast(`Table ${table?.number || ""}: Food is READY!`, {
-          icon: "🍳",
+        console.log("table", table);
+        toast(`${table?.name || ""}: Food is READY!`, {
+          icon: "🍴",
           style: { background: "#10b981", color: "#fff" },
         });
         queryClient.invalidateQueries({ queryKey: ["table-layout"] });

@@ -116,7 +116,7 @@ export default function OrderModal({
       setOrder(res.data);
       setIsBilled(true);
       toast.success("Bill Finalized (Pending items cancelled)");
-      onRefresh();
+      // onRefresh();
     } catch (err) {
       toast.error("Failed to generate bill");
     }
