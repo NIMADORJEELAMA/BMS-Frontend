@@ -1,5 +1,8 @@
 import clsx, { ClassValue } from "clsx";
+import { Search } from "lucide-react";
 import { twMerge } from "tailwind-merge";
+import { Input } from "../ui/input";
+import { SearchBar } from "../ui/SearchBar";
 
 function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs));
@@ -17,25 +20,11 @@ export default function DashboardHeader({
     <header className="bg-white border-b border-gray-200 px-6 py-3 flex flex-wrap items-center justify-between gap-4 shadow-sm">
       {/* LEFT: Search Bar */}
       <div className="relative w-full md:w-64">
-        <input
-          type="text"
-          placeholder="Search table..."
+        <SearchBar
+          placeholder="Search tables..."
           value={searchQuery}
           onChange={(e) => setSearchQuery(e.target.value)}
-          className="w-full pl-10 pr-4 py-2 bg-gray-100 border-none rounded-xl text-sm focus:bg-white focus:ring-2 focus:ring-blue-500 transition-all outline-none"
         />
-        <svg
-          className="absolute left-3 top-2.5 text-gray-400"
-          width="16"
-          height="16"
-          fill="none"
-          stroke="currentColor"
-          strokeWidth="2"
-          viewBox="0 0 24 24"
-        >
-          <circle cx="11" cy="11" r="8" />
-          <path d="m21 21-4.3-4.3" />
-        </svg>
       </div>
 
       {/* RIGHT: Filters Group */}

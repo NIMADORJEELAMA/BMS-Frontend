@@ -2,19 +2,11 @@
 import { useState } from "react";
 import { useUsers, useDeleteUser } from "@/hooks/useUsers";
 import StaffModal from "@/components/staff/StaffModal";
-import {
-  Plus,
-  Search,
-  MoreHorizontal,
-  UserCheck,
-  Shield,
-  ChefHat,
-  User,
-  Mail,
-  Trash2,
-  Edit3,
-} from "lucide-react";
+import { Plus, Search, Shield, User, Trash2, Edit3 } from "lucide-react";
 import toast from "react-hot-toast";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { SearchBar } from "@/components/ui/SearchBar";
 
 export default function StaffPage() {
   const { data: users = [], isLoading } = useUsers();
@@ -50,28 +42,24 @@ export default function StaffPage() {
           </p>
         </div>
         <div className="flex items-center gap-3">
-          <div className="relative">
-            <Search
-              className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400"
-              size={16}
-            />
-            <input
-              className="pl-10 pr-4 py-2 bg-white border border-slate-200 rounded-lg text-sm w-64 focus:outline-none focus:ring-2 focus:ring-slate-900/5 transition-all"
-              placeholder="Search by name or email..."
+          <div className="relative w-full max-w-sm">
+            <SearchBar
+              placeholder="Search employees..."
               value={search}
               onChange={(e) => setSearch(e.target.value)}
             />
           </div>
-          <button
+
+          <Button
+            variant="terminal"
             onClick={() => {
               setSelectedUser(null);
               setIsModalOpen(true);
             }}
-            className="flex items-center gap-2 bg-slate-900 text-white px-4 py-2 rounded-lg text-sm font-semibold hover:bg-slate-800 transition-all shadow-sm cursor-pointer"
           >
-            <Plus size={16} />
+            <Plus />
             Add Employee
-          </button>
+          </Button>
         </div>
       </div>
 
