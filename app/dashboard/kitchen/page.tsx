@@ -163,6 +163,8 @@ export default function KitchenPage() {
     <div className=" bg-muted/40 p-8">
       <div className="  mx-auto space-y-8">
         {/* HEADER */}
+        {/* HEADER */}
+
         <div className="flex items-center justify-between">
           <div>
             <h1 className="text-3xl font-bold tracking-tight">
