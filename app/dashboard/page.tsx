@@ -65,7 +65,31 @@ export default function DashboardPage() {
       return matchesSearch && matchesArea && matchesStatus;
     });
   }, [tables, searchQuery, areaType, statusFilter]);
+  // Auto-cleanup: Remove orders older than 24 hours
+  useEffect(() => {
+    const cleanupOldOrders = () => {
+      const TWENTY_FOUR_HOURS = 24 * 60 * 60 * 1000;
+      const now = Date.now();
 
+      setLiveOrders((prevOrders) => {
+        const filtered = prevOrders.filter((order) => {
+          const orderTime = new Date(order.receivedAt).getTime();
+          return now - orderTime < TWENTY_FOUR_HOURS;
+        });
+
+        // Only update state if something was actually removed
+        return filtered.length !== prevOrders.length ? filtered : prevOrders;
+      });
+    };
+
+    // Run cleanup on mount
+    cleanupOldOrders();
+
+    // Run cleanup every 10 minutes to keep the feed lean
+    const interval = setInterval(cleanupOldOrders, 10 * 60 * 1000);
+
+    return () => clearInterval(interval);
+  }, []);
   useEffect(() => {
     localStorage.setItem("minizeo_live_orders", JSON.stringify(liveOrders));
   }, [liveOrders]);
@@ -108,7 +132,12 @@ export default function DashboardPage() {
           receivedAt: new Date().toISOString(),
         };
 
-        setLiveOrders((prev) => [...prev, orderWithTimestamp].slice(-50));
+        setLiveOrders((prev) => {
+          const newOrders = [...prev, orderWithTimestamp];
+          // Keep only the most recent 100 orders
+          return newOrders.slice(-100);
+        });
+
         toast.success(`New Order: Table ${orderData.table?.number}`, {
           icon: "🔔",
         });
@@ -118,6 +147,24 @@ export default function DashboardPage() {
       [queryClient],
     ),
   );
+  // useSocket(
+  //   useCallback(
+  //     (orderData: any) => {
+  //       const orderWithTimestamp = {
+  //         ...orderData,
+  //         receivedAt: new Date().toISOString(),
+  //       };
+
+  //       setLiveOrders((prev) => [...prev, orderWithTimestamp].slice(-50));
+  //       toast.success(`New Order: Table ${orderData.table?.number}`, {
+  //         icon: "🔔",
+  //       });
+
+  //       queryClient.invalidateQueries({ queryKey: ["table-layout"] });
+  //     },
+  //     [queryClient],
+  //   ),
+  // );
 
   const handleViewTableFromFeed = (tableId: string) => {
     const table = tables.find((t: any) => t.id === tableId);
