@@ -34,7 +34,7 @@ export default function EnterprisePerformanceReport() {
   const [search, setSearch] = useState("");
   const [debouncedSearch, setDebouncedSearch] = useState("");
 
-  // Reset page when date changes ok
+  // Reset page when date changes ok 11
   useEffect(() => {
     setPage(1);
   }, [startDate, endDate]);
