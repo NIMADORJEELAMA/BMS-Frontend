@@ -19,12 +19,14 @@ import CategoryManager from "@/components/Tables/CategoryManager";
 import { div, span } from "framer-motion/client";
 import CategoryDropdown from "@/components/Tables/CategoryDropdown";
 import TableModal from "@/components/Tables/TableModal";
+import { SearchBar } from "@/components/ui/SearchBar";
+import { Button } from "@/components/ui/button";
 
 export default function TablesPage() {
-  const [tables, setTables] = useState([]);
-  const [categories, setCategories] = useState([]);
-  const [isAdding, setIsAdding] = useState(false);
-  const [filter, setFilter] = useState("");
+  const [tables, setTables] = useState<any[]>([]);
+  const [categories, setCategories] = useState<any[]>([]);
+
+  const [search, setSearch] = useState("");
   const [selectedCategory, setSelectedCategory] = useState("ALL"); // For filtering view
 
   const [modalType, setModalType] = useState<"add" | "edit" | "delete" | null>(
@@ -151,7 +153,7 @@ export default function TablesPage() {
 
   // --- FILTER LOGIC ---
   const displayedTables = tables.filter((t: any) => {
-    const matchesSearch = t.number.toLowerCase().includes(filter.toLowerCase());
+    const matchesSearch = t.number.toLowerCase().includes(search.toLowerCase());
     const matchesCategory =
       selectedCategory === "ALL" || t.categoryId === selectedCategory;
     return matchesSearch && matchesCategory;
@@ -286,13 +288,10 @@ export default function TablesPage() {
           <div className="flex flex-col md:flex-row items-stretch md:items-center justify-between gap-6 w-full">
             {/* LEFT SIDE: SEARCH BOX */}
             <div className="relative w-full md:w-80">
-              <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 w-4.5 h-4.5" />
-              <input
-                type="text"
+              <SearchBar
                 placeholder="Search tables..."
-                className="w-full pl-11 pr-4 py-3 rounded-2xl border border-slate-200 outline-none focus:ring-2 focus:ring-blue-500 bg-white shadow-sm transition-all font-medium"
-                value={filter}
-                onChange={(e) => setFilter(e.target.value)}
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
               />
             </div>
 
@@ -308,13 +307,11 @@ export default function TablesPage() {
               <div className="h-8 w-px bg-slate-200 mx-2 hidden md:block" />
 
               {/* NEW TABLE BUTTON */}
-              <button
-                onClick={() => setModalType("add")}
-                className="bg-slate-900 text-white px-6 py-3 rounded-2xl font-bold hover:bg-blue-600 transition-all shadow-lg flex items-center gap-2 active:scale-95 whitespace-nowrap cursor-pointer"
-              >
-                <Plus size={18} strokeWidth={3} />
-                <span>New Table</span>
-              </button>
+
+              <Button variant="default" onClick={() => setModalType("add")}>
+                <Plus />
+                Add Table
+              </Button>
             </div>
           </div>
         </header>

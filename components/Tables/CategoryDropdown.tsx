@@ -57,7 +57,7 @@ export default function CategoryDropdown({
         {/* Main Trigger Button */}
         <button
           onClick={() => setIsOpen(!isOpen)}
-          className={`w-full flex items-center justify-between bg-white border-2 px-4 py-2.5 rounded-2xl transition-all duration-200 shadow-sm  cursor-pointer ${
+          className={`w-full flex items-center justify-between bg-white border-2 px-4 py-1.5 rounded-xl transition-all duration-200 shadow-sm  cursor-pointer ${
             isOpen
               ? "border-blue-500 ring-4 ring-blue-50"
               : "border-slate-100 hover:border-slate-300"
@@ -83,7 +83,7 @@ export default function CategoryDropdown({
               initial={{ opacity: 0, y: 10, scale: 0.95 }}
               animate={{ opacity: 1, y: 5, scale: 1 }}
               exit={{ opacity: 0, y: 10, scale: 0.95 }}
-              className="absolute z-50 w-full bg-white border border-slate-100 rounded-2xl shadow-2xl mt-2 py-2 overflow-hidden cursor-pointer"
+              className="absolute z-50 w-full bg-white border border-slate-100 rounded-2xl shadow-2xl py-2 overflow-hidden cursor-pointer"
             >
               {/* Search option (Optional) or All Areas */}
               <button

@@ -4,6 +4,18 @@ import api from "@/lib/axios";
 import toast from "react-hot-toast";
 import { io } from "socket.io-client";
 import { Beer, X, Utensils } from "lucide-react";
+import { Button } from "./ui/button";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogOverlay,
+} from "@/components/ui/alert-dialog";
 
 interface OrderModalProps {
   table: any;
@@ -23,7 +35,7 @@ export default function OrderModal({
   const [isSplitPay, setIsSplitPay] = useState(false);
   const [cashAmount, setCashAmount] = useState<number>(0);
   const [onlineAmount, setOnlineAmount] = useState<number>(0);
-
+  const [isConfirmOpen, setIsConfirmOpen] = useState(false);
   // Update amounts whenever order total changes or split is toggled
   useEffect(() => {
     if (order) {
@@ -39,7 +51,7 @@ export default function OrderModal({
     setCashAmount(val);
     setOnlineAmount(Math.max(0, total - val));
   };
-  console.log("table", table);
+
   const [isBilled, setIsBilled] = useState(false);
   const fetchActiveOrder = useCallback(async () => {
     try {
@@ -104,11 +116,9 @@ export default function OrderModal({
   const handleSettle = async () => {
     if (!order) return;
 
-    if (hasPending) {
-      const confirmDrop = window.confirm(
-        `There are ${pendingItems.length} items not served. They will be removed from the bill. Proceed?`,
-      );
-      if (!confirmDrop) return;
+    if (hasPending && !isConfirmOpen) {
+      setIsConfirmOpen(true);
+      return;
     }
 
     try {
@@ -302,24 +312,18 @@ export default function OrderModal({
                 {!isSplitPay ? (
                   /* Quick Actions */
                   <div className="grid grid-cols-2 gap-3">
-                    <button
+                    <Button
+                      variant="default"
                       onClick={() => handlePayment("FULL_CASH")}
-                      className="flex flex-col items-center p-4 bg-green-50 rounded-2xl border border-green-100 hover:bg-green-600 hover:text-white transition-all group"
                     >
-                      <span className="text-xl mb-1">💵</span>
-                      <span className="text-[10px] font-black uppercase">
-                        Full Cash
-                      </span>
-                    </button>
-                    <button
+                      Cash
+                    </Button>
+                    <Button
+                      variant="default"
                       onClick={() => handlePayment("FULL_UPI")}
-                      className="flex flex-col items-center p-4 bg-blue-50 rounded-2xl border border-blue-100 hover:bg-blue-600 hover:text-white transition-all group"
                     >
-                      <span className="text-xl mb-1">📱</span>
-                      <span className="text-[10px] font-black uppercase">
-                        Full UPI
-                      </span>
-                    </button>
+                      UPI
+                    </Button>
                   </div>
                 ) : (
                   /* Split Input View */
@@ -512,38 +516,65 @@ export default function OrderModal({
         </div>
 
         {/* FOOTER */}
-        <div className="p-4 bg-gray-50 border-t flex gap-3">
-          {isBilled ? (
-            ""
-          ) : (
-            // <button
-            //   onClick={onClose}
-            //   className="w-full py-4 bg-gray-900 text-white rounded-2xl font-bold text-sm hover:bg-black transition-all uppercase tracking-widest"
-            // >
-            //   Finished & Close
-            // </button>
+        <div className="p-4 bg-gray-50 border-t flex gap-3 items-center">
+          {isBilled ? null : (
             <>
-              <button
+              {/* 20% Ratio Button */}
+              <Button
+                variant="terminalGhost"
                 disabled={!order}
-                className="flex-1 py-4 bg-white border border-2 border-black text-black rounded-2xl font-bold text-sm hover:bg-gray-100 transition-all cursor-pointer tracking-wider"
+                onClick={() => {}}
+                className="flex-[2] h-12 whitespace-nowrap" // flex-[2] covers 20% of a 10-point scale
               >
                 Print KOT
-              </button>
-              <button
+              </Button>
+
+              {/* 80% Ratio Button */}
+              <Button
+                variant="terminal" // Using your custom terminal variant
                 onClick={handleSettle}
-                disabled={!order} // Only disable if there is no order at all
-                className={`flex-2 py-4 rounded-2xl font-bold text-sm transition-all shadow-lg cursor-pointer tracking-wider ${
-                  hasPending
-                    ? "bg-black text-white hover:bg-slate-700"
-                    : "bg-green-600 text-white hover:bg-green-700"
-                }`}
+                disabled={!order}
+                className="flex-[8] h-12 uppercase tracking-widest font-bold" // flex-[8] covers 80%
               >
                 {hasPending ? "Bill Served Items Only" : "Generate Bill"}
-              </button>
+              </Button>
             </>
           )}
         </div>
       </div>
+      <AlertDialog open={isConfirmOpen} onOpenChange={setIsConfirmOpen}>
+        <AlertDialogOverlay className="fixed inset-0 z-50 bg-white/30  " />
+        <AlertDialogContent className="fixed left-[50%] top-[50%] z-50 w-full max-w-md translate-x-[-50%] translate-y-[-50%] rounded-2xl border-2 border-slate-900 bg-white p-6 shadow-xl duration-200 data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 data-[state=closed]:zoom-out-95 data-[state=open]:zoom-in-95">
+          <AlertDialogHeader>
+            <AlertDialogTitle className="text-xl font-black uppercase tracking-tighter">
+              Incomplete Order
+            </AlertDialogTitle>
+            <AlertDialogDescription className="text-slate-500 font-medium">
+              There are{" "}
+              <span className="text-red-600 font-bold">
+                {pendingItems.length} items
+              </span>{" "}
+              that haven't been served. <br />
+              Finalizing the bill will{" "}
+              <span className="font-bold text-slate-900">
+                permanently cancel
+              </span>{" "}
+              these items.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter className="mt-6 gap-3">
+            <AlertDialogCancel className="h-12 flex-1 rounded-xl border-2 border-slate-200 font-bold uppercase text-[10px] tracking-widest hover:bg-slate-50 transition-colors">
+              Wait, Go Back
+            </AlertDialogCancel>
+            <AlertDialogAction
+              onClick={handleSettle}
+              className="h-12 flex-1 rounded-xl bg-red-600 hover:bg-red-700 text-white font-bold uppercase text-[10px] tracking-widest transition-colors"
+            >
+              Discard & Settle
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }
