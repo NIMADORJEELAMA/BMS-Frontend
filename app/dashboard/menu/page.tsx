@@ -125,6 +125,7 @@ export default function MenuPage() {
       name: formData.name.toUpperCase().trim(),
       price: Number(formData.price),
       category: formData.category.toUpperCase().trim(),
+      isActive: true,
     };
 
     // 2. Use 'payload' as the key to match your hook
@@ -162,6 +163,7 @@ export default function MenuPage() {
   };
   const handleEditClick = (item: MenuItem) => {
     setSelectedItem(item);
+    setIsMenuItemFormOpen(false);
     setFormData({
       id: item.id, // Important for updates/deletes
       name: item.name,
@@ -211,6 +213,7 @@ export default function MenuPage() {
           alcoholInventory={alcoholInventory}
           isPending={createMutation.isPending}
           onSubmit={handleCreate}
+          onCancel={() => setIsMenuItemFormOpen(false)}
         />
       )}
       {isLoading ? (
