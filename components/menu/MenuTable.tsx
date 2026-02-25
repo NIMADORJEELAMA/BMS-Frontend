@@ -192,13 +192,13 @@ export default function MenuTable({ items, onEdit, onDelete }: MenuTableProps) {
             <tbody className="divide-y divide-slate-50">
               <AnimatePresence>
                 {paginatedItems.map((item) => (
-                  <motion.tr
+                  <tr
                     key={item.id}
-                    layout
-                    initial={{ opacity: 0, x: -20 }}
-                    animate={{ opacity: 1, x: 0 }}
-                    exit={{ opacity: 0, scale: 0.95 }}
-                    transition={{ type: "spring", stiffness: 300, damping: 30 }}
+                    // layout
+                    // initial={{ opacity: 0, x: -20 }}
+                    // animate={{ opacity: 1, x: 0 }}
+                    // exit={{ opacity: 0, scale: 0.95 }}
+                    // transition={{ type: "spring", stiffness: 300, damping: 30 }}
                     className="hover:bg-slate-50/80 transition-colors group"
                   >
                     {/* ... [TD content remains the same as previous response] ... */}
@@ -283,7 +283,7 @@ export default function MenuTable({ items, onEdit, onDelete }: MenuTableProps) {
                         </button>
                       </div>
                     </td>
-                  </motion.tr>
+                  </tr>
                 ))}
               </AnimatePresence>
             </tbody>

@@ -97,8 +97,13 @@ export default function StaffModal({ isOpen, onClose, editingUser }: any) {
         toast.success(editingUser ? "Profile updated" : "Staff registered");
         onClose();
       },
-      onError: (err: any) =>
-        toast.error(err.response?.data?.message || "Action failed"),
+      onError: (err: any) => {
+        // Better error extraction
+        const message =
+          err?.response?.data?.message || err?.message || "Action failed";
+        toast.error(message);
+        console.error("Mutation Error:", err); // Debugging
+      },
     });
   };
 

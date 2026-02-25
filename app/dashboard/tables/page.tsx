@@ -160,10 +160,9 @@ export default function TablesPage() {
   });
 
   const renderTableCard = (table: any) => (
-    <motion.div
-      layout
+    <div
       key={table.id}
-      className="group relative bg-white p-4 rounded-[2rem] border-2 border-slate-200 hover:border-blue-200 transition-all hover:shadow-xl"
+      className="group relative bg-white p-4 rounded-[1rem] border-2 border-slate-200 hover:border-blue-200 transition-all hover:shadow-xl"
     >
       <div>
         <div className="flex  items-center gap-2">
@@ -195,7 +194,7 @@ export default function TablesPage() {
           <div className="flex flex-col items-center">
             {table.category ? (
               <span
-                className="  text-[9px] font-bold px-2 py-0.5 rounded-md bg-white border uppercase tracking-wider shadow-sm flex items-center gap-1.5"
+                className="  text-[8px] font-bold px-2 py-0.5 rounded-md  bg-white border uppercase tracking-wider shadow-sm flex items-center gap-1.5"
                 style={{
                   borderColor: `${table.category.color}40`, // 40 adds 25% opacity to the hex border
                   color: table.category.color,
@@ -236,7 +235,7 @@ export default function TablesPage() {
           </div>
         </div>
       </div>
-    </motion.div>
+    </div>
   );
 
   const renderTableCar = (table: any) => (
@@ -331,7 +330,7 @@ export default function TablesPage() {
           categories={categories}
           onClose={closeModal}
           onConfirm={handleModalConfirm}
-          onCategoryCreated={onCategoryCreated}
+          // onCategoryCreated={onCategoryCreated}
         />
       </div>
 

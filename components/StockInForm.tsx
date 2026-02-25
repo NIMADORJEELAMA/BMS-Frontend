@@ -11,26 +11,30 @@ import {
   ClipboardList,
 } from "lucide-react";
 import api from "@/lib/axios";
+import toast from "react-hot-toast";
 
 interface StockInFormProps {
   onClose: () => void;
   onSuccess: () => void;
+  editData?: any;
 }
 
-export default function StockInForm({ onClose, onSuccess }: StockInFormProps) {
+export default function StockInForm({
+  onClose,
+  onSuccess,
+  editData,
+}: StockInFormProps) {
   const [loading, setLoading] = useState(false);
   const [existingItems, setExistingItems] = useState([]);
-  const [searchTerm, setSearchTerm] = useState("");
+  const [searchTerm, setSearchTerm] = useState(editData?.name || "");
   const [showDropdown, setShowDropdown] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
-
   const [formData, setFormData] = useState({
-    name: "",
-    quantity: "",
-    unit: "pcs",
-    type: "FOOD",
-    reason: "",
-    purchasePrice: "",
+    name: editData?.name || "",
+    quantity: editData?.currentStock || "", // Note: currentStock in edit mode
+    unit: editData?.unit || "pcs",
+    type: editData?.type || "FOOD",
+    purchasePrice: editData?.lastPurchasePrice || "",
   });
 
   useEffect(() => {
@@ -46,6 +50,19 @@ export default function StockInForm({ onClose, onSuccess }: StockInFormProps) {
     document.addEventListener("mousedown", handleClickOutside);
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
+
+  useEffect(() => {
+    if (editData) {
+      setSearchTerm(editData.name);
+      setFormData({
+        name: editData.name,
+        quantity: editData.currentStock,
+        unit: editData.unit,
+        type: editData.type,
+        purchasePrice: editData.lastPurchasePrice,
+      });
+    }
+  }, [editData]);
 
   // Filter items for the search dropdown
   const filteredItems = useMemo(() => {
@@ -70,19 +87,49 @@ export default function StockInForm({ onClose, onSuccess }: StockInFormProps) {
     e.preventDefault();
     setLoading(true);
     try {
-      await api.post("/inventory/stock-in", {
-        ...formData,
-        name: searchTerm || formData.name,
-        quantity: Number(formData.quantity),
-        purchasePrice: Number(formData.purchasePrice),
-      });
+      if (editData) {
+        // UPDATE MODE
+        await api.patch(`/inventory/stocks/${editData.id}`, {
+          ...formData,
+          name: searchTerm,
+          quantity: Number(formData.quantity),
+          purchasePrice: Number(formData.purchasePrice),
+        });
+        toast.success("Stock updated");
+      } else {
+        // CREATE MODE
+        await api.post("/inventory/stock-in", {
+          ...formData,
+          name: searchTerm || formData.name,
+          quantity: Number(formData.quantity),
+          purchasePrice: Number(formData.purchasePrice),
+        });
+        toast.success("Stock added");
+      }
       onSuccess();
     } catch (err) {
-      console.error(err);
+      toast.error("Operation failed");
     } finally {
       setLoading(false);
     }
   };
+  // const handleSubmit = async (e: React.FormEvent) => {
+  //   e.preventDefault();
+  //   setLoading(true);
+  //   try {
+  //     await api.post("/inventory/stock-in", {
+  //       ...formData,
+  //       name: searchTerm || formData.name,
+  //       quantity: Number(formData.quantity),
+  //       purchasePrice: Number(formData.purchasePrice),
+  //     });
+  //     onSuccess();
+  //   } catch (err) {
+  //     console.error(err);
+  //   } finally {
+  //     setLoading(false);
+  //   }
+  // };
 
   return (
     <div className="bg-white w-full max-w-lg rounded-[28px] shadow-2xl overflow-hidden border border-slate-200 animate-in fade-in zoom-in duration-200">
@@ -94,7 +141,7 @@ export default function StockInForm({ onClose, onSuccess }: StockInFormProps) {
           </div>
           <div>
             <h2 className="text-xl font-bold text-slate-900 tracking-tight">
-              Stock Inbound
+              {editData ? "Edit Stock Item" : "Stock Inbound"}
             </h2>
             <p className="text-[10px] text-slate-500 font-medium uppercase tracking-widest">
               Inventory Management
@@ -244,6 +291,8 @@ export default function StockInForm({ onClose, onSuccess }: StockInFormProps) {
           >
             {loading ? (
               <Loader2 className="animate-spin" size={18} />
+            ) : editData ? (
+              "Update Stock"
             ) : (
               "Finalize Entry"
             )}

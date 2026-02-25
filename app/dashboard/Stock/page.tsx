@@ -24,12 +24,16 @@ import {
   Package,
   Layers,
   ArrowRight,
+  Edit3,
+  Trash2,
 } from "lucide-react";
 import StockInForm from "@/components/StockInForm";
 import InventoryAnalytics from "@/components/Stocks/InventoryAnalytics";
+import { Button } from "@/components/ui/button";
 
 export default function StockManagementPage() {
   const [items, setItems] = useState([]);
+  const [editingItem, setEditingItem] = useState<any>(null);
   const [globalFilter, setGlobalFilter] = useState("");
   const [typeFilter, setTypeFilter] = useState("ALL");
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -81,7 +85,20 @@ export default function StockManagementPage() {
   useEffect(() => {
     fetchInventory();
   }, [typeFilter, startDate, endDate]);
+  const handleDelete = async (id: string, name: string) => {
+    if (!confirm(`Are you sure you want to delete ${name}?`)) return;
 
+    try {
+      setLoading(true);
+      await api.delete(`/inventory/stocks/${id}`);
+      toast.success("Item deleted successfully");
+      fetchInventory();
+    } catch (err) {
+      toast.error("Failed to delete item");
+    } finally {
+      setLoading(false);
+    }
+  };
   const columns = useMemo(
     () => [
       {
@@ -201,6 +218,29 @@ export default function StockManagementPage() {
           </div>
         ),
       },
+      {
+        id: "actions",
+        header: "Actions",
+        cell: ({ row }: any) => (
+          <div className="flex items-center justify-end gap-2">
+            <button
+              onClick={() => {
+                setEditingItem(row.original);
+                setIsModalOpen(true);
+              }}
+              className="p-2 text-slate-400 hover:text-indigo-600 hover:bg-indigo-50 rounded-lg transition-all cursor-pointer"
+            >
+              <Edit3 size={16} />
+            </button>
+            <button
+              onClick={() => handleDelete(row.original.id, row.original.name)}
+              className="p-2 text-slate-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-all cursor-pointer"
+            >
+              <Trash2 size={16} />
+            </button>
+          </div>
+        ),
+      },
     ],
     [],
   );
@@ -237,12 +277,12 @@ export default function StockManagementPage() {
           </div>
 
           <div className="flex items-center gap-3">
-            <button
+            <Button
               onClick={() => setIsModalOpen(true)}
-              className="bg-slate-900 text-white cursor-pointer px-8 py-4 rounded-2xl font-bold text-xs uppercase tracking-widest flex items-center gap-3 hover:bg-blue-600 transition-all shadow-xl shadow-slate-200"
+              // className="bg-slate-900 text-white cursor-pointer px-8 py-4 rounded-2xl font-bold text-xs uppercase tracking-widest flex items-center gap-3 hover:bg-blue-600 transition-all shadow-xl shadow-slate-200"
             >
               <Plus size={18} /> Add New Inventory
-            </button>
+            </Button>
           </div>
         </div>
 
@@ -371,10 +411,15 @@ export default function StockManagementPage() {
         {isModalOpen && (
           <div className="fixed inset-0 bg-slate-900/40 backdrop-blur-md z-[100] flex items-center justify-center p-4">
             <StockInForm
-              onClose={() => setIsModalOpen(false)}
+              editData={editingItem} // Pass edit data
+              onClose={() => {
+                setIsModalOpen(false);
+                setEditingItem(null); // Clear edit state on close
+              }}
               onSuccess={() => {
                 fetchInventory();
                 setIsModalOpen(false);
+                setEditingItem(null);
               }}
             />
           </div>

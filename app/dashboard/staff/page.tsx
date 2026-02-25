@@ -25,6 +25,11 @@ export default function StaffPage() {
     if (confirm(`Confirm permanent removal of ${name}?`)) {
       deleteUser.mutate(id, {
         onSuccess: () => toast.success("Employee removed from records"),
+        onError: (err: any) => {
+          const message =
+            err?.response?.data?.message || "Failed to remove employee";
+          toast.error(message);
+        },
       });
     }
   };

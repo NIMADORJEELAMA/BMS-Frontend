@@ -3,6 +3,7 @@ import DeleteItemModal from "@/components/menu/DeleteItemModal";
 import MenuItemForm from "@/components/menu/MenuItemForm";
 import MenuModal from "@/components/menu/MenuModal";
 import MenuTable from "@/components/menu/MenuTable";
+import { Button } from "@/components/ui/button";
 import { useAlcoholInventory } from "@/hooks/useAlcoholInventory";
 import {
   useCreateMenuItem,
@@ -59,6 +60,7 @@ export default function MenuPage() {
     });
     setSelectedItem(null); // Clear the selected item reference
   };
+
   const handleCreate = (e: React.FormEvent) => {
     e.preventDefault();
     createMutation.mutate(
@@ -73,20 +75,46 @@ export default function MenuPage() {
       {
         onSuccess: () => {
           toast.success("Menu item added");
-          setFormData({
-            name: "",
-            price: "",
-            category: "",
-            type: "FOOD",
-            inventoryItemId: "",
-            isVeg: false,
-            isActive: true,
-          });
           resetForm();
+          setIsMenuItemFormOpen(false); // Optional: close form on success
+        },
+        onError: (error: any) => {
+          // This extracts the "An item named..." message from your JSON response
+          const message =
+            error?.response?.data?.message || "Something went wrong";
+          toast.error(message);
         },
       },
     );
   };
+  // const handleCreate = (e: React.FormEvent) => {
+  //   e.preventDefault();
+  //   createMutation.mutate(
+  //     {
+  //       ...formData,
+  //       name: formData.name.toUpperCase().trim(),
+  //       price: Number(formData.price),
+  //       category: formData.category.toUpperCase().trim(),
+  //       inventoryItemId:
+  //         formData.type === "ALCOHOL" ? formData.inventoryItemId : null,
+  //     },
+  //     {
+  //       onSuccess: () => {
+  //         toast.success("Menu item added");
+  //         setFormData({
+  //           name: "",
+  //           price: "",
+  //           category: "",
+  //           type: "FOOD",
+  //           inventoryItemId: "",
+  //           isVeg: false,
+  //           isActive: true,
+  //         });
+  //         resetForm();
+  //       },
+  //     },
+  //   );
+  // };
   const handleUpdate = (e: React.FormEvent) => {
     e.preventDefault();
     if (!formData.id) return;
@@ -102,7 +130,7 @@ export default function MenuPage() {
     // 2. Use 'payload' as the key to match your hook
     updateMutation.mutate(
       {
-        id: formData.id,
+        id: formData?.id,
         payload: dataToSend, // Changed from 'data' to 'payload'
       },
       {
@@ -152,14 +180,15 @@ export default function MenuPage() {
       <header className="flex justify-between items-end">
         <div>
           <div className="flex justify-end">
-            <button
+            <Button
+              variant="default"
               onClick={handleMenuModel}
-              className={`flex items-center gap-2 px-6 py-3 rounded-2xl font-semibold text-sm transition-all shadow-sm cursor-pointer
-            ${
-              isMenuItemFormOpen
-                ? "bg-slate-100 text-slate-600 hover:bg-slate-200"
-                : "bg-slate-900 text-white hover:bg-black"
-            }`}
+              //   className={`flex items-center gap-2 px-6 py-3 rounded-2xl font-semibold text-sm transition-all shadow-sm cursor-pointer
+              // ${
+              //   isMenuItemFormOpen
+              //     ? "bg-slate-100 text-slate-600 hover:bg-slate-200"
+              //     : "bg-slate-900 text-white hover:bg-black"
+              // }`}
             >
               {isMenuItemFormOpen ? (
                 <>
@@ -170,7 +199,7 @@ export default function MenuPage() {
                   <Plus size={18} /> Add New Item
                 </>
               )}
-            </button>
+            </Button>
           </div>
         </div>
       </header>

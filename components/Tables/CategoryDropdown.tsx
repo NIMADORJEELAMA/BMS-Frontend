@@ -2,7 +2,6 @@
 import { useState, useRef, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { ChevronDown, Filter, Check, X } from "lucide-react";
-import { div } from "framer-motion/client";
 
 interface Category {
   id: string;
@@ -23,7 +22,6 @@ export default function CategoryDropdown({
   const [isOpen, setIsOpen] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
 
-  // Close dropdown when clicking outside
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
       if (
@@ -44,33 +42,29 @@ export default function CategoryDropdown({
         "Select Area";
 
   return (
-    <div className="flex">
-      <div className="relative w-full md:w-64 cursor-pointer" ref={dropdownRef}>
-        {/* Mini Top Label */}
-        <div className="absolute -top-5 left-1 flex items-center gap-1.5 pointer-events-none">
-          <Filter className="w-3 h-3 text-slate-400" />
-          <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400">
-            Category Filter
-          </span>
-        </div>
-
-        {/* Main Trigger Button */}
+    <div className="flex items-center">
+      <div className="relative w-full md:w-64" ref={dropdownRef}>
+        {/* Main Trigger Button - Fixed h-10 */}
         <button
           onClick={() => setIsOpen(!isOpen)}
-          className={`w-full flex items-center justify-between bg-white border-2 px-4 py-1.5 rounded-xl transition-all duration-200 shadow-sm  cursor-pointer ${
+          className={`w-full h-10 flex items-center justify-between bg-white border px-4 rounded-xl transition-all duration-200 shadow-sm cursor-pointer ${
             isOpen
-              ? "border-blue-500 ring-4 ring-blue-50"
-              : "border-slate-100 hover:border-slate-300"
+              ? "border-slate-400 ring-2 ring-slate-100"
+              : "border-slate-200 hover:border-slate-300"
           }`}
         >
-          <span
-            className={`text-sm font-bold cursor-pointer ${selectedCategory === "ALL" ? "text-slate-500" : "text-slate-900"}`}
-          >
-            {currentCategoryName}
-          </span>
+          <div className="flex items-center gap-2 overflow-hidden">
+            <Filter className="w-3.5 h-3.5 text-slate-400 shrink-0" />
+            <span
+              className={`text-sm font-semibold truncate ${selectedCategory === "ALL" ? "text-slate-500" : "text-slate-900"}`}
+            >
+              {currentCategoryName}
+            </span>
+          </div>
           <motion.div
             animate={{ rotate: isOpen ? 180 : 0 }}
             transition={{ duration: 0.2 }}
+            className="shrink-0"
           >
             <ChevronDown className="w-4 h-4 text-slate-400" />
           </motion.div>
@@ -80,31 +74,34 @@ export default function CategoryDropdown({
         <AnimatePresence>
           {isOpen && (
             <motion.div
-              initial={{ opacity: 0, y: 10, scale: 0.95 }}
-              animate={{ opacity: 1, y: 5, scale: 1 }}
-              exit={{ opacity: 0, y: 10, scale: 0.95 }}
-              className="absolute z-50 w-full bg-white border border-slate-100 rounded-2xl shadow-2xl py-2 overflow-hidden cursor-pointer"
+              initial={{ opacity: 0, y: 4, scale: 0.98 }}
+              animate={{ opacity: 1, y: 4, scale: 1 }}
+              exit={{ opacity: 0, y: 4, scale: 0.98 }}
+              className="absolute z-50 w-full bg-white border border-slate-200 rounded-2xl shadow-xl py-1 overflow-hidden"
             >
-              {/* Search option (Optional) or All Areas */}
-              <button
-                onClick={() => {
-                  setSelectedCategory("ALL");
-                  setIsOpen(false);
-                }}
-                className={`w-full flex items-center justify-between px-4 py-3 text-sm font-semibold transition-colors cursor-pointer ${
-                  selectedCategory === "ALL"
-                    ? "bg-blue-50 text-blue-600"
-                    : "hover:bg-slate-50 text-slate-600"
-                }`}
-              >
-                All Areas
-                {selectedCategory === "ALL" && <Check className="w-4 h-4" />}
-              </button>
+              {/* Scrollable Container with Max Height */}
+              <div className="max-h-[240px] overflow-y-auto no-scrollbar scroll-smooth">
+                {/* All Areas Option */}
+                <button
+                  onClick={() => {
+                    setSelectedCategory("ALL");
+                    setIsOpen(false);
+                  }}
+                  className={`w-full flex items-center justify-between px-4 h-10 text-sm font-semibold transition-colors cursor-pointer ${
+                    selectedCategory === "ALL"
+                      ? "bg-slate-900 text-white"
+                      : "hover:bg-slate-50 text-slate-600"
+                  }`}
+                >
+                  All Areas
+                  {selectedCategory === "ALL" && <Check className="w-4 h-4" />}
+                </button>
 
-              <div className="h-px bg-slate-100 my-1 mx-2" />
+                {categories.length > 0 && (
+                  <div className="h-px bg-slate-100 mx-2 my-1" />
+                )}
 
-              {/* Dynamic Categories */}
-              <div className="max-h-60 overflow-y-auto scrollbar-thin scrollbar-thumb-slate-200 cursor-pointer">
+                {/* Dynamic Categories */}
                 {categories.map((cat) => (
                   <button
                     key={cat.id}
@@ -112,41 +109,43 @@ export default function CategoryDropdown({
                       setSelectedCategory(cat.id);
                       setIsOpen(false);
                     }}
-                    className={`w-full flex items-center justify-between px-4 py-3 text-sm font-semibold transition-colors cursor-pointer ${
+                    className={`w-full flex items-center justify-between px-4 h-10 text-sm font-semibold transition-colors cursor-pointer ${
                       selectedCategory === cat.id
-                        ? "bg-blue-50 text-blue-600"
+                        ? "bg-slate-900 text-white"
                         : "hover:bg-slate-50 text-slate-600"
                     }`}
                   >
-                    {cat.name}
+                    <span className="truncate">{cat.name}</span>
                     {selectedCategory === cat.id && (
                       <Check className="w-4 h-4" />
                     )}
                   </button>
                 ))}
-              </div>
 
-              {categories.length === 0 && (
-                <div className="px-4 py-3 text-xs text-slate-400  ">
-                  No categories found
-                </div>
-              )}
+                {categories.length === 0 && (
+                  <div className="px-4 py-3 text-xs text-slate-400 text-center">
+                    No categories found
+                  </div>
+                )}
+              </div>
             </motion.div>
           )}
         </AnimatePresence>
       </div>
-      <div className="">
+
+      {/* Clear Filter Button - Fixed h-10 to match */}
+      <div className="flex items-center">
         <AnimatePresence>
           {selectedCategory !== "ALL" && (
             <motion.button
-              initial={{ opacity: 0, x: 10 }}
+              initial={{ opacity: 0, x: 5 }}
               animate={{ opacity: 1, x: 0 }}
-              exit={{ opacity: 0, x: 10 }}
+              exit={{ opacity: 0, x: 5 }}
               onClick={() => setSelectedCategory("ALL")}
-              className="p-3 ml-2 bg-red-50 text-red-500 rounded-2xl border border-red-100 hover:bg-red-500 hover:text-white transition-all shadow-sm group cursor-pointer"
+              className="h-10 w-10 flex items-center justify-center ml-2 bg-red-50 text-red-500 rounded-xl border border-red-100 hover:bg-red-500 hover:text-white transition-all shadow-sm cursor-pointer group"
               title="Clear Filter"
             >
-              <X size={18} strokeWidth={3} />
+              <X size={16} strokeWidth={3} />
             </motion.button>
           )}
         </AnimatePresence>

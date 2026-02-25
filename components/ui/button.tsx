@@ -5,40 +5,46 @@ import { cva, type VariantProps } from "class-variance-authority";
 import { cn } from "@/lib/utils";
 
 const buttonVariants = cva(
-  "inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-lg text-sm font-semibold transition-all focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:pointer-events-none disabled:opacity-50 [&_svg]:pointer-events-none [&_svg]:size-4 [&_svg]:shrink-0 active:scale-[0.98] cursor-pointer",
+  "inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-xl text-sm font-semibold transition-all focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:pointer-events-none disabled:opacity-50 [&_svg]:pointer-events-none [&_svg]:size-4 [&_svg]:shrink-0 active:scale-[0.98] cursor-pointer",
   {
     variants: {
       variant: {
-        // Your Custom Brand Variant
+        // The "Confirm" black button from reference
         terminal:
-          "bg-slate-900 text-white hover:bg-slate-800 shadow-sm shadow-slate-200 cursor-pointer",
+          "bg-black text-white hover:bg-slate-800 shadow-sm border-2 border-transparent",
+
+        // The "Cancel" white button from reference
+        outline:
+          "bg-white text-slate-900 border border-slate-200 hover:bg-slate-800 hover:text-white hover:border-slate-800 shadow-sm",
+
+        // Standard destructive (red) variant
+        destructive: "bg-red-600 text-white shadow-sm hover:bg-red-700",
+
+        // Default shadcn/ui variants (kept for compatibility)
         default:
           "bg-primary text-primary-foreground shadow hover:bg-primary/90",
-        destructive:
-          "bg-destructive text-destructive-foreground shadow-sm hover:bg-destructive/90",
-        outline:
-          "border border-input bg-background shadow-sm hover:bg-accent hover:text-accent-foreground",
         secondary:
           "bg-secondary text-secondary-foreground shadow-sm hover:bg-secondary/80",
-        ghost:
-          "bg-transparent text-slate-900 border-2 border-transparent hover:bg-slate-900 hover:text-white hover:border-slate-900 transition-all duration-200",
+        ghost: "hover:bg-accent hover:text-accent-foreground",
         terminalGhost:
           "bg-transparent text-black border-2 border-black hover:bg-black hover:text-white transition-all duration-200",
         link: "text-primary underline-offset-4 hover:underline",
       },
       size: {
-        default: "h-9 px-4 py-2", // Adjusted height to match your specific button
-        sm: "h-8 rounded-md px-3 text-xs",
-        lg: "h-12 rounded-xl px-8 text-base",
-        icon: "h-9 w-9",
+        // Matches the "py-3.5" or "py-6" height from your forms
+        default: "h-10 px-6 py-3",
+        sm: "h-9 rounded-lg px-3 text-xs",
+        lg: "h-12 rounded-2xl px-8 text-base",
+        icon: "h-10 w-10",
       },
     },
     defaultVariants: {
-      variant: "terminal", // Set your brand style as default
+      variant: "terminal",
       size: "default",
     },
   },
 );
+
 export interface ButtonProps
   extends
     React.ButtonHTMLAttributes<HTMLButtonElement>,
