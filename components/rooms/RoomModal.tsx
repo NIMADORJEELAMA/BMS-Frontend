@@ -4,7 +4,7 @@ import { useEffect } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
-import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import api from "@/lib/axios";
 import {
   X,
@@ -44,34 +44,38 @@ import {
 // 1. Validation Schema
 const roomSchema = z.object({
   roomNumber: z.string().min(1, "Room number is required"),
-  type: z.enum(["STANDARD", "DELUXE", "SUITE"]),
+  // type: z.enum(["STANDARD", "DELUXE", "SUITE"]),
+  categoryId: z.string().min(1, "Category is required"),
   basePrice: z.coerce.number().min(1, "Price must be greater than 0"),
 });
 
 type RoomFormValues = z.infer<typeof roomSchema>;
 
-export default function RoomModal({ isOpen, onClose, initialData }: any) {
+export default function RoomModal({
+  isOpen,
+  onClose,
+  initialData,
+  categories,
+}: any) {
   const queryClient = useQueryClient();
 
   const form = useForm<RoomFormValues>({
     resolver: zodResolver(roomSchema),
     defaultValues: {
       roomNumber: "",
-      type: "DELUXE",
+      categoryId: "",
       basePrice: 0,
     },
   });
 
-  // 2. Sync form when editing starts
   useEffect(() => {
     if (initialData && isOpen) {
       form.reset({
         roomNumber: initialData.roomNumber,
-        type: initialData.type,
+        // If initialData.category is an object, use initialData.category.id
+        categoryId: initialData.categoryId || initialData.category?.id || "",
         basePrice: initialData.basePrice,
       });
-    } else if (!initialData && isOpen) {
-      form.reset({ roomNumber: "", type: "DELUXE", basePrice: 0 });
     }
   }, [initialData, isOpen, form]);
 
@@ -151,8 +155,53 @@ export default function RoomModal({ isOpen, onClose, initialData }: any) {
                 )}
               />
 
-              {/* Room Type */}
+              {/* Room Category Select */}
               <FormField
+                control={form.control}
+                name="categoryId"
+                render={({ field }) => (
+                  <FormItem className="space-y-1.5">
+                    <FormLabel className="flex items-center gap-2 text-[11px] font-bold text-slate-700 uppercase tracking-wider">
+                      <BedDouble size={12} className="text-slate-400" /> Room
+                      Category
+                    </FormLabel>
+                    <Select
+                      onValueChange={field.onChange}
+                      value={field.value}
+                      defaultValue={field.value}
+                    >
+                      <FormControl>
+                        <SelectTrigger className="h-12 rounded-xl border-slate-200 bg-slate-50 font-bold text-xs uppercase focus:ring-indigo-500/20">
+                          <SelectValue placeholder="Select category" />
+                        </SelectTrigger>
+                      </FormControl>
+                      <SelectContent className="rounded-xl border-slate-200 shadow-xl max-h-50 overflow-y-auto">
+                        {categories.map((cat: any) => (
+                          <SelectItem
+                            key={cat.id}
+                            value={cat.id}
+                            className="py-3 focus:bg-indigo-50 cursor-pointer"
+                          >
+                            <div className="flex items-center gap-3">
+                              <div
+                                className="w-3 h-3 rounded-full shadow-sm"
+                                style={{
+                                  backgroundColor: cat.color || "#3B82F6",
+                                }}
+                              />
+                              <span className="font-bold text-slate-700">
+                                {cat.name}
+                              </span>
+                            </div>
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                    <FormMessage className="text-[10px]" />
+                  </FormItem>
+                )}
+              />
+              {/* <FormField
                 control={form.control}
                 name="type"
                 render={({ field }) => (
@@ -176,7 +225,7 @@ export default function RoomModal({ isOpen, onClose, initialData }: any) {
                     <FormMessage className="text-[10px]" />
                   </FormItem>
                 )}
-              />
+              /> */}
 
               {/* Base Price */}
               <FormField

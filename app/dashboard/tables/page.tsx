@@ -281,25 +281,23 @@ export default function TablesPage() {
   );
 
   return (
-    <div className=" bg-[#FBFDFF] flex">
+    <div className="   flex">
       <div className=" w-[80%] mx-auto p-12 ">
         <header className="flex flex-col md:flex-row justify-between items-start md:items-center gap-6 mb-12">
           <div className="flex flex-col md:flex-row items-stretch md:items-center justify-between gap-6 w-full">
             {/* LEFT SIDE: SEARCH BOX */}
-            <div className="relative w-full md:w-80">
-              <SearchBar
-                placeholder="Search tables..."
-                value={search}
-                onChange={(e) => setSearch(e.target.value)}
-              />
-            </div>
-
-            {/* RIGHT SIDE: FILTER & ACTION GROUP */}
             <div className="flex items-center gap-3">
               <CategoryDropdown
                 categories={categories}
                 selectedCategory={selectedCategory}
                 setSelectedCategory={setSelectedCategory}
+              />
+            </div>
+            <div className="relative   flex">
+              <SearchBar
+                placeholder="Search tables..."
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
               />
 
               {/* SEPARATOR */}
@@ -312,6 +310,7 @@ export default function TablesPage() {
                 Add Table
               </Button>
             </div>
+            {/* RIGHT SIDE: FILTER & ACTION GROUP */}
           </div>
         </header>
 
