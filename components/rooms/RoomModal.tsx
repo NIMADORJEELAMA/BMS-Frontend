@@ -40,6 +40,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { Button } from "../ui/button";
 
 // 1. Validation Schema
 const roomSchema = z.object({
@@ -67,15 +68,25 @@ export default function RoomModal({
       basePrice: 0,
     },
   });
+  console.log("initialData", initialData);
 
   useEffect(() => {
-    if (initialData && isOpen) {
-      form.reset({
-        roomNumber: initialData.roomNumber,
-        // If initialData.category is an object, use initialData.category.id
-        categoryId: initialData.categoryId || initialData.category?.id || "",
-        basePrice: initialData.basePrice,
-      });
+    if (isOpen) {
+      if (initialData) {
+        // EDIT MODE: Populate with existing room data
+        form.reset({
+          roomNumber: initialData.roomNumber,
+          categoryId: initialData.categoryId || initialData.category?.id || "",
+          basePrice: initialData.basePrice,
+        });
+      } else {
+        // CREATE MODE: Reset to empty defaults
+        form.reset({
+          roomNumber: "",
+          categoryId: "",
+          basePrice: 0,
+        });
+      }
     }
   }, [initialData, isOpen, form]);
 
@@ -107,24 +118,18 @@ export default function RoomModal({
         {/* Header - Matching "Stock Inbound" DNA */}
         <div className="px-8 py-6 border-b border-slate-100 flex justify-between items-center bg-slate-50/50">
           <div className="flex items-center gap-3">
-            <div className="p-2 bg-indigo-600 rounded-lg text-white">
+            <div className="p-2 bg-slate-900 rounded-lg text-white">
               <Hotel size={20} />
             </div>
             <div>
               <h2 className="text-xl font-bold text-slate-900 tracking-tight">
-                {initialData ? `${initialData.roomNumber}` : "New Room"}
+                {initialData ? "Update Room" : "Create Room"}
               </h2>
-              {/* <p className="text-[10px] text-slate-500 font-medium uppercase tracking-widest">
-                Inventory Configuration
-              </p> */}
+              <p className="text-[10px] text-slate-500 font-medium uppercase tracking-widest">
+                Room Configuration
+              </p>
             </div>
           </div>
-          {/* <button
-            onClick={onClose}
-            className="p-2 hover:bg-slate-200 rounded-full transition-colors text-slate-400"
-          >
-            <X size={20} />
-          </button> */}
         </div>
 
         <Form {...form}>
@@ -201,31 +206,6 @@ export default function RoomModal({
                   </FormItem>
                 )}
               />
-              {/* <FormField
-                control={form.control}
-                name="type"
-                render={({ field }) => (
-                  <FormItem className="space-y-1.5">
-                    <FormLabel className="flex items-center gap-2 text-[11px] font-bold text-slate-700 uppercase tracking-wider">
-                      <BedDouble size={12} className="text-slate-400" />{" "}
-                      Category
-                    </FormLabel>
-                    <Select onValueChange={field.onChange} value={field.value}>
-                      <FormControl>
-                        <SelectTrigger className="h-12 rounded-xl border-slate-200 bg-slate-50 font-bold text-xs uppercase">
-                          <SelectValue placeholder="Select type" />
-                        </SelectTrigger>
-                      </FormControl>
-                      <SelectContent className="rounded-xl">
-                        <SelectItem value="STANDARD">Standard Room</SelectItem>
-                        <SelectItem value="DELUXE">Deluxe Room</SelectItem>
-                        <SelectItem value="SUITE">Executive Suite</SelectItem>
-                      </SelectContent>
-                    </Select>
-                    <FormMessage className="text-[10px]" />
-                  </FormItem>
-                )}
-              /> */}
 
               {/* Base Price */}
               <FormField
@@ -253,27 +233,31 @@ export default function RoomModal({
 
             {/* Action Buttons */}
             <div className="pt-4 flex gap-3">
-              <button
-                type="button"
+              <Button
+                variant={"terminalGhost"}
                 onClick={onClose}
-                className="flex-1 py-4 bg-white border border-slate-200 text-slate-600 rounded-2xl font-bold text-[11px] uppercase tracking-widest hover:bg-slate-50 transition-all"
+                className="flex-[2]"
+                // className="flex-1 py-4 bg-white border border-slate-200 text-slate-600 rounded-2xl font-bold text-[11px] uppercase tracking-widest hover:bg-slate-50 transition-all"
               >
                 Cancel
-              </button>
-              <button
+              </Button>
+              <Button
                 type="submit"
                 disabled={mutation.isPending}
-                className="flex-[2] py-4 bg-indigo-600 text-white rounded-2xl font-bold text-[11px] uppercase tracking-widest hover:bg-indigo-700 transition-all flex items-center justify-center shadow-lg shadow-indigo-200 disabled:opacity-50"
+                variant={"default"}
+                className="flex-[8]"
+
+                // className="flex-[2] py-4 bg-indigo-600 text-white rounded-2xl font-bold text-[11px] uppercase tracking-widest hover:bg-indigo-700 transition-all flex items-center justify-center shadow-lg shadow-indigo-200 disabled:opacity-50"
               >
                 {mutation.isPending ? (
                   <Loader2 className="animate-spin" size={18} />
                 ) : (
                   <>
                     <Save className="mr-2" size={16} />
-                    {initialData ? "Update Inventory" : "Confirm Addition"}
+                    {initialData ? "Update Room" : "Create Room"}
                   </>
                 )}
-              </button>
+              </Button>
             </div>
           </form>
         </Form>
