@@ -41,6 +41,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { useRegisterUser, useUpdateUser } from "@/hooks/useUsers";
+import { Button } from "../ui/button";
 
 const formSchema = z.object({
   name: z.string().min(2, "Full name is required"),
@@ -125,7 +126,7 @@ export default function StaffModal({ isOpen, onClose, editingUser }: any) {
         {/* Header - Matching Stock Entry Style */}
         <div className="px-8 py-6 border-b border-slate-100 flex justify-between items-center bg-slate-50/50">
           <div className="flex items-center gap-3">
-            <div className="p-2 bg-indigo-600 rounded-lg text-white">
+            <div className="p-2 bg-slate-900 rounded-lg text-white">
               {editingUser ? <Save size={20} /> : <UserPlus size={20} />}
             </div>
             <div>
@@ -279,17 +280,21 @@ export default function StaffModal({ isOpen, onClose, editingUser }: any) {
 
             {/* Footer Actions */}
             <div className="pt-4 flex gap-3">
-              <button
+              <Button
                 type="button"
                 onClick={onClose}
-                className="flex-1 py-4 bg-white border border-slate-200 text-slate-600 rounded-2xl font-bold text-[11px] uppercase tracking-widest hover:bg-slate-50 transition-all"
+                variant={"terminalGhost"}
+                className="flex-[2] "
+                // className="flex-1 py-4 bg-white border border-slate-200 text-slate-600 rounded-2xl font-bold text-[11px] uppercase tracking-widest hover:bg-slate-50 transition-all"
               >
                 Discard
-              </button>
-              <button
+              </Button>
+              <Button
                 type="submit"
                 disabled={isPending}
-                className="flex-[2] py-4 bg-indigo-600 text-white rounded-2xl font-bold text-[11px] uppercase tracking-widest hover:bg-indigo-700 transition-all flex items-center justify-center shadow-lg shadow-indigo-200 disabled:opacity-50"
+                variant={"default"}
+                className={`flex-[8] `}
+                // className="flex-[2] py-4 bg-indigo-600 text-white rounded-2xl font-bold text-[11px] uppercase tracking-widest hover:bg-indigo-700 transition-all flex items-center justify-center shadow-lg shadow-indigo-200 disabled:opacity-50"
               >
                 {isPending ? (
                   <Loader2 className="animate-spin" size={18} />
@@ -298,7 +303,7 @@ export default function StaffModal({ isOpen, onClose, editingUser }: any) {
                 ) : (
                   "Finalize Registration"
                 )}
-              </button>
+              </Button>
             </div>
           </form>
         </Form>

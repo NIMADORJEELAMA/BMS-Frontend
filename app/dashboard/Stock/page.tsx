@@ -38,6 +38,7 @@ export default function StockManagementPage() {
   const [typeFilter, setTypeFilter] = useState("ALL");
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [persistedStats, setPersistedStats] = useState(null);
 
   const today = new Date().toISOString().split("T")[0];
   const [startDate, setStartDate] = useState("");
@@ -60,11 +61,18 @@ export default function StockManagementPage() {
       setLoading(false);
     }
   };
-  const analyticsData = useMemo(() => {
-    if (!items || items.length === 0) return null;
-    // Since stats are repeated in each item, we grab it from the first index
-    return items[0]?.stats;
+  useEffect(() => {
+    if (items.length > 0 && items[0]?.stats) {
+      setPersistedStats(items[0].stats);
+    }
   }, [items]);
+  const analyticsData = useMemo(() => {
+    // If we have current items with stats, use those
+    if (items.length > 0 && items[0]?.stats) return items[0].stats;
+
+    // Otherwise, fallback to the persisted stats so the chart stays visible
+    return persistedStats;
+  }, [items, persistedStats]);
   const handleResetFilters = () => {
     // 1. Reset Category
     setTypeFilter("ALL");
@@ -288,7 +296,8 @@ export default function StockManagementPage() {
 
         {/* inventory analytics */}
 
-        {analyticsData && <InventoryAnalytics stats={analyticsData} />}
+        {/* {analyticsData && <InventoryAnalytics stats={analyticsData} />} */}
+        <InventoryAnalytics stats={analyticsData} />
 
         {/* CONTROL CENTER */}
         <div className="bg-white p-4 rounded-3xl border border-slate-200 shadow-sm flex flex-col lg:flex-row items-center gap-4">

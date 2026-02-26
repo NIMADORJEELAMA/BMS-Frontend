@@ -163,6 +163,7 @@ export default function StaffPage() {
                     >
                       <Edit3 size={16} />
                     </button>
+
                     <button
                       onClick={() => handleDelete(user.id, user.name)}
                       className="p-2 text-slate-400 hover:text-red-600 hover:bg-red-50 rounded-md transition-all"

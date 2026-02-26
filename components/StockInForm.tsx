@@ -12,6 +12,7 @@ import {
 } from "lucide-react";
 import api from "@/lib/axios";
 import toast from "react-hot-toast";
+import { Button } from "./ui/button";
 
 interface StockInFormProps {
   onClose: () => void;
@@ -87,28 +88,25 @@ export default function StockInForm({
     e.preventDefault();
     setLoading(true);
     try {
+      const payload = {
+        ...formData,
+        name: searchTerm,
+        quantity: Number(formData.quantity),
+        purchasePrice: Number(formData.purchasePrice),
+      };
+
       if (editData) {
         // UPDATE MODE
-        await api.patch(`/inventory/stocks/${editData.id}`, {
-          ...formData,
-          name: searchTerm,
-          quantity: Number(formData.quantity),
-          purchasePrice: Number(formData.purchasePrice),
-        });
-        toast.success("Stock updated");
+        await api.patch(`/inventory/stocks/${editData.id}`, payload);
+        toast.success("Stock details updated");
       } else {
         // CREATE MODE
-        await api.post("/inventory/stock-in", {
-          ...formData,
-          name: searchTerm || formData.name,
-          quantity: Number(formData.quantity),
-          purchasePrice: Number(formData.purchasePrice),
-        });
-        toast.success("Stock added");
+        await api.post("/inventory/stock-in", payload);
+        toast.success("Stock added successfully");
       }
       onSuccess();
-    } catch (err) {
-      toast.error("Operation failed");
+    } catch (err: any) {
+      toast.error(err.response?.data?.message || "Operation failed");
     } finally {
       setLoading(false);
     }
@@ -136,7 +134,7 @@ export default function StockInForm({
       {/* Header */}
       <div className="px-8 py-6 border-b border-slate-100 flex justify-between items-center bg-slate-50/50">
         <div className="flex items-center gap-3">
-          <div className="p-2 bg-indigo-600 rounded-lg text-white">
+          <div className="p-2 bg-slate-900 rounded-lg text-white">
             <PackagePlus size={20} />
           </div>
           <div>
@@ -277,17 +275,21 @@ export default function StockInForm({
 
         {/* Footer Actions */}
         <div className="pt-4 flex gap-3">
-          <button
+          <Button
             type="button"
             onClick={onClose}
-            className="flex-1 py-4 bg-white border border-slate-200 text-slate-600 rounded-2xl font-bold text-[11px] uppercase tracking-widest hover:bg-slate-50 transition-all cursor-pointer"
+            variant={"terminalGhost"}
+            className="flex-[2] h-10"
+            // className="flex-1 py-4 bg-white border border-slate-200 text-slate-600 rounded-2xl font-bold text-[11px] uppercase tracking-widest hover:bg-slate-50 transition-all cursor-pointer"
           >
             Cancel
-          </button>
-          <button
+          </Button>
+          <Button
             type="submit"
             disabled={loading}
-            className="flex-[2] py-4 bg-indigo-600 text-white rounded-2xl font-bold text-[11px] uppercase tracking-widest hover:bg-indigo-700 transition-all flex items-center justify-center shadow-lg shadow-indigo-200 disabled:opacity-50 cursor-pointer"
+            variant={"default"}
+            className={`flex-[8] h-10 rounded-xl font-semibold text-sm flex items-center justify-center gap-2 transition-all cursor-pointer shadow-sm`}
+            // className="flex-[2] py-4 bg-slate-900 text-white rounded-2xl font-bold text-[11px] uppercase tracking-widest hover:bg-slate-700 transition-all flex items-center justify-center shadow-lg shadow-indigo-200 disabled:opacity-50 cursor-pointer"
           >
             {loading ? (
               <Loader2 className="animate-spin" size={18} />
@@ -296,7 +298,7 @@ export default function StockInForm({
             ) : (
               "Finalize Entry"
             )}
-          </button>
+          </Button>
         </div>
       </form>
     </div>
