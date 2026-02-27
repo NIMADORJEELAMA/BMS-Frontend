@@ -15,18 +15,29 @@ import { ChevronLeft, ChevronRight, Loader2, BedDouble } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import CheckInModal from "@/components/rooms/CheckInModal";
+import { BookingHoverCard } from "./BookingHoverCard";
+import BookingManagerModal from "./BookingManagerModal";
 
 export default function ReservationTimeline() {
   const [isCheckInOpen, setIsCheckInOpen] = useState(false);
+  const [isManageOpen, setIsManageOpen] = useState(false);
+  const [activeBooking, setActiveBooking] = useState<any>(null);
+  console.log("activeBooking", activeBooking);
   const [selection, setSelection] = useState<{
     roomId: string;
     date: Date;
+    roomNumber: string;
   } | null>(null);
   const [viewDate, setViewDate] = useState(startOfDay(new Date()));
   const daysToShow = 14;
-  const handleCellClick = (roomId: string, date: Date) => {
-    setSelection({ roomId, date });
+  const handleCellClick = (roomId: string, date: Date, roomNumber: string) => {
+    setSelection({ roomId, date, roomNumber });
     setIsCheckInOpen(true);
+  };
+
+  const handleManageBooking = (booking: any) => {
+    setActiveBooking(booking);
+    setIsManageOpen(true);
   };
   const dateRange = useMemo(() => {
     return eachDayOfInterval({
@@ -36,7 +47,8 @@ export default function ReservationTimeline() {
   }, [viewDate]);
 
   const { data, isLoading } = useQuery({
-    queryKey: ["room-timeline", viewDate.toISOString()],
+    // Use a formatted date string (YYYY-MM-DD) for a more stable cache key
+    queryKey: ["room-timeline", format(viewDate, "yyyy-MM-dd")],
     queryFn: async () => {
       const res = await api.get("/rooms/timeline", {
         params: {
@@ -47,7 +59,6 @@ export default function ReservationTimeline() {
       return res.data;
     },
   });
-
   if (isLoading)
     return (
       <div className="flex h-96 items-center justify-center">
@@ -56,9 +67,10 @@ export default function ReservationTimeline() {
     );
 
   const { rooms = [], bookings = [] } = data || {};
+  console.log("data", data);
 
   return (
-    <div className="flex flex-col h-full bg-white rounded-[32px] border border-slate-100 shadow-sm overflow-hidden">
+    <div className="flex flex-col h-full bg-white  border border-slate-100 shadow-sm overflow-hidden">
       {/* Timeline Controls */}
       <div className="p-4 border-b border-slate-100 flex justify-between items-center bg-slate-50/50">
         <h2 className="text-sm font-black uppercase tracking-widest text-slate-500">
@@ -137,13 +149,26 @@ export default function ReservationTimeline() {
               {dateRange.map((date) => (
                 <div
                   key={date.toString()}
-                  onClick={() => handleCellClick(room.id, date)}
+                  onClick={() =>
+                    handleCellClick(room.id, date, room.roomNumber)
+                  }
                   className="flex-1 min-w-[80px] border-r border-slate-100 cursor-cell hover:bg-indigo-50/30 transition-colors z-0"
                 />
               ))}
+              {bookings
+                .filter((b: any) => b.roomId === room.id)
+                .map((booking: any) => (
+                  <BookingHoverCard
+                    key={booking.id}
+                    booking={booking}
+                    dateRange={dateRange}
+                    daysToShow={daysToShow}
+                    onManage={handleManageBooking}
+                  />
+                ))}
 
               {/* Booking Bars */}
-              {bookings
+              {/* {bookings
                 .filter((b: any) => b.roomId === room.id)
                 .map((booking: any) => {
                   const start = new Date(booking.checkIn);
@@ -183,7 +208,7 @@ export default function ReservationTimeline() {
                       </p>
                     </div>
                   );
-                })}
+                })} */}
             </div>
           </div>
         ))}
@@ -194,7 +219,18 @@ export default function ReservationTimeline() {
           setIsCheckInOpen(false);
           setSelection(null);
         }}
-        preselectedData={selection}
+        gridData={selection}
+        // preselectedData={selection}
+      />
+      <BookingManagerModal
+        isOpen={isManageOpen}
+        onClose={() => {
+          setIsManageOpen(false);
+          setActiveBooking(null); // Clear data on close
+        }}
+        // Pass the ID explicitly or the whole object
+        bookingId={activeBooking?.id}
+        booking={activeBooking}
       />
     </div>
   );

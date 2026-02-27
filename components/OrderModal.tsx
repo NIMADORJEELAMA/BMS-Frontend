@@ -524,17 +524,17 @@ export default function OrderModal({
                 variant="terminalGhost"
                 disabled={!order}
                 onClick={() => {}}
-                className="flex-[2] h-12 whitespace-nowrap" // flex-[2] covers 20% of a 10-point scale
+                className="flex-[2]   whitespace-nowrap" // flex-[2] covers 20% of a 10-point scale
               >
                 Print KOT
               </Button>
 
               {/* 80% Ratio Button */}
               <Button
-                variant="terminal" // Using your custom terminal variant
+                variant="default" // Using your custom terminal variant
                 onClick={handleSettle}
                 disabled={!order}
-                className="flex-[8] h-12 uppercase tracking-widest font-bold" // flex-[8] covers 80%
+                className="flex-[8]   uppercase tracking-widest font-bold" // flex-[8] covers 80%
               >
                 {hasPending ? "Bill Served Items Only" : "Generate Bill"}
               </Button>
