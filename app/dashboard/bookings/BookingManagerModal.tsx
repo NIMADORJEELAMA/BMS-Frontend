@@ -80,7 +80,7 @@ export default function BookingManagerModal({
       secondaryGuests: [],
     },
   });
-
+  const [cancelReason, setCancelReason] = useState("");
   const { fields, append, remove } = useFieldArray({
     control: form.control,
     name: "secondaryGuests",
@@ -98,6 +98,39 @@ export default function BookingManagerModal({
     },
     enabled: !!bookingId && isOpen, // Only fetch if we have an ID and modal is open
   });
+
+  const confirmCheckInMutation = useMutation({
+    mutationFn: (id: string) =>
+      api.patch(`/rooms/bookings/${id}/confirm-checkin`),
+    onSuccess: () => {
+      toast.success("Guest checked in successfully");
+      queryClient.invalidateQueries({ queryKey: ["room-timeline"] });
+      queryClient.invalidateQueries({ queryKey: ["rooms"] });
+      onClose();
+    },
+    onError: (err: any) => toast.error("Failed to check in"),
+  });
+
+  const cancelMutation = useMutation({
+    mutationFn: (id: string) => api.patch(`/rooms/bookings/${id}/cancel`),
+    onSuccess: () => {
+      toast.success("Booking cancelled");
+      queryClient.invalidateQueries({ queryKey: ["room-timeline"] });
+      queryClient.invalidateQueries({ queryKey: ["rooms"] });
+      onClose();
+    },
+    onError: (err: any) => toast.error("Cancellation failed"),
+  });
+
+  const handleCancel = () => {
+    if (
+      window.confirm(
+        "Are you sure you want to cancel this booking? This will release the room immediately.",
+      )
+    ) {
+      cancelMutation.mutate(booking.id);
+    }
+  };
   useEffect(() => {
     if (booking) {
       form.reset({
@@ -370,6 +403,72 @@ export default function BookingManagerModal({
                 </section>
               </form>
             </Form>
+            {/* NEW: Reservation to Check-in Banner */}
+            {booking?.status === "RESERVED" && (
+              <div className="mx-8 p-4 bg-emerald-50 border border-emerald-100 rounded-2xl flex items-center justify-between">
+                <div>
+                  <p className="text-emerald-800 font-bold text-sm">
+                    Convert Reservation
+                  </p>
+                  <p className="text-emerald-600 text-[10px] uppercase font-black">
+                    Guest has arrived at the property
+                  </p>
+                </div>
+                <Button
+                  type="button"
+                  onClick={() => confirmCheckInMutation.mutate(booking.id)}
+                  disabled={confirmCheckInMutation.isPending}
+                  className="bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl h-10 px-6 font-bold text-xs"
+                >
+                  {confirmCheckInMutation.isPending ? (
+                    <Loader2 className="animate-spin" />
+                  ) : (
+                    "CHECK-IN NOW"
+                  )}
+                </Button>
+              </div>
+            )}
+
+            {booking?.id && (
+              <div className="mt-10 p-6 border-2 border-dashed border-red-100 rounded-[2rem] bg-red-50/30 space-y-4">
+                <div>
+                  <h3 className="text-red-800 font-bold text-sm">
+                    Cancel Management
+                  </h3>
+                  <p className="text-red-500 text-[10px] uppercase font-black tracking-widest">
+                    Provide a reason to void this stay
+                  </p>
+                </div>
+
+                <div className="flex gap-3">
+                  <Input
+                    placeholder="Reason (e.g. Guest No-Show, Duplicate)"
+                    className="bg-white border-red-100 focus-visible:ring-red-200"
+                    value={cancelReason}
+                    onChange={(e) => setCancelReason(e.target.value)}
+                  />
+                  <Button
+                    type="button"
+                    variant="destructive"
+                    onClick={() => {
+                      if (!cancelReason)
+                        return toast.error("Please provide a reason");
+                      cancelMutation.mutate(booking.id, {
+                        cancelReason: cancelReason,
+                      });
+                    }}
+                    disabled={cancelMutation.isPending}
+                    className="bg-red-500 hover:bg-red-600 rounded-xl px-6 font-bold text-xs"
+                  >
+                    {cancelMutation.isPending ? (
+                      <Loader2 className="animate-spin" />
+                    ) : (
+                      "CONFIRM CANCEL"
+                    )}
+                  </Button>
+                </div>
+              </div>
+            )}
           </div>
 
           {/* RIGHT COLUMN: RESTAURANT & BILLING */}

@@ -17,6 +17,8 @@ import {
   Phone,
   MapPin,
   Users,
+  Banknote,
+  Globe,
 } from "lucide-react";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { toast } from "react-hot-toast";
@@ -45,18 +47,16 @@ import { cn } from "@/lib/utils";
 const bookingSchema = z.object({
   roomId: z.string().min(1),
   guestName: z.string().min(2, "Primary guest name is required"),
-  phone: z.string().min(10, "Valid phone number required"),
+  guestPhone: z.string().min(10, "Valid guestPhone number required"),
   documentId: z.string().min(1, "Document ID is required"),
   address: z.string().min(2, "City/address is required"),
   checkInDate: z.string().min(1),
   checkOutDate: z.string().min(1),
-  advanceAmount: z.coerce
-    .number()
-    .min(0, "Amount cannot be negative")
-    .default(0),
-  paymentMode: z.enum(["CASH", "ONLINE"]).default("CASH"),
+  // Financials
   cashAmount: z.coerce.number().min(0).default(0),
   onlineAmount: z.coerce.number().min(0).default(0),
+  advanceAmount: z.coerce.number().min(0).default(0),
+
   secondaryGuests: z
     .array(
       z.object({
@@ -85,39 +85,35 @@ export default function EnterpriseBookingModal({
     defaultValues: {
       roomId: "",
       guestName: "",
-      phone: "",
+      guestPhone: "",
       documentId: "",
       address: "",
       checkInDate: "",
       checkOutDate: "",
       secondaryGuests: [],
+      cashAmount: 0,
+      onlineAmount: 0,
       advanceAmount: 0,
-      paymentMode: "CASH",
     },
   });
-
-  console.log("gridData", gridData);
 
   const { fields, append, remove } = useFieldArray({
     control: form.control,
     name: "secondaryGuests",
   });
 
+  // Calculate Total Advance on the fly
+  const cashPortion = form.watch("cashAmount") || 0;
+  const onlinePortion = form.watch("onlineAmount") || 0;
+  const totalAdvance = Number(cashPortion) + Number(onlinePortion);
+
   const mutation = useMutation({
     mutationFn: (data: BookingValues) => api.post("/rooms/check-in", data),
+
     onSuccess: () => {
-      toast.success("Guest checked in successfully");
-
-      // This will match ANY query key that STARTS with "room-timeline"
-      // regardless of the date parameters attached to it.
-      queryClient.invalidateQueries({
-        queryKey: ["room-timeline"],
-      });
-
-      // Keep these if you use them elsewhere
-      queryClient.invalidateQueries({ queryKey: ["active-bookings"] });
+      toast.success("Transaction recorded successfully");
+      queryClient.invalidateQueries({ queryKey: ["room-timeline"] });
       queryClient.invalidateQueries({ queryKey: ["rooms"] });
-
       onClose();
     },
     onError: (err: any) =>
@@ -125,142 +121,166 @@ export default function EnterpriseBookingModal({
   });
   useEffect(() => {
     if (isOpen && gridData) {
-      // If it's a new selection from the grid, it has 'date'
-      // If it's an existing booking, it has 'checkIn'
-      const baseDate = gridData.checkIn
-        ? new Date(gridData.checkIn)
-        : gridData.date;
+      let checkIn = gridData.date ? new Date(gridData.date) : new Date();
 
-      // Safety check: if somehow both are missing, use now
-      const safeDate =
-        baseDate instanceof Date && !isNaN(baseDate.getTime())
-          ? baseDate
-          : new Date();
+      // 2. Get the current actual time (e.g., 1:06 PM)
+      const now = new Date();
 
-      setMode(gridData.id ? "FORM" : "SELECTION"); // Skip selection if it's an existing booking
+      // 3. Inject CURRENT time into the SELECTED date
+      // This keeps the date as March 3rd but sets time to Now
+      checkIn.setHours(now.getHours());
+      checkIn.setMinutes(now.getMinutes());
+      checkIn.setSeconds(0, 0);
+
+      // 4. Create Check-Out date (Next Day)
+      const checkOut = new Date(checkIn);
+      checkOut.setDate(checkOut.getDate() + 1);
+
+      // 5. Force Check-Out to exactly 11:00 AM
+      checkOut.setHours(11, 0, 0, 0);
 
       form.reset({
         roomId: gridData.roomId || "",
         guestName: gridData.guestName || "",
-        phone: gridData.guestPhone || "",
+        guestPhone: gridData.guestPhone || "",
         documentId: gridData.documentId || "",
         address: gridData.address || "",
-        checkInDate: format(safeDate, "yyyy-MM-dd'T'HH:mm"),
-        checkOutDate: format(
-          gridData.checkOut
-            ? new Date(gridData.checkOut)
-            : addDays(safeDate, 1),
-          "yyyy-MM-dd'T'HH:mm",
-        ),
+        cashAmount: gridData.cashAmount || 0,
+        onlineAmount: gridData.onlineAmount || 0,
+
+        checkInDate: format(checkIn, "yyyy-MM-dd'T'HH:mm"),
+        checkOutDate: format(checkOut, "yyyy-MM-dd'T'HH:mm"),
+
         secondaryGuests: gridData.secondaryGuests || [],
       });
     }
-  }, [isOpen, gridData, form]);
+  }, [isOpen, gridData, form, actionType]); // Added actionType to dependencies
   // useEffect(() => {
   //   if (isOpen && gridData) {
-  //     setMode("SELECTION");
+  //     const baseDate = gridData.date ? new Date(gridData.date) : new Date();
+  //     const now = new Date();
+  //     const isToday = baseDate.toDateString() === now.toDateString();
+  //     const initialCheckIn = isToday ? now : baseDate;
+  //     initialCheckIn.setSeconds(0, 0);
+
+  //     setMode(gridData.id ? "FORM" : "SELECTION");
+
   //     form.reset({
   //       roomId: gridData.roomId || "",
-  //       guestName: "",
-  //       phone: "",
-  //       documentId: "",
-  //       address: "",
-  //       checkInDate: format(gridData.date, "yyyy-MM-dd'T'HH:mm"),
-  //       checkOutDate: format(addDays(gridData.date, 1), "yyyy-MM-dd'T'HH:mm"),
-  //       secondaryGuests: [],
+  //       guestName: gridData.guestName || "",
+  //       guestPhone: gridData.guestPhone || "",
+  //       documentId: gridData.documentId || "",
+  //       address: gridData.address || "",
+  //       cashAmount: gridData.cashAmount || 0,
+  //       onlineAmount: gridData.onlineAmount || 0,
+  //       advanceAmount: gridData.advanceAmount || 0,
+
+  //       checkInDate: format(initialCheckIn, "yyyy-MM-dd'T'HH:mm"),
+  //       checkOutDate: format(addDays(initialCheckIn, 1), "yyyy-MM-dd'T'HH:mm"),
+  //       secondaryGuests: gridData.secondaryGuests || [],
   //     });
   //   }
   // }, [isOpen, gridData, form]);
+  const onSubmit = (data: BookingValues) => {
+    // Calculate total for the API body
+    const totalAdvance =
+      Number(data.cashAmount || 0) + Number(data.onlineAmount || 0);
 
+    // Spread existing data and overwrite/add advanceAmount
+    const payload = {
+      ...data,
+      advanceAmount: totalAdvance,
+      type: actionType,
+    };
+
+    console.log("Sending to API:", payload);
+    mutation.mutate(payload);
+  };
   const handleSelectAction = (type: "BOOKING" | "CHECKIN") => {
     setActionType(type);
     setMode("FORM");
   };
 
-  const onSubmit = (data: BookingValues) => {
-    mutation.mutate(data);
-  };
-
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="sm:max-w-[700px] p-0 overflow-hidden border-none shadow-2xl rounded-xl">
+      <DialogContent className="sm:max-w-[750px] p-0 overflow-hidden border-none shadow-2xl rounded-2xl">
         <DialogHeader className="sr-only">
-          <DialogTitle>Room Booking and Check-in Portal</DialogTitle>
+          <DialogTitle>Stay Management Portal</DialogTitle>
         </DialogHeader>
 
         {/* HEADER SECTION */}
         <div className="bg-slate-900 p-6 text-white flex justify-between items-center">
-          <div>
-            <h2 className="text-xl font-semibold flex items-center gap-2">
-              {mode === "FORM" && (
-                <ArrowLeft
-                  className="cursor-pointer hover:text-indigo-400 transition-colors"
-                  onClick={() => setMode("SELECTION")}
-                />
-              )}
-              {gridData?.roomNumber || "N/A"}
-            </h2>
-            <p className="text-slate-400 text-xs mt-1 uppercase tracking-widest">
-              {mode === "SELECTION"
-                ? "Select Operation Type"
-                : `${actionType} Configuration`}
-            </p>
+          <div className="flex items-center gap-4">
+            {mode === "FORM" && !gridData?.id && (
+              <Button
+                variant="ghost"
+                size="icon"
+                className="text-white hover:bg-slate-800"
+                onClick={() => setMode("SELECTION")}
+              >
+                <ArrowLeft size={20} />
+              </Button>
+            )}
+            <div>
+              <h2 className="text-xl font-bold tracking-tight">
+                Room{" "}
+                {gridData?.roomNumber || gridData?.room?.roomNumber || "N/A"}
+              </h2>
+              <p className="text-slate-400 text-[10px] uppercase font-black tracking-widest mt-0.5">
+                {gridData?.id ? "Manage Stay" : "New Registration"}
+              </p>
+            </div>
           </div>
           {mode === "FORM" && (
             <Badge
-              variant={actionType === "CHECKIN" ? "success" : "default"}
-              className="bg-emerald-500 text-white border-none px-3 py-1"
+              className={cn(
+                "px-4 py-1 border-none",
+                actionType === "CHECKIN" ? "bg-emerald-500" : "bg-indigo-500",
+              )}
             >
-              {actionType === "CHECKIN" ? "LIVE CHECK-IN" : "RESERVATION"}
+              {actionType === "CHECKIN" ? "LIVE ENTRY" : "FUTURE BOOKING"}
             </Badge>
           )}
         </div>
 
-        {/* MODE 1: SELECTION */}
-        {mode === "SELECTION" && (
-          <div className="p-8 grid grid-cols-2 gap-6 bg-slate-50">
+        {mode === "SELECTION" ? (
+          <div className="p-10 grid grid-cols-2 gap-6 bg-slate-50">
             <button
               onClick={() => handleSelectAction("BOOKING")}
-              className="group flex flex-col items-center justify-center p-8 bg-white border-2 border-slate-200 rounded-2xl hover:border-indigo-600 transition-all hover:shadow-xl"
+              className="group p-10 bg-white border-2 rounded-[2rem] hover:border-indigo-600 transition-all shadow-sm hover:shadow-xl flex flex-col items-center gap-4"
             >
-              <div className="w-16 h-16 bg-indigo-50 text-indigo-600 rounded-full flex items-center justify-center mb-4 group-hover:bg-indigo-600 group-hover:text-white transition-all">
+              <div className="p-4 bg-indigo-50 text-indigo-600 rounded-2xl group-hover:bg-indigo-600 group-hover:text-white transition-all">
                 <CalendarIcon size={32} />
               </div>
-              <span className="font-bold text-slate-800">Reservation</span>
-              <span className="text-xs text-slate-500 mt-1">
-                Book for a future date
+              <span className="font-black text-slate-800 uppercase tracking-widest text-xs">
+                Reservation
               </span>
             </button>
-
             <button
               onClick={() => handleSelectAction("CHECKIN")}
-              className="group flex flex-col items-center justify-center p-8 bg-white border-2 border-slate-200 rounded-2xl hover:border-emerald-600 transition-all hover:shadow-xl"
+              className="group p-10 bg-white border-2 rounded-[2rem] hover:border-emerald-600 transition-all shadow-sm hover:shadow-xl flex flex-col items-center gap-4"
             >
-              <div className="w-16 h-16 bg-emerald-50 text-emerald-600 rounded-full flex items-center justify-center mb-4 group-hover:bg-emerald-600 group-hover:text-white transition-all">
+              <div className="p-4 bg-emerald-50 text-emerald-600 rounded-2xl group-hover:bg-emerald-600 group-hover:text-white transition-all">
                 <LogIn size={32} />
               </div>
-              <span className="font-bold text-slate-800">Quick Check-In</span>
-              <span className="text-xs text-slate-500 mt-1">
-                Direct walk-in entry
+              <span className="font-black text-slate-800 uppercase tracking-widest text-xs">
+                Direct Check-In
               </span>
             </button>
           </div>
-        )}
-
-        {/* MODE 2: THE FORM */}
-        {mode === "FORM" && (
+        ) : (
           <Form {...form}>
             <form
               onSubmit={form.handleSubmit(onSubmit)}
-              className="overflow-y-auto max-h-[80vh]"
+              className="max-h-[85vh] overflow-y-auto custom-scrollbar"
             >
-              <div className="p-6 space-y-8">
-                {/* Section 1: Primary Guest */}
-                <div>
-                  <div className="flex items-center gap-2 mb-4 text-indigo-600">
+              <div className="p-8 space-y-10">
+                {/* SECTION 1: GUEST DETAILS */}
+                <div className="space-y-6">
+                  <div className="flex items-center gap-2 text-indigo-600">
                     <User size={18} />
-                    <h3 className="text-sm font-bold uppercase tracking-wider">
-                      Primary Guest Details
+                    <h3 className="text-xs font-black uppercase tracking-[0.2em]">
+                      Guest Identification
                     </h3>
                   </div>
                   <div className="grid grid-cols-2 gap-4">
@@ -272,7 +292,7 @@ export default function EnterpriseBookingModal({
                           <FormControl>
                             <Input
                               placeholder="Full Name"
-                              className="h-11 bg-slate-50 border-slate-200 focus:bg-white transition-all"
+                              className="h-12 bg-slate-50 border-none rounded-xl"
                               {...field}
                             />
                           </FormControl>
@@ -282,18 +302,18 @@ export default function EnterpriseBookingModal({
                     />
                     <FormField
                       control={form.control}
-                      name="phone"
+                      name="guestPhone"
                       render={({ field }) => (
                         <FormItem>
                           <FormControl>
                             <div className="relative">
                               <Phone
-                                className="absolute left-3 top-3 text-slate-400"
+                                className="absolute left-4 top-4 text-slate-400"
                                 size={16}
                               />
                               <Input
                                 placeholder="Phone Number"
-                                className="pl-10 h-11 bg-slate-50"
+                                className="pl-12 h-12 bg-slate-50 border-none rounded-xl"
                                 {...field}
                               />
                             </div>
@@ -309,12 +329,12 @@ export default function EnterpriseBookingModal({
                           <FormControl>
                             <div className="relative">
                               <CreditCard
-                                className="absolute left-3 top-3 text-slate-400"
+                                className="absolute left-4 top-4 text-slate-400"
                                 size={16}
                               />
                               <Input
-                                placeholder="ID / Passport No."
-                                className="pl-10 h-11 bg-slate-50"
+                                placeholder="Aadhar / Passport"
+                                className="pl-12 h-12 bg-slate-50 border-none rounded-xl"
                                 {...field}
                               />
                             </div>
@@ -330,12 +350,12 @@ export default function EnterpriseBookingModal({
                           <FormControl>
                             <div className="relative">
                               <MapPin
-                                className="absolute left-3 top-3 text-slate-400"
+                                className="absolute left-4 top-4 text-slate-400"
                                 size={16}
                               />
                               <Input
-                                placeholder="Guest Origin / address"
-                                className="pl-10 h-11 bg-slate-50"
+                                placeholder="Permanent Address"
+                                className="pl-12 h-12 bg-slate-50 border-none rounded-xl"
                                 {...field}
                               />
                             </div>
@@ -346,135 +366,131 @@ export default function EnterpriseBookingModal({
                   </div>
                 </div>
 
-                <Separator />
-
-                {/* Section 2: Stay Dates */}
-                <div className="grid grid-cols-2 gap-4">
-                  <FormField
-                    control={form.control}
-                    name="checkInDate"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel className="text-[10px] font-bold text-slate-500 uppercase">
-                          Check-In
-                        </FormLabel>
-                        <FormControl>
-                          <Input
-                            type="datetime-local"
-                            className="h-11 bg-slate-50"
-                            {...field}
-                          />
-                        </FormControl>
-                      </FormItem>
-                    )}
-                  />
-                  <FormField
-                    control={form.control}
-                    name="checkOutDate"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel className="text-[10px] font-bold text-slate-500 uppercase">
-                          Check-Out
-                        </FormLabel>
-                        <FormControl>
-                          <Input
-                            type="datetime-local"
-                            className="h-11 bg-slate-50"
-                            {...field}
-                          />
-                        </FormControl>
-                      </FormItem>
-                    )}
-                  />
-                </div>
-
-                <Separator />
-                {/* Section: Financials (Advance Payment) */}
-                <div className="bg-slate-50 p-6 rounded-2xl border border-slate-100 space-y-4">
-                  <div className="flex items-center gap-2 text-indigo-600 mb-2">
-                    <CreditCard size={18} />
-                    <h3 className="text-xs font-black uppercase tracking-widest">
-                      Advance Payment
-                    </h3>
-                  </div>
-
-                  <div className="grid grid-cols-2 gap-4">
-                    {/* CASH PORTION */}
-                    <FormField
-                      control={form.control}
-                      name="cashAmount"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel className="text-[10px] font-bold text-slate-500 uppercase">
-                            Cash Amount
-                          </FormLabel>
-                          <FormControl>
-                            <div className="relative">
-                              <div className="absolute left-3 top-3 w-5 h-5 rounded bg-emerald-100 text-emerald-600 flex items-center justify-center text-[10px] font-bold">
-                                ₹
-                              </div>
+                {/* SECTION 2: STAY DATES & SPLIT PAYMENT */}
+                <div className="grid grid-cols-2 gap-10">
+                  <div className="space-y-6">
+                    <div className="flex items-center gap-2 text-indigo-600">
+                      <CalendarIcon size={18} />
+                      <h3 className="text-xs font-black uppercase tracking-[0.2em]">
+                        Stay Schedule
+                      </h3>
+                    </div>
+                    <div className="space-y-4">
+                      <FormField
+                        control={form.control}
+                        name="checkInDate"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel className="text-[10px] font-bold text-slate-400 uppercase">
+                              Arrival (Date & Time)
+                            </FormLabel>
+                            <FormControl>
                               <Input
-                                type="number"
-                                className="pl-10 h-11 bg-white border-slate-200 focus:ring-emerald-500"
-                                placeholder="0.00"
+                                type="datetime-local"
+                                step="60" // Allows minute-level precision
+                                className="h-11 bg-slate-50 border-none rounded-xl"
                                 {...field}
                               />
-                            </div>
-                          </FormControl>
-                        </FormItem>
-                      )}
-                    />
-
-                    {/* ONLINE PORTION */}
-                    <FormField
-                      control={form.control}
-                      name="onlineAmount"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel className="text-[10px] font-bold text-slate-500 uppercase">
-                            Online / UPI
-                          </FormLabel>
-                          <FormControl>
-                            <div className="relative">
-                              <div className="absolute left-3 top-3 w-5 h-5 rounded bg-blue-100 text-blue-600 flex items-center justify-center text-[10px] font-bold">
-                                ₹
-                              </div>
+                            </FormControl>
+                          </FormItem>
+                        )}
+                      />
+                      <FormField
+                        control={form.control}
+                        name="checkOutDate"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel className="text-[10px] font-bold text-slate-400 uppercase">
+                              Departure
+                            </FormLabel>
+                            <FormControl>
                               <Input
-                                type="number"
-                                className="pl-10 h-11 bg-white border-slate-200 focus:ring-blue-500"
-                                placeholder="0.00"
+                                type="datetime-local"
+                                className="h-11 bg-slate-50 border-none rounded-xl"
                                 {...field}
                               />
-                            </div>
-                          </FormControl>
-                        </FormItem>
-                      )}
-                    />
+                            </FormControl>
+                          </FormItem>
+                        )}
+                      />
+                    </div>
                   </div>
 
-                  {/* Dynamic Summary */}
-                  <div className="pt-4 mt-2 border-t border-slate-200 flex justify-between items-center">
-                    <span className="text-xs font-bold text-slate-400 uppercase">
-                      Total Advance
-                    </span>
-                    <span className="text-lg font-black text-slate-900">
-                      ₹
-                      {(
-                        Number(form.watch("cashAmount")) +
-                        Number(form.watch("onlineAmount"))
-                      ).toLocaleString()}
-                    </span>
+                  <div className="space-y-6">
+                    <div className="flex items-center gap-2 text-emerald-600">
+                      <Banknote size={18} />
+                      <h3 className="text-xs font-black uppercase tracking-[0.2em]">
+                        Advance Split
+                      </h3>
+                    </div>
+                    <div className="bg-slate-50 p-5 rounded-[1.5rem] border border-slate-100 space-y-4">
+                      <FormField
+                        control={form.control}
+                        name="cashAmount"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel className="text-[9px] font-black text-slate-400 uppercase">
+                              Cash Amount
+                            </FormLabel>
+                            <FormControl>
+                              <div className="relative">
+                                <div className="absolute left-3 top-2.5 w-6 h-6 bg-emerald-500 text-white rounded-lg flex items-center justify-center text-xs font-bold">
+                                  ₹
+                                </div>
+                                <Input
+                                  type="text"
+                                  className="pl-12 bg-white h-11 rounded-xl border-slate-200"
+                                  placeholder="0"
+                                  {...field}
+                                />
+                              </div>
+                            </FormControl>
+                          </FormItem>
+                        )}
+                      />
+                      <FormField
+                        control={form.control}
+                        name="onlineAmount"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel className="text-[9px] font-black text-slate-400 uppercase">
+                              Online / UPI
+                            </FormLabel>
+                            <FormControl>
+                              <div className="relative">
+                                <div className="absolute left-3 top-2.5 w-6 h-6 bg-blue-500 text-white rounded-lg flex items-center justify-center text-xs font-bold">
+                                  ₹
+                                </div>
+                                <Input
+                                  type="text"
+                                  className="pl-12 bg-white h-11 rounded-xl border-slate-200"
+                                  placeholder="0"
+                                  {...field}
+                                />
+                              </div>
+                            </FormControl>
+                          </FormItem>
+                        )}
+                      />
+                      <div className="pt-3 border-t border-slate-200 flex justify-between items-center">
+                        <span className="text-[10px] font-black text-slate-400 uppercase tracking-tighter">
+                          Total Advance
+                        </span>
+                        <span className="text-xl font-black text-slate-900">
+                          ₹{totalAdvance.toLocaleString()}
+                        </span>
+                      </div>
+                    </div>
                   </div>
                 </div>
 
-                <Separator />
-                {/* Section 3: Secondary Guests */}
-                <div>
-                  <div className="flex items-center justify-between mb-4">
+                {/* SECTION 3: SECONDARY GUESTS */}
+                <div className="space-y-6">
+                  <div className="flex items-center justify-between">
                     <div className="flex items-center gap-2 text-indigo-600">
                       <Users size={18} />
-                      <h3 className="text-sm font-bold uppercase tracking-wider">
-                        Secondary Guests
+                      <h3 className="text-xs font-black uppercase tracking-[0.2em]">
+                        Companion Details
                       </h3>
                     </div>
                     <Button
@@ -482,29 +498,28 @@ export default function EnterpriseBookingModal({
                       variant="outline"
                       size="sm"
                       onClick={() => append({ name: "", documentId: "" })}
-                      className="text-xs h-8 border-dashed border-indigo-300 text-indigo-600 hover:bg-indigo-50"
+                      className="h-8 rounded-xl border-dashed border-slate-300 font-bold text-[10px]"
                     >
-                      <Plus size={14} className="mr-1" /> Add Guest
+                      <Plus size={14} className="mr-1" /> ADD COMPANION
                     </Button>
                   </div>
-
-                  <div className="space-y-3">
+                  <div className="grid grid-cols-1 gap-3">
                     {fields.map((field, index) => (
                       <div
                         key={field.id}
-                        className="flex gap-3 p-3 bg-slate-50 rounded-lg items-end border border-slate-100"
+                        className="flex gap-3 p-4 bg-slate-50 rounded-2xl border border-slate-100 animate-in fade-in slide-in-from-top-2"
                       >
-                        <div className="flex-1 grid grid-cols-2 gap-2">
+                        <div className="flex-1 grid grid-cols-2 gap-4">
                           <Input
                             placeholder="Guest Name"
-                            className="h-9 text-sm"
+                            className="h-10 bg-white rounded-lg border-slate-200 shadow-sm"
                             {...form.register(
                               `secondaryGuests.${index}.name` as const,
                             )}
                           />
                           <Input
                             placeholder="ID Number"
-                            className="h-9 text-sm"
+                            className="h-10 bg-white rounded-lg border-slate-200 shadow-sm"
                             {...form.register(
                               `secondaryGuests.${index}.documentId` as const,
                             )}
@@ -515,40 +530,45 @@ export default function EnterpriseBookingModal({
                           variant="ghost"
                           size="icon"
                           onClick={() => remove(index)}
-                          className="text-red-400 hover:text-red-600 hover:bg-red-50 h-9 w-9"
+                          className="text-red-400 hover:text-red-600 self-center hover:bg-red-50 rounded-full h-10 w-10"
                         >
-                          <Trash2 size={16} />
+                          <Trash2 size={18} />
                         </Button>
                       </div>
                     ))}
                     {fields.length === 0 && (
-                      <p className="text-center text-xs text-slate-400 py-4 italic">
-                        No secondary guests added
+                      <p className="text-center text-[10px] text-slate-400 py-6 uppercase tracking-widest font-bold">
+                        No companions registered
                       </p>
                     )}
                   </div>
                 </div>
               </div>
 
-              {/* FOOTER ACTIONS */}
-              <div className="p-6 bg-slate-50 border-t flex gap-3">
+              {/* FOOTER */}
+              <div className="p-6 bg-slate-50 border-t flex gap-4">
                 <Button
                   type="button"
                   variant="ghost"
                   onClick={onClose}
-                  className="flex-1"
+                  className="flex-1 h-14 rounded-2xl font-black uppercase tracking-widest text-xs text-slate-400"
                 >
                   Cancel
                 </Button>
                 <Button
                   type="submit"
                   disabled={mutation.isPending}
-                  className={`flex-[2] h-12 font-bold ${actionType === "CHECKIN" ? "bg-emerald-600 hover:bg-emerald-700" : "bg-indigo-600 hover:bg-indigo-700"}`}
+                  className={cn(
+                    "flex-[2] h-14 rounded-2xl font-black uppercase tracking-[0.2em] text-xs shadow-xl transition-all",
+                    actionType === "CHECKIN"
+                      ? "bg-emerald-600 hover:bg-emerald-700"
+                      : "bg-indigo-600 hover:bg-indigo-700",
+                  )}
                 >
                   {mutation.isPending ? (
-                    <Loader2 className="animate-spin" />
+                    <Loader2 className="animate-spin mr-2" />
                   ) : (
-                    `CONFIRM ${actionType}`
+                    `Process ${actionType}`
                   )}
                 </Button>
               </div>
