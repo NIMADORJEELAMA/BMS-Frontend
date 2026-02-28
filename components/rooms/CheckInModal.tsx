@@ -44,6 +44,11 @@ import { Separator } from "@/components/ui/separator";
 import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
 
+import {
+  EnterpriseDateTimePicker,
+  SimpleDateTimePicker,
+} from "../DateTimePicker";
+
 const bookingSchema = z.object({
   roomId: z.string().min(1),
   guestName: z.string().min(2, "Primary guest name is required"),
@@ -207,24 +212,23 @@ export default function CheckInModal({ isOpen, onClose, gridData }: any) {
         </DialogHeader>
 
         {/* HEADER SECTION */}
-        <div className="bg-slate-900 p-6 text-white flex justify-between items-center">
+        <div className="bg-gray-100 p-6 text-white flex justify-between items-center">
           <div className="flex items-center gap-4">
             {mode === "FORM" && !gridData?.id && (
               <Button
                 variant="ghost"
                 size="icon"
-                className="text-white hover:bg-slate-800"
+                className="text-black hover:bg-white"
                 onClick={() => setMode("SELECTION")}
               >
                 <ArrowLeft size={20} />
               </Button>
             )}
             <div>
-              <h2 className="text-xl font-bold tracking-tight">
-                Room{" "}
+              <h2 className="text-xl font-bold tracking-tight text-slate-900">
                 {gridData?.roomNumber || gridData?.room?.roomNumber || "N/A"}
               </h2>
-              <p className="text-slate-400 text-[10px] uppercase font-black tracking-widest mt-0.5">
+              <p className="text-slate-600 text-[10px] uppercase font-black tracking-widest mt-0.5">
                 {gridData?.id ? "Manage Stay" : "New Registration"}
               </p>
             </div>
@@ -232,7 +236,7 @@ export default function CheckInModal({ isOpen, onClose, gridData }: any) {
           {mode === "FORM" && (
             <Badge
               className={cn(
-                "px-4 py-1 border-none",
+                "px-4 py-1 border-none flex flex-end mt-6",
                 actionType === "CHECKIN" ? "bg-emerald-500" : "bg-indigo-500",
               )}
             >
@@ -242,7 +246,7 @@ export default function CheckInModal({ isOpen, onClose, gridData }: any) {
         </div>
 
         {mode === "SELECTION" ? (
-          <div className="p-10 grid grid-cols-2 gap-6 bg-slate-50">
+          <div className="p-10 grid grid-cols-2 gap-6 bg-slate-100">
             <button
               onClick={() => handleSelectAction("BOOKING")}
               className="group p-10 bg-white border-2 rounded-[2rem] hover:border-indigo-600 transition-all shadow-sm hover:shadow-xl flex flex-col items-center gap-4"
@@ -272,10 +276,10 @@ export default function CheckInModal({ isOpen, onClose, gridData }: any) {
               onSubmit={form.handleSubmit(onSubmit)}
               className="max-h-[85vh] overflow-y-auto custom-scrollbar"
             >
-              <div className="p-8 space-y-10">
+              <div className="p-6 space-y-6">
                 {/* SECTION 1: GUEST DETAILS */}
                 <div className="space-y-6">
-                  <div className="flex items-center gap-2 text-indigo-600">
+                  <div className="flex items-center gap-2 text-slate-900">
                     <User size={18} />
                     <h3 className="text-xs font-black uppercase tracking-[0.2em]">
                       Guest Identification
@@ -287,10 +291,13 @@ export default function CheckInModal({ isOpen, onClose, gridData }: any) {
                       name="guestName"
                       render={({ field }) => (
                         <FormItem className="col-span-2">
+                          <FormLabel className="flex items-center gap-1 text-[10px] font-bold text-slate-400 uppercase ml-1 mb-0.5">
+                            Full Name <span className="text-red-500">*</span>
+                          </FormLabel>
                           <FormControl>
                             <Input
-                              placeholder="Full Name"
-                              className="h-12 bg-slate-50 border-none rounded-xl"
+                              placeholder="Enter guest's full name"
+                              className="h-12 bg-slate-100 border-none rounded-l"
                               {...field}
                             />
                           </FormControl>
@@ -303,15 +310,14 @@ export default function CheckInModal({ isOpen, onClose, gridData }: any) {
                       name="guestPhone"
                       render={({ field }) => (
                         <FormItem>
+                          <FormLabel className="flex items-center gap-1 text-[10px] font-bold text-slate-400 uppercase ml-1 mb-0.5">
+                            Phone Number <span className="text-red-500">*</span>
+                          </FormLabel>
                           <FormControl>
                             <div className="relative">
-                              <Phone
-                                className="absolute left-4 top-4 text-slate-400"
-                                size={16}
-                              />
                               <Input
                                 placeholder="Phone Number"
-                                className="pl-12 h-12 bg-slate-50 border-none rounded-xl"
+                                className=" h-12 bg-slate-100 border-none rounded-l"
                                 {...field}
                               />
                             </div>
@@ -324,15 +330,14 @@ export default function CheckInModal({ isOpen, onClose, gridData }: any) {
                       name="documentId"
                       render={({ field }) => (
                         <FormItem>
+                          <FormLabel className="flex items-center gap-1 text-[10px] font-bold text-slate-400 uppercase ml-1 mb-0.5">
+                            Document ID <span className="text-red-500">*</span>
+                          </FormLabel>
                           <FormControl>
                             <div className="relative">
-                              <CreditCard
-                                className="absolute left-4 top-4 text-slate-400"
-                                size={16}
-                              />
                               <Input
                                 placeholder="Aadhar / Passport"
-                                className="pl-12 h-12 bg-slate-50 border-none rounded-xl"
+                                className=" h-12 bg-slate-100 border-none rounded-l"
                                 {...field}
                               />
                             </div>
@@ -345,15 +350,14 @@ export default function CheckInModal({ isOpen, onClose, gridData }: any) {
                       name="address"
                       render={({ field }) => (
                         <FormItem className="col-span-2">
+                          <FormLabel className="flex items-center gap-1 text-[10px] font-bold text-slate-400 uppercase ml-1 mb-0.5">
+                            Address <span className="text-red-500">*</span>
+                          </FormLabel>
                           <FormControl>
                             <div className="relative">
-                              <MapPin
-                                className="absolute left-4 top-4 text-slate-400"
-                                size={16}
-                              />
                               <Input
                                 placeholder="Permanent Address"
-                                className="pl-12 h-12 bg-slate-50 border-none rounded-xl"
+                                className=" h-12 bg-slate-100 border-none rounded-l"
                                 {...field}
                               />
                             </div>
@@ -363,140 +367,21 @@ export default function CheckInModal({ isOpen, onClose, gridData }: any) {
                     />
                   </div>
                 </div>
-
-                {/* SECTION 2: STAY DATES & SPLIT PAYMENT */}
-                <div className="grid grid-cols-2 gap-10">
-                  <div className="space-y-6">
-                    <div className="flex items-center gap-2 text-indigo-600">
-                      <CalendarIcon size={18} />
-                      <h3 className="text-xs font-black uppercase tracking-[0.2em]">
-                        Stay Schedule
-                      </h3>
-                    </div>
-                    <div className="space-y-4">
-                      <FormField
-                        control={form.control}
-                        name="checkInDate"
-                        render={({ field }) => (
-                          <FormItem>
-                            <FormLabel className="text-[10px] font-bold text-slate-400 uppercase">
-                              Arrival (Date & Time)
-                            </FormLabel>
-                            <FormControl>
-                              <Input
-                                type="datetime-local"
-                                step="60" // Allows minute-level precision
-                                className="h-11 bg-slate-50 border-none rounded-xl"
-                                {...field}
-                              />
-                            </FormControl>
-                          </FormItem>
-                        )}
-                      />
-                      <FormField
-                        control={form.control}
-                        name="checkOutDate"
-                        render={({ field }) => (
-                          <FormItem>
-                            <FormLabel className="text-[10px] font-bold text-slate-400 uppercase">
-                              Departure
-                            </FormLabel>
-                            <FormControl>
-                              <Input
-                                type="datetime-local"
-                                className="h-11 bg-slate-50 border-none rounded-xl"
-                                {...field}
-                              />
-                            </FormControl>
-                          </FormItem>
-                        )}
-                      />
-                    </div>
-                  </div>
-
-                  <div className="space-y-6">
-                    <div className="flex items-center gap-2 text-emerald-600">
-                      <Banknote size={18} />
-                      <h3 className="text-xs font-black uppercase tracking-[0.2em]">
-                        Advance Split
-                      </h3>
-                    </div>
-                    <div className="bg-slate-50 p-5 rounded-[1.5rem] border border-slate-100 space-y-4">
-                      <FormField
-                        control={form.control}
-                        name="cashAmount"
-                        render={({ field }) => (
-                          <FormItem>
-                            <FormLabel className="text-[9px] font-black text-slate-400 uppercase">
-                              Cash Amount
-                            </FormLabel>
-                            <FormControl>
-                              <div className="relative">
-                                <div className="absolute left-3 top-2.5 w-6 h-6 bg-emerald-500 text-white rounded-lg flex items-center justify-center text-xs font-bold">
-                                  ₹
-                                </div>
-                                <Input
-                                  type="text"
-                                  className="pl-12 bg-white h-11 rounded-xl border-slate-200"
-                                  placeholder="0"
-                                  {...field}
-                                />
-                              </div>
-                            </FormControl>
-                          </FormItem>
-                        )}
-                      />
-                      <FormField
-                        control={form.control}
-                        name="onlineAmount"
-                        render={({ field }) => (
-                          <FormItem>
-                            <FormLabel className="text-[9px] font-black text-slate-400 uppercase">
-                              Online / UPI
-                            </FormLabel>
-                            <FormControl>
-                              <div className="relative">
-                                <div className="absolute left-3 top-2.5 w-6 h-6 bg-blue-500 text-white rounded-lg flex items-center justify-center text-xs font-bold">
-                                  ₹
-                                </div>
-                                <Input
-                                  type="text"
-                                  className="pl-12 bg-white h-11 rounded-xl border-slate-200"
-                                  placeholder="0"
-                                  {...field}
-                                />
-                              </div>
-                            </FormControl>
-                          </FormItem>
-                        )}
-                      />
-                      <div className="pt-3 border-t border-slate-200 flex justify-between items-center">
-                        <span className="text-[10px] font-black text-slate-400 uppercase tracking-tighter">
-                          Total Advance
-                        </span>
-                        <span className="text-xl font-black text-slate-900">
-                          ₹{totalAdvance.toLocaleString()}
-                        </span>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-
                 {/* SECTION 3: SECONDARY GUESTS */}
-                <div className="space-y-6">
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-2 text-indigo-600">
-                      <Users size={18} />
-                      <h3 className="text-xs font-black uppercase tracking-[0.2em]">
+                <div className=" ">
+                  <div className="flex items-center justify-between mb-2">
+                    <div className="flex items-center gap-2 text-slate-900 ">
+                      {/* <Users size={18} />
+                      <h5 className="text-xs font-black uppercase  ">
                         Companion Details
-                      </h3>
+                      </h5> */}
                     </div>
                     <Button
                       type="button"
                       variant="outline"
                       size="sm"
                       onClick={() => append({ name: "", documentId: "" })}
-                      className="h-8 rounded-xl border-dashed border-slate-300 font-bold text-[10px]"
+                      className="h-6   border-dashed border-slate-300 font-bold text-[10px]"
                     >
                       <Plus size={14} className="mr-1" /> ADD COMPANION
                     </Button>
@@ -505,7 +390,7 @@ export default function CheckInModal({ isOpen, onClose, gridData }: any) {
                     {fields.map((field, index) => (
                       <div
                         key={field.id}
-                        className="flex gap-3 p-4 bg-slate-50 rounded-2xl border border-slate-100 animate-in fade-in slide-in-from-top-2"
+                        className="flex gap-3 p-4 bg-slate-100 rounded-2xl border border-slate-100 animate-in fade-in slide-in-from-top-2"
                       >
                         <div className="flex-1 grid grid-cols-2 gap-4">
                           <Input
@@ -534,34 +419,146 @@ export default function CheckInModal({ isOpen, onClose, gridData }: any) {
                         </Button>
                       </div>
                     ))}
-                    {fields.length === 0 && (
+                    {/* {fields.length === 0 && (
                       <p className="text-center text-[10px] text-slate-400 py-6 uppercase tracking-widest font-bold">
                         No companions registered
                       </p>
+                    )} */}
+                  </div>
+                </div>
+                {/* SECTION 2: STAY DATES & SPLIT PAYMENT */}
+                <div
+                  className="grid grid-cols-1 md:grid-cols-2 gap-6 bg-white p-4
+                   rounded-xl border border-slate-100 shadow-sm"
+                >
+                  <FormField
+                    control={form.control}
+                    name="checkInDate"
+                    render={({ field }) => (
+                      <FormItem className="space-y-0">
+                        <FormControl>
+                          <SimpleDateTimePicker
+                            label="Arrival Date & Time"
+                            value={field.value}
+                            onChange={field.onChange}
+                            required
+                          />
+                        </FormControl>
+                        <FormMessage className="text-[10px] font-bold mt-1.5 ml-2" />
+                      </FormItem>
                     )}
+                  />
+
+                  <FormField
+                    control={form.control}
+                    name="checkOutDate"
+                    render={({ field }) => (
+                      <FormItem className="space-y-0">
+                        <FormControl>
+                          <SimpleDateTimePicker
+                            label="Departure Date & Time"
+                            value={field.value}
+                            onChange={field.onChange}
+                            required
+                          />
+                        </FormControl>
+                        <FormMessage className="text-[10px] font-bold mt-1.5 ml-2" />
+                      </FormItem>
+                    )}
+                  />
+                </div>
+
+                {/* Advance section */}
+                <div className="space-y-2">
+                  {/* Section Title */}
+                  <div className="flex items-center gap-2 px-1 mb-1">
+                    <Banknote size={16} className="text-slate-400" />
+                    <h3 className="text-[10px] font-bold uppercase tracking-widest text-slate-500">
+                      Advance Payment
+                    </h3>
+                  </div>
+
+                  {/* Content Box */}
+                  <div className="bg-slate-50/50 border border-slate-200 rounded-xl overflow-hidden">
+                    <div className="grid grid-cols-2 divide-x divide-slate-200">
+                      {/* Cash Input */}
+                      <div className="p-4 space-y-1">
+                        <label className="text-[9px] font-bold text-slate-400 uppercase ml-0.5">
+                          Cash Amount
+                        </label>
+                        <div className="relative group">
+                          <div className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 font-medium text-sm">
+                            ₹
+                          </div>
+                          <Input
+                            type="text"
+                            className="pl-7 bg-white h-10 border-slate-200 rounded-lg text-sm font-semibold focus-visible:ring-1 focus-visible:ring-slate-950"
+                            placeholder="0"
+                            {...form.register("cashAmount")}
+                          />
+                        </div>
+                      </div>
+
+                      {/* Online Input */}
+                      <div className="p-4 space-y-1">
+                        <label className="text-[9px] font-bold text-slate-400 uppercase ml-0.5">
+                          Online / UPI
+                        </label>
+                        <div className="relative group">
+                          <div className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 font-medium text-sm">
+                            ₹
+                          </div>
+                          <Input
+                            type="text"
+                            className="pl-7 bg-white h-10 border-slate-200 rounded-lg text-sm font-semibold focus-visible:ring-1 focus-visible:ring-slate-950"
+                            placeholder="0"
+                            {...form.register("onlineAmount")}
+                          />
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Total Summary Row */}
+                    <div className="bg-slate-50 border-t border-slate-200 p-4 px-6 flex justify-between items-center">
+                      <span className="text-[10px] font-bold text-slate-500 uppercase tracking-tight">
+                        Total Advance
+                      </span>
+                      <div className="flex items-center gap-2">
+                        <span className="text-sm font-medium text-slate-400">
+                          ₹
+                        </span>
+                        <span className="text-xl font-bold text-slate-900">
+                          {totalAdvance.toLocaleString()}
+                        </span>
+                      </div>
+                    </div>
                   </div>
                 </div>
               </div>
 
               {/* FOOTER */}
-              <div className="p-6 bg-slate-50 border-t flex gap-4">
+              <div className="p-6 bg-slate-100 border-t flex gap-4">
                 <Button
                   type="button"
-                  variant="ghost"
+                  variant="terminalGhost"
                   onClick={onClose}
-                  className="flex-1 h-14 rounded-2xl font-black uppercase tracking-widest text-xs text-slate-400"
+                  className="flex-2"
+                  // className="flex-1 h-14 rounded-2xl font-black uppercase tracking-widest text-xs text-slate-400"
                 >
                   Cancel
                 </Button>
                 <Button
                   type="submit"
                   disabled={mutation.isPending}
-                  className={cn(
-                    "flex-[2] h-14 rounded-2xl font-black uppercase tracking-[0.2em] text-xs shadow-xl transition-all",
-                    actionType === "CHECKIN"
-                      ? "bg-emerald-600 hover:bg-emerald-700"
-                      : "bg-indigo-600 hover:bg-indigo-700",
-                  )}
+                  variant={"default"}
+                  className="flex-8"
+
+                  // className={cn(
+                  //   "flex-[2] h-14 rounded-2xl font-black uppercase tracking-[0.2em] text-xs shadow-xl transition-all",
+                  //   actionType === "CHECKIN"
+                  //     ? "bg-emerald-600 hover:bg-emerald-700"
+                  //     : "bg-indigo-600 hover:bg-indigo-700",
+                  // )}
                 >
                   {mutation.isPending ? (
                     <Loader2 className="animate-spin mr-2" />
