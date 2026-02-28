@@ -108,7 +108,10 @@ export default function BookingManagerModal({
       queryClient.invalidateQueries({ queryKey: ["rooms"] });
       onClose();
     },
-    onError: (err: any) => toast.error("Failed to check in"),
+    onError: (err: any) => {
+      const errorMessage = err.response?.data?.message || "Failed to check in";
+      toast.error(errorMessage);
+    },
   });
 
   const cancelMutation = useMutation({
@@ -119,7 +122,10 @@ export default function BookingManagerModal({
       queryClient.invalidateQueries({ queryKey: ["rooms"] });
       onClose();
     },
-    onError: (err: any) => toast.error("Cancellation failed"),
+    onError: (err: any) => {
+      const errorMessage = err.response?.data?.message || "Cancellation failed";
+      toast.error(errorMessage);
+    },
   });
 
   const handleCancel = () => {
@@ -167,8 +173,6 @@ export default function BookingManagerModal({
     mutationFn: (data: ManageValues) =>
       api.patch(`/rooms/bookings/${booking.id}`, data),
     onSuccess: () => {
-      toast.success("Stay details updated");
-
       // This forces the Gantt Chart to refetch from the server
       queryClient.invalidateQueries({ queryKey: ["room-timeline"] });
 
@@ -176,8 +180,13 @@ export default function BookingManagerModal({
       queryClient.invalidateQueries({
         queryKey: ["booking-details", booking.id],
       });
+      toast.success("Stay details updated");
 
       onClose();
+    },
+    onError: (err: any) => {
+      const errorMessage = err.response?.data?.message || "Update failed";
+      toast.error(errorMessage);
     },
   });
 

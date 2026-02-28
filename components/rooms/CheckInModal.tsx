@@ -69,16 +69,13 @@ const bookingSchema = z.object({
 
 type BookingValues = z.infer<typeof bookingSchema>;
 
-export default function EnterpriseBookingModal({
-  isOpen,
-  onClose,
-  gridData,
-}: any) {
+export default function CheckInModal({ isOpen, onClose, gridData }: any) {
   const queryClient = useQueryClient();
   const [mode, setMode] = useState<"SELECTION" | "FORM">("SELECTION");
   const [actionType, setActionType] = useState<"BOOKING" | "CHECKIN">(
     "BOOKING",
   );
+  console.log("mode, actionType", mode, actionType);
 
   const form = useForm<BookingValues>({
     resolver: zodResolver(bookingSchema),
@@ -121,6 +118,7 @@ export default function EnterpriseBookingModal({
   });
   useEffect(() => {
     if (isOpen && gridData) {
+      setMode("SELECTION");
       let checkIn = gridData.date ? new Date(gridData.date) : new Date();
 
       // 2. Get the current actual time (e.g., 1:06 PM)
@@ -154,7 +152,7 @@ export default function EnterpriseBookingModal({
         secondaryGuests: gridData.secondaryGuests || [],
       });
     }
-  }, [isOpen, gridData, form, actionType]); // Added actionType to dependencies
+  }, [isOpen, gridData, form]); // Added actionType to dependencies
   // useEffect(() => {
   //   if (isOpen && gridData) {
   //     const baseDate = gridData.date ? new Date(gridData.date) : new Date();
