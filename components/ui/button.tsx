@@ -19,7 +19,12 @@ const buttonVariants = cva(
 
         // Standard destructive (red) variant
         destructive: "bg-red-600 text-white shadow-sm hover:bg-red-700",
+        success:
+          "bg-emerald-600 text-white shadow-md hover:bg-emerald-700 shadow-emerald-100 border-2 border-transparent",
 
+        // A minimal ghost version of success
+        successGhost:
+          "bg-emerald-50 text-emerald-700 hover:bg-emerald-100 border border-emerald-100",
         // Default shadcn/ui variants (kept for compatibility)
         default:
           "bg-primary text-primary-foreground shadow hover:bg-primary/70",
@@ -32,7 +37,7 @@ const buttonVariants = cva(
       },
       size: {
         // Matches the "py-3.5" or "py-6" height from your forms
-        default: "h-10 px-6 py-3",
+        default: "h-12 px-6 py-3",
         sm: "h-9 rounded-lg px-3 text-xs",
         lg: "h-12 rounded-2xl px-8 text-base",
         icon: "h-10 w-10",

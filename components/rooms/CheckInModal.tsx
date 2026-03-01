@@ -277,12 +277,53 @@ export default function CheckInModal({ isOpen, onClose, gridData }: any) {
               className="max-h-[85vh] overflow-y-auto custom-scrollbar"
             >
               <div className="p-6 space-y-6">
+                {/* SECTION 2: STAY DATES   */}
+                <div
+                  className="grid grid-cols-1 md:grid-cols-2 gap-2    
+                   rounded-xl      "
+                >
+                  <FormField
+                    control={form.control}
+                    name="checkInDate"
+                    render={({ field }) => (
+                      <FormItem className="space-y-0">
+                        <FormControl>
+                          <SimpleDateTimePicker
+                            label="Arrival Date & Time"
+                            value={field.value}
+                            onChange={field.onChange}
+                            required
+                          />
+                        </FormControl>
+                        <FormMessage className="text-[10px] font-bold mt-1.5 ml-2" />
+                      </FormItem>
+                    )}
+                  />
+
+                  <FormField
+                    control={form.control}
+                    name="checkOutDate"
+                    render={({ field }) => (
+                      <FormItem className="space-y-0">
+                        <FormControl>
+                          <SimpleDateTimePicker
+                            label="Departure Date & Time"
+                            value={field.value}
+                            onChange={field.onChange}
+                            required
+                          />
+                        </FormControl>
+                        <FormMessage className="text-[10px] font-bold mt-1.5 ml-2" />
+                      </FormItem>
+                    )}
+                  />
+                </div>
                 {/* SECTION 1: GUEST DETAILS */}
                 <div className="space-y-6">
                   <div className="flex items-center gap-2 text-slate-900">
                     <User size={18} />
                     <h3 className="text-xs font-black uppercase tracking-[0.2em]">
-                      Guest Identification
+                      Guest Details
                     </h3>
                   </div>
                   <div className="grid grid-cols-2 gap-4">
@@ -381,9 +422,9 @@ export default function CheckInModal({ isOpen, onClose, gridData }: any) {
                       variant="outline"
                       size="sm"
                       onClick={() => append({ name: "", documentId: "" })}
-                      className="h-6   border-dashed border-slate-300 font-bold text-[10px]"
+                      className="h-6   "
                     >
-                      <Plus size={14} className="mr-1" /> ADD COMPANION
+                      <Plus size={14} className="mr-1" /> ADD GUEST
                     </Button>
                   </div>
                   <div className="grid grid-cols-1 gap-3">
@@ -425,47 +466,6 @@ export default function CheckInModal({ isOpen, onClose, gridData }: any) {
                       </p>
                     )} */}
                   </div>
-                </div>
-                {/* SECTION 2: STAY DATES & SPLIT PAYMENT */}
-                <div
-                  className="grid grid-cols-1 md:grid-cols-2 gap-6 bg-white p-4
-                   rounded-xl border border-slate-100 shadow-sm"
-                >
-                  <FormField
-                    control={form.control}
-                    name="checkInDate"
-                    render={({ field }) => (
-                      <FormItem className="space-y-0">
-                        <FormControl>
-                          <SimpleDateTimePicker
-                            label="Arrival Date & Time"
-                            value={field.value}
-                            onChange={field.onChange}
-                            required
-                          />
-                        </FormControl>
-                        <FormMessage className="text-[10px] font-bold mt-1.5 ml-2" />
-                      </FormItem>
-                    )}
-                  />
-
-                  <FormField
-                    control={form.control}
-                    name="checkOutDate"
-                    render={({ field }) => (
-                      <FormItem className="space-y-0">
-                        <FormControl>
-                          <SimpleDateTimePicker
-                            label="Departure Date & Time"
-                            value={field.value}
-                            onChange={field.onChange}
-                            required
-                          />
-                        </FormControl>
-                        <FormMessage className="text-[10px] font-bold mt-1.5 ml-2" />
-                      </FormItem>
-                    )}
-                  />
                 </div>
 
                 {/* Advance section */}
