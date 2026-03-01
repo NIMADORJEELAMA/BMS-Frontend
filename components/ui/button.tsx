@@ -32,7 +32,7 @@ const buttonVariants = cva(
           "bg-secondary text-secondary-foreground shadow-sm hover:bg-secondary/80",
         ghost: "hover:bg-accent hover:text-accent-foreground",
         terminalGhost:
-          "bg-transparent text-black border-2 border-black hover:bg-black hover:text-white transition-all duration-200",
+          "bg-transparent text-black border-2 border-gray-200 hover:bg-gray-200   transition-all duration-200",
         link: "text-primary underline-offset-4 hover:underline",
       },
       size: {

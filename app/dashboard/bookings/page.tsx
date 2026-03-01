@@ -166,49 +166,6 @@ export default function ReservationTimeline() {
                     onManage={handleManageBooking}
                   />
                 ))}
-
-              {/* Booking Bars */}
-              {/* {bookings
-                .filter((b: any) => b.roomId === room.id)
-                .map((booking: any) => {
-                  const start = new Date(booking.checkIn);
-                  const end = booking.checkOut
-                    ? new Date(booking.checkOut)
-                    : new Date();
-
-                  const startPos = differenceInDays(
-                    startOfDay(start),
-                    startOfDay(dateRange[0]),
-                  );
-                  const duration = Math.max(
-                    1,
-                    differenceInDays(startOfDay(end), startOfDay(start)),
-                  );
-
-                  // Calculate display constraints
-                  const left = Math.max(0, (startPos / daysToShow) * 100);
-                  const width = (duration / daysToShow) * 100;
-
-                  return (
-                    <div
-                      key={booking.id}
-                      style={{ left: `${left}%`, width: `${width}%` }}
-                      className={cn(
-                        "absolute top-2 h-12 z-20 rounded-xl border-l-4 p-2 shadow-sm overflow-hidden",
-                        booking.status === "CHECKED_IN"
-                          ? "bg-indigo-50 border-indigo-500 text-indigo-700"
-                          : "bg-slate-100 border-slate-400 text-slate-600",
-                      )}
-                    >
-                      <p className="text-[10px] font-black uppercase truncate">
-                        {booking.guestName}
-                      </p>
-                      <p className="text-[8px] font-bold opacity-60">
-                        ID: {booking.id.slice(-4)}
-                      </p>
-                    </div>
-                  );
-                })} */}
             </div>
           </div>
         ))}

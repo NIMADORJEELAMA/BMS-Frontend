@@ -44,6 +44,7 @@ import { Badge } from "@/components/ui/badge";
 import DatePicker from "@/components/DateRangePicker";
 import { SimpleDateTimePicker } from "@/components/DateTimePicker";
 import { DialogDescription } from "@radix-ui/react-dialog";
+import { cn } from "@/lib/utils";
 
 const manageBookingSchema = z.object({
   guestName: z.string().min(2, "Name required"),
@@ -81,6 +82,7 @@ export default function BookingManagerModal({
     data: booking,
     isLoading,
     isError,
+    refetch,
   } = useQuery({
     queryKey: ["booking-details", bookingId],
     queryFn: async () => {
@@ -88,6 +90,7 @@ export default function BookingManagerModal({
       return res.data;
     },
     enabled: !!bookingId && isOpen, // Only fetch if we have an ID and modal is open
+    staleTime: 0,
   });
   const form = useForm<ManageValues>({
     resolver: zodResolver(manageBookingSchema),
@@ -111,10 +114,16 @@ export default function BookingManagerModal({
   const watchedDiscount = form.watch("discount") || 0;
 
   const confirmCheckInMutation = useMutation({
-    mutationFn: (id: string) =>
-      api.patch(`/rooms/bookings/${id}/confirm-checkin`),
+    mutationFn: (id: string) => {
+      const currentFormData = form.getValues();
+      // Use a new endpoint that handles both: Update + CheckIn
+      return api.patch(
+        `/rooms/bookings/${id}/update-and-checkin`,
+        currentFormData,
+      );
+    },
     onSuccess: () => {
-      toast.success("Guest checked in successfully");
+      toast.success("Details saved and Guest checked in!");
       queryClient.invalidateQueries({ queryKey: ["room-timeline"] });
       queryClient.invalidateQueries({ queryKey: ["rooms"] });
       onClose();
@@ -124,6 +133,21 @@ export default function BookingManagerModal({
       toast.error(errorMessage);
     },
   });
+
+  // const confirmCheckInMutation = useMutation({
+  //   mutationFn: (id: string) =>
+  //     api.patch(`/rooms/bookings/${id}/confirm-checkin`),
+  //   onSuccess: () => {
+  //     toast.success("Guest checked in successfully");
+  //     queryClient.invalidateQueries({ queryKey: ["room-timeline"] });
+  //     queryClient.invalidateQueries({ queryKey: ["rooms"] });
+  //     onClose();
+  //   },
+  //   onError: (err: any) => {
+  //     const errorMessage = err.response?.data?.message || "Failed to check in";
+  //     toast.error(errorMessage);
+  //   },
+  // });
 
   const cancelMutation = useMutation({
     mutationFn: (id: string) => api.patch(`/rooms/bookings/${id}/cancel`),
@@ -189,6 +213,12 @@ export default function BookingManagerModal({
       });
     }
   }, [booking, form]);
+
+  useEffect(() => {
+    if (isOpen && bookingId) {
+      refetch();
+    }
+  }, [isOpen, bookingId, refetch]);
 
   const updateMutation = useMutation({
     mutationFn: (data: ManageValues) =>
@@ -382,251 +412,330 @@ export default function BookingManagerModal({
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
       <DialogContent className="sm:max-w-[1100px] p-0 overflow-hidden border-none shadow-2xl rounded-2xl">
-        <DialogHeader className="bg-slate-900 p-6 text-white flex flex-row justify-between items-center space-y-0">
+        <DialogHeader className="bg-gray-100 p-6 text-slate-900 flex flex-row justify-between items-center space-y-0">
           <div className="flex items-center gap-3">
-            <BedDouble size={20} />
-            <div className="p-2 bg-indigo-500 rounded-lg"></div>
-            <div>
-              <DialogTitle className="text-xl">
-                Manage Room {booking.room?.roomNumber}
-              </DialogTitle>
-              <p className="text-xs text-slate-400 font-medium">
-                Guest: {booking.guestName}
-              </p>
+            <div className="flex items-center gap-4">
+              {/* Visual Indicator Icon */}
+              <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-indigo-500/10 text-indigo-400">
+                <BedDouble size={20} />
+              </div>
+
+              <div className="flex items-center gap-3">
+                <DialogTitle className="text-lg font-bold tracking-tight text-slate-900">
+                  Booking Management
+                </DialogTitle>
+
+                <span className="inline-flex items-center px-2.5 py-0.5 rounded-2xl text-xs font-bold bg-indigo-50 text-indigo-700 ring-1 ring-inset ring-indigo-700/10">
+                  {booking.room?.roomNumber || "N/A"}
+                </span>
+              </div>
             </div>
           </div>
-          <Badge className="bg-emerald-500 text-white border-none uppercase text-[10px] px-3">
+          {/* <Badge className="bg-emerald-500 text-white border-none uppercase text-[10px] px-3">
             {booking.status}
-          </Badge>
+          </Badge> */}
         </DialogHeader>
 
         <div className="grid grid-cols-12 h-[700px] bg-white">
           {/* LEFT COLUMN: STAY & GUEST FORM */}
-          <div className="col-span-7 p-6 overflow-y-auto border-r border-slate-100">
-            <Form {...form}>
-              <form className="space-y-8">
-                <section>
-                  {/* <h3 className="text-xs font-black uppercase tracking-[0.2em] text-indigo-500 mb-6">
-                    Stay Information
-                  </h3> */}
-                  <div
-                    className="grid grid-cols-1 md:grid-cols-2 gap-2    
+          <div className="col-span-7 flex flex-col h-[700px] border-r border-slate-100 bg-white">
+            <div className="flex-1 overflow-y-auto p-6 custom-scrollbar">
+              <Form {...form}>
+                <form id="booking-form" className="space-y-8">
+                  <section>
+                    <div
+                      className="grid grid-cols-1 md:grid-cols-2 gap-2    
                                      rounded-xl      "
-                  >
-                    <FormField
-                      control={form.control}
-                      name="checkInDate"
-                      render={({ field }) => (
-                        <FormItem className="space-y-0">
-                          <FormControl>
-                            <SimpleDateTimePicker
-                              label="Arrival Date & Time"
-                              value={field.value}
-                              onChange={field.onChange}
-                              required
-                            />
-                          </FormControl>
-                          <FormMessage className="text-[10px] font-bold mt-1.5 ml-2" />
-                        </FormItem>
-                      )}
-                    />
-
-                    <FormField
-                      control={form.control}
-                      name="checkOutDate"
-                      render={({ field }) => (
-                        <FormItem className="space-y-0">
-                          <FormControl>
-                            <SimpleDateTimePicker
-                              label="Departure Date & Time"
-                              value={field.value}
-                              onChange={field.onChange}
-                              required
-                            />
-                          </FormControl>
-                          <FormMessage className="text-[10px] font-bold mt-1.5 ml-2" />
-                        </FormItem>
-                      )}
-                    />
-                  </div>
-                </section>
-
-                {/* <Separator className="opacity-50" /> */}
-
-                <section>
-                  <h3 className="text-xs font-black uppercase tracking-[0.2em] text-indigo-500 mb-6">
-                    Guest Details
-                  </h3>
-                  <div className="grid grid-cols-2 gap-6">
-                    <FormField
-                      control={form.control}
-                      name="guestName"
-                      render={({ field }) => (
-                        <FormItem className="col-span-2">
-                          <FormControl>
-                            <div className="relative">
-                              <User
-                                className="absolute left-4 top-3.5 text-slate-400"
-                                size={18}
-                              />
-                              <Input
-                                placeholder="Full Name"
-                                className="pl-12 h-12 bg-slate-50 border-none rounded-xl"
-                                {...field}
-                              />
-                            </div>
-                          </FormControl>
-                        </FormItem>
-                      )}
-                    />
-                    <FormField
-                      control={form.control}
-                      name="phone"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormControl>
-                            <div className="relative">
-                              <Phone
-                                className="absolute left-4 top-3.5 text-slate-400"
-                                size={18}
-                              />
-                              <Input
-                                placeholder="Phone Number"
-                                className="pl-12 h-12 bg-slate-50 border-none rounded-xl"
-                                {...field}
-                              />
-                            </div>
-                          </FormControl>
-                        </FormItem>
-                      )}
-                    />
-                    <FormField
-                      control={form.control}
-                      name="documentId"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormControl>
-                            <div className="relative">
-                              <CreditCard
-                                className="absolute left-4 top-3.5 text-slate-400"
-                                size={18}
-                              />
-                              <Input
-                                placeholder="Document ID"
-                                className="pl-12 h-12 bg-slate-50 border-none rounded-xl"
-                                {...field}
-                              />
-                            </div>
-                          </FormControl>
-                        </FormItem>
-                      )}
-                    />
-                    <FormField
-                      control={form.control}
-                      name="address"
-                      render={({ field }) => (
-                        <FormItem className="col-span-2">
-                          <FormControl>
-                            <div className="relative">
-                              <MapPin
-                                className="absolute left-4 top-3.5 text-slate-400"
-                                size={18}
-                              />
-                              <Input
-                                placeholder="Full Address"
-                                className="pl-12 h-12 bg-slate-50 border-none rounded-xl"
-                                {...field}
-                              />
-                            </div>
-                          </FormControl>
-                        </FormItem>
-                      )}
-                    />
-                  </div>
-                </section>
-
-                <section className=" ">
-                  <div className="flex items-center justify-between mb-4">
-                    <h4 className="text-[10px] font-black uppercase tracking-widest text-slate-400">
-                      {/* Additional Guests */}
-                    </h4>
-                    <Button
-                      type="button"
-                      variant="outline"
-                      size="sm"
-                      onClick={() => append({ name: "", documentId: "" })}
-                      className="h-7 text-[10px] font-bold"
                     >
-                      <Plus size={14} className="mr-1" /> ADD GUEST
-                    </Button>
-                  </div>
-                  <div className="space-y-3">
-                    {fields.map((field, index) => (
-                      <div
-                        key={field.id}
-                        className="flex gap-3 items-center bg-slate-50 p-4 py-2 rounded-xl"
+                      <FormField
+                        control={form.control}
+                        name="checkInDate"
+                        render={({ field }) => (
+                          <FormItem className="space-y-0">
+                            <FormControl>
+                              <SimpleDateTimePicker
+                                label="Arrival Date & Time"
+                                value={field.value}
+                                onChange={field.onChange}
+                                required
+                              />
+                            </FormControl>
+                            <FormMessage className="text-[10px] font-bold mt-1.5 ml-2" />
+                          </FormItem>
+                        )}
+                      />
+
+                      <FormField
+                        control={form.control}
+                        name="checkOutDate"
+                        render={({ field }) => (
+                          <FormItem className="space-y-0">
+                            <FormControl>
+                              <SimpleDateTimePicker
+                                label="Departure Date & Time"
+                                value={field.value}
+                                onChange={field.onChange}
+                                required
+                              />
+                            </FormControl>
+                            <FormMessage className="text-[10px] font-bold mt-1.5 ml-2" />
+                          </FormItem>
+                        )}
+                      />
+                    </div>
+                  </section>
+
+                  {/* <Separator className="opacity-50" /> */}
+
+                  <section>
+                    <div className="flex items-center gap-2 text-slate-900 mb-4">
+                      <User size={18} />
+                      <h3 className="text-xs font-black uppercase  ">
+                        Guest Details
+                      </h3>
+                    </div>
+                    <div className="grid grid-cols-2 gap-6">
+                      <FormField
+                        control={form.control}
+                        name="guestName"
+                        render={({ field }) => (
+                          <FormItem className="col-span-2">
+                            <FormControl>
+                              <div className="relative">
+                                <User
+                                  className="absolute left-4 top-3.5 text-slate-400"
+                                  size={18}
+                                />
+                                <Input
+                                  placeholder="Full Name"
+                                  className="pl-12 h-12 bg-slate-50 border-none rounded-xl"
+                                  {...field}
+                                />
+                              </div>
+                            </FormControl>
+                          </FormItem>
+                        )}
+                      />
+                      <FormField
+                        control={form.control}
+                        name="phone"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormControl>
+                              <div className="relative">
+                                <Phone
+                                  className="absolute left-4 top-3.5 text-slate-400"
+                                  size={18}
+                                />
+                                <Input
+                                  placeholder="Phone Number"
+                                  className="pl-12 h-12 bg-slate-50 border-none rounded-xl"
+                                  {...field}
+                                />
+                              </div>
+                            </FormControl>
+                          </FormItem>
+                        )}
+                      />
+                      <FormField
+                        control={form.control}
+                        name="documentId"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormControl>
+                              <div className="relative">
+                                <CreditCard
+                                  className="absolute left-4 top-3.5 text-slate-400"
+                                  size={18}
+                                />
+                                <Input
+                                  placeholder="Document ID"
+                                  className="pl-12 h-12 bg-slate-50 border-none rounded-xl"
+                                  {...field}
+                                />
+                              </div>
+                            </FormControl>
+                          </FormItem>
+                        )}
+                      />
+                      <FormField
+                        control={form.control}
+                        name="address"
+                        render={({ field }) => (
+                          <FormItem className="col-span-2">
+                            <FormControl>
+                              <div className="relative">
+                                <MapPin
+                                  className="absolute left-4 top-3.5 text-slate-400"
+                                  size={18}
+                                />
+                                <Input
+                                  placeholder="Full Address"
+                                  className="pl-12 h-12 bg-slate-50 border-none rounded-xl"
+                                  {...field}
+                                />
+                              </div>
+                            </FormControl>
+                          </FormItem>
+                        )}
+                      />
+                    </div>
+                  </section>
+
+                  <section className=" ">
+                    <div className="flex items-center justify-between mb-4">
+                      <h4 className="text-[10px] font-black uppercase tracking-widest text-slate-400">
+                        {/* Additional Guests */}
+                      </h4>
+                      <Button
+                        type="button"
+                        variant="outline"
+                        size="sm"
+                        onClick={() => append({ name: "", documentId: "" })}
+                        className="h-7 text-[10px] font-bold"
                       >
-                        <Input
-                          placeholder="Name"
-                          className="h-10 bg-white"
-                          {...form.register(
-                            `secondaryGuests.${index}.name` as const,
-                          )}
-                        />
-                        <Input
-                          placeholder="ID No"
-                          className="h-10 bg-white"
-                          {...form.register(
-                            `secondaryGuests.${index}.documentId` as const,
-                          )}
-                        />
-                        <Button
-                          type="button"
-                          variant="ghost"
-                          size="icon"
-                          onClick={() => remove(index)}
-                          className="text-red-400 hover:text-red-600"
+                        <Plus size={14} className="mr-1" /> ADD GUEST
+                      </Button>
+                    </div>
+                    <div className="space-y-3">
+                      {fields.map((field, index) => (
+                        <div
+                          key={field.id}
+                          className="flex gap-3 items-center bg-slate-50 p-4 py-2 rounded-xl"
                         >
-                          <Trash2 size={16} />
+                          <Input
+                            placeholder="Name"
+                            className="h-10 bg-white"
+                            {...form.register(
+                              `secondaryGuests.${index}.name` as const,
+                            )}
+                          />
+                          <Input
+                            placeholder="ID No"
+                            className="h-10 bg-white"
+                            {...form.register(
+                              `secondaryGuests.${index}.documentId` as const,
+                            )}
+                          />
+                          <Button
+                            type="button"
+                            variant="ghost"
+                            size="icon"
+                            onClick={() => remove(index)}
+                            className="text-red-400 hover:text-red-600"
+                          >
+                            <Trash2 size={16} />
+                          </Button>
+                        </div>
+                      ))}
+                    </div>
+                  </section>
+                </form>
+              </Form>
+              <section>
+                <Dialog
+                  open={isCancelModalOpen}
+                  onOpenChange={setIsCancelModalOpen}
+                >
+                  <DialogContent className="sm:max-w-[450px] p-0 overflow-hidden border-none rounded-[2rem] shadow-2xl">
+                    {/* Screen Reader Only Titles for Accessibility */}
+                    <DialogHeader className="sr-only">
+                      <DialogTitle>Cancel Booking</DialogTitle>
+                      <DialogDescription>
+                        Enter a reason to cancel this room reservation.
+                      </DialogDescription>
+                    </DialogHeader>
+
+                    <div className="p-8 space-y-6">
+                      <div className="flex flex-col items-center text-center space-y-3">
+                        <div className="p-4 bg-red-50 text-red-500 rounded-full">
+                          <AlertCircle size={32} />
+                        </div>
+                        <div>
+                          <h2 className="text-xl font-bold text-slate-900">
+                            Cancel Booking?
+                          </h2>
+                          <p className="text-sm text-slate-500">
+                            This will release{" "}
+                            <strong>Room {booking?.room?.roomNumber}</strong>{" "}
+                            back to inventory.
+                          </p>
+                        </div>
+                      </div>
+
+                      <div className="space-y-2">
+                        <label className="text-[10px] font-black uppercase tracking-widest text-slate-400 ml-1">
+                          Reason for Cancellation
+                        </label>
+                        <Input
+                          placeholder="e.g. Guest No-Show, Duplicate Booking..."
+                          className="h-12 bg-slate-50 border-none rounded-xl text-sm focus-visible:ring-red-500"
+                          value={cancelReason}
+                          onChange={(e) => setCancelReason(e.target.value)}
+                        />
+                      </div>
+
+                      <div className="flex gap-3 pt-2">
+                        <Button
+                          variant="ghost"
+                          className="flex-1 h-12 rounded-xl font-bold text-slate-400"
+                          onClick={() => setIsCancelModalOpen(false)}
+                        >
+                          Close
+                        </Button>
+                        <Button
+                          variant="destructive"
+                          className="flex-[2] h-12 rounded-xl font-bold bg-red-500 hover:bg-red-600 shadow-lg shadow-red-100"
+                          disabled={cancelMutation.isPending}
+                          onClick={() => {
+                            if (!cancelReason)
+                              return toast.error("Please provide a reason");
+                            cancelMutation.mutate(booking.id, { cancelReason });
+                            setIsCancelModalOpen(false);
+                          }}
+                        >
+                          {cancelMutation.isPending ? (
+                            <Loader2 className="animate-spin" />
+                          ) : (
+                            "Confirm Cancellation"
+                          )}
                         </Button>
                       </div>
-                    ))}
-                  </div>
-                </section>
-              </form>
-            </Form>
-            <section>
-              {/* NEW: Reservation to Check-in Banner */}
-              {/* LEFT COLUMN FOOTER (Inside col-span-7) */}
-              {booking?.id && (
-                <div className="mt-10 pt-6 border-t border-slate-100 space-y-4">
+                    </div>
+                  </DialogContent>
+                </Dialog>
+              </section>
+            </div>
+            {booking?.id && (
+              <div className="p-6 bg-slate-50 border-t border-slate-200/60 shadow-[0_-4px_20px_rgba(0,0,0,0.03)]">
+                <div className="flex flex-col gap-4">
+                  {/* Top Row: Primary & Secondary Actions */}
                   <div className="flex gap-3 w-full">
-                    {/* UPDATE BUTTON: Now properly placed with Guest Info */}
+                    {/* UPDATE ACTION - Secondary */}
                     <Button
-                      variant="outline"
-                      className="flex-1 h-12 border-slate-200 text-slate-600 rounded-xl font-bold hover:bg-slate-50 flex items-center justify-center gap-2"
+                      variant="terminalGhost"
+                      className="flex-1  "
                       onClick={() => updateMutation.mutate(form.getValues())}
                       disabled={updateMutation.isPending}
                     >
                       {updateMutation.isPending ? (
                         <Loader2 className="animate-spin" size={18} />
                       ) : (
-                        <Save size={18} />
+                        <Save size={18} className="mr-2" />
                       )}
                       Update Details
                     </Button>
 
-                    {/* CHECK-IN ACTION */}
-                    <div className="flex-[1.5]">
+                    {/* CHECK-IN ACTION - Primary */}
+                    <div className="flex-[1.2]">
                       {booking.status === "RESERVED" ? (
                         <Button
                           type="button"
-                          variant="success"
+                          className="w-full h-12 bg-emerald-600 hover:bg-emerald-700 text-white font-black text-[11px] uppercase tracking-widest transition-all shadow-lg shadow-emerald-100 rounded-xl active:scale-[0.98]"
                           onClick={() =>
                             confirmCheckInMutation.mutate(booking.id)
                           }
                           disabled={confirmCheckInMutation.isPending}
-                          className="w-full h-12 bg-emerald-600 hover:bg-emerald-700 text-white font-black text-[10px] uppercase tracking-widest transition-all shadow-lg shadow-emerald-100 rounded-xl"
                         >
                           {confirmCheckInMutation.isPending ? (
                             <Loader2 className="animate-spin" />
@@ -638,7 +747,7 @@ export default function BookingManagerModal({
                           )}
                         </Button>
                       ) : (
-                        <div className="flex items-center justify-center h-12 w-full border border-slate-100 bg-slate-50 rounded-xl text-slate-400 font-bold text-[10px] uppercase tracking-widest cursor-not-allowed">
+                        <div className="flex items-center justify-center h-12 w-full border border-slate-200 bg-slate-100/50 rounded-xl text-slate-400 font-bold text-[10px] uppercase tracking-widest cursor-not-allowed">
                           <CheckCircle2 size={16} className="mr-2" />
                           Already Checked In
                         </div>
@@ -646,93 +755,28 @@ export default function BookingManagerModal({
                     </div>
                   </div>
 
-                  {/* CANCEL ACTION: Smaller, secondary link style at the bottom */}
-                  <div className="flex justify-center">
+                  {/* Bottom Row: Destructive Action (Isolated) */}
+                  <div className="flex items-center gap-4 pt-2 border-t border-slate-200/50">
                     <Button
                       type="button"
                       variant="ghost"
                       onClick={() => setIsCancelModalOpen(true)}
-                      className="text-red-400 hover:text-red-500 hover:bg-red-50 font-bold text-[10px] uppercase tracking-widest h-8 px-4 rounded-lg"
+                      className="h-10 px-4 text-red-500 hover:text-red-600 hover:bg-red-50 font-bold text-[10px] uppercase tracking-widest rounded-lg transition-colors"
                     >
                       <Trash2 size={14} className="mr-2" />
-                      Cancel This Booking
+                      Cancel Reservation
                     </Button>
+
+                    {/* Subtle helper text for Admin context */}
+                    <p className="text-[10px] text-slate-400 font-medium italic italic">
+                      * Ensure guest ID is verified before check-in.
+                    </p>
                   </div>
                 </div>
-              )}
-              <Dialog
-                open={isCancelModalOpen}
-                onOpenChange={setIsCancelModalOpen}
-              >
-                <DialogContent className="sm:max-w-[450px] p-0 overflow-hidden border-none rounded-[2rem] shadow-2xl">
-                  {/* Screen Reader Only Titles for Accessibility */}
-                  <DialogHeader className="sr-only">
-                    <DialogTitle>Cancel Booking</DialogTitle>
-                    <DialogDescription>
-                      Enter a reason to cancel this room reservation.
-                    </DialogDescription>
-                  </DialogHeader>
-
-                  <div className="p-8 space-y-6">
-                    <div className="flex flex-col items-center text-center space-y-3">
-                      <div className="p-4 bg-red-50 text-red-500 rounded-full">
-                        <AlertCircle size={32} />
-                      </div>
-                      <div>
-                        <h2 className="text-xl font-bold text-slate-900">
-                          Cancel Booking?
-                        </h2>
-                        <p className="text-sm text-slate-500">
-                          This will release{" "}
-                          <strong>Room {booking?.room?.roomNumber}</strong> back
-                          to inventory.
-                        </p>
-                      </div>
-                    </div>
-
-                    <div className="space-y-2">
-                      <label className="text-[10px] font-black uppercase tracking-widest text-slate-400 ml-1">
-                        Reason for Cancellation
-                      </label>
-                      <Input
-                        placeholder="e.g. Guest No-Show, Duplicate Booking..."
-                        className="h-12 bg-slate-50 border-none rounded-xl text-sm focus-visible:ring-red-500"
-                        value={cancelReason}
-                        onChange={(e) => setCancelReason(e.target.value)}
-                      />
-                    </div>
-
-                    <div className="flex gap-3 pt-2">
-                      <Button
-                        variant="ghost"
-                        className="flex-1 h-12 rounded-xl font-bold text-slate-400"
-                        onClick={() => setIsCancelModalOpen(false)}
-                      >
-                        Close
-                      </Button>
-                      <Button
-                        variant="destructive"
-                        className="flex-[2] h-12 rounded-xl font-bold bg-red-500 hover:bg-red-600 shadow-lg shadow-red-100"
-                        disabled={cancelMutation.isPending}
-                        onClick={() => {
-                          if (!cancelReason)
-                            return toast.error("Please provide a reason");
-                          cancelMutation.mutate(booking.id, { cancelReason });
-                          setIsCancelModalOpen(false);
-                        }}
-                      >
-                        {cancelMutation.isPending ? (
-                          <Loader2 className="animate-spin" />
-                        ) : (
-                          "Confirm Cancellation"
-                        )}
-                      </Button>
-                    </div>
-                  </div>
-                </DialogContent>
-              </Dialog>
-            </section>
+              </div>
+            )}
           </div>
+
           <PaymentSettlementModal
             isOpen={isPaymentModalOpen}
             onClose={() => setIsPaymentModalOpen(false)}

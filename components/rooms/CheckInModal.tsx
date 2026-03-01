@@ -322,7 +322,7 @@ export default function CheckInModal({ isOpen, onClose, gridData }: any) {
                 <div className="space-y-6">
                   <div className="flex items-center gap-2 text-slate-900">
                     <User size={18} />
-                    <h3 className="text-xs font-black uppercase tracking-[0.2em]">
+                    <h3 className="text-xs font-black uppercase  ">
                       Guest Details
                     </h3>
                   </div>
