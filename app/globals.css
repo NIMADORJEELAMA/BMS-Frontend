@@ -181,3 +181,27 @@ body {
     @apply bg-background text-foreground;
   }
 }
+
+@media print {
+  /* Hide everything by default */
+  body * {
+    visibility: hidden;
+  }
+  /* Only show the element with id="printable-bill" and its children */
+  #printable-bill,
+  #printable-bill * {
+    visibility: visible;
+  }
+  #printable-bill {
+    position: absolute;
+    left: 0;
+    top: 0;
+    width: 100%;
+    padding: 20px;
+    background: white;
+  }
+  /* Remove headers/footers added by browsers */
+  @page {
+    margin: 0;
+  }
+}

@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useForm, useFieldArray } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
@@ -22,7 +22,7 @@ import {
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "react-hot-toast";
 import api from "../../../lib/axios";
-
+import { useReactToPrint } from "react-to-print";
 import {
   Dialog,
   DialogContent,
@@ -39,12 +39,11 @@ import {
 } from "@/components/ui/form";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Separator } from "@/components/ui/separator";
-import { Badge } from "@/components/ui/badge";
-import DatePicker from "@/components/DateRangePicker";
+
 import { SimpleDateTimePicker } from "@/components/DateTimePicker";
 import { DialogDescription } from "@radix-ui/react-dialog";
-import { cn } from "@/lib/utils";
+
+import PaymentSettlementModal from "@/components/rooms/PaymentSettlementModal";
 
 const manageBookingSchema = z.object({
   guestName: z.string().min(2, "Name required"),
@@ -72,6 +71,7 @@ export default function BookingManagerModal({
   onClose,
   bookingId,
 }: any) {
+  const contentToPrint = useRef(null);
   const queryClient = useQueryClient();
   console.log("booking", bookingId);
   const [isCancelModalOpen, setIsCancelModalOpen] = useState(false);
@@ -134,27 +134,13 @@ export default function BookingManagerModal({
     },
   });
 
-  // const confirmCheckInMutation = useMutation({
-  //   mutationFn: (id: string) =>
-  //     api.patch(`/rooms/bookings/${id}/confirm-checkin`),
-  //   onSuccess: () => {
-  //     toast.success("Guest checked in successfully");
-  //     queryClient.invalidateQueries({ queryKey: ["room-timeline"] });
-  //     queryClient.invalidateQueries({ queryKey: ["rooms"] });
-  //     onClose();
-  //   },
-  //   onError: (err: any) => {
-  //     const errorMessage = err.response?.data?.message || "Failed to check in";
-  //     toast.error(errorMessage);
-  //   },
-  // });
-
   const cancelMutation = useMutation({
     mutationFn: (id: string) => api.patch(`/rooms/bookings/${id}/cancel`),
     onSuccess: () => {
       toast.success("Booking cancelled");
       queryClient.invalidateQueries({ queryKey: ["room-timeline"] });
       queryClient.invalidateQueries({ queryKey: ["rooms"] });
+      setCancelReason("");
       onClose();
     },
     onError: (err: any) => {
@@ -190,16 +176,10 @@ export default function BookingManagerModal({
   // const grandTotal = roomTotal + foodTotal;
 
   const subtotal = roomTotal + foodTotal + Number(watchedMisc);
-  const grandTotal = Math.max(0, subtotal - Number(watchedDiscount));
-  const handleCancel = () => {
-    if (
-      window.confirm(
-        "Are you sure you want to cancel this booking? This will release the room immediately.",
-      )
-    ) {
-      cancelMutation.mutate(booking.id);
-    }
-  };
+  const totalReductions =
+    Number(watchedDiscount) + Number(booking?.advanceAmount);
+  const grandTotal = Math.max(0, subtotal - totalReductions);
+  console.log("totalReductions", totalReductions);
   useEffect(() => {
     if (booking) {
       form.reset({
@@ -210,6 +190,8 @@ export default function BookingManagerModal({
         checkInDate: format(new Date(booking.checkIn), "yyyy-MM-dd'T'HH:mm"),
         checkOutDate: format(new Date(booking.checkOut), "yyyy-MM-dd'T'HH:mm"),
         secondaryGuests: booking.secondaryGuests || [],
+        miscCharges: booking.miscCharges || 0,
+        discount: booking.discount || 0,
       });
     }
   }, [booking, form]);
@@ -242,173 +224,107 @@ export default function BookingManagerModal({
   });
 
   const checkoutMutation = useMutation({
-    mutationFn: (paymentMode: string) =>
+    mutationFn: (payload: {
+      paymentMode: string;
+      cashAmount: number;
+      onlineAmount: number;
+    }) =>
       api.post(`/rooms/bookings/${booking.id}/checkout`, {
-        paymentMode,
+        ...payload,
         totalBill: grandTotal,
         discount: watchedDiscount,
         miscCharges: watchedMisc,
-        // Pass these so your backend records the snapshot accurately
       }),
     onSuccess: () => {
       toast.success("Guest checked out successfully.");
       queryClient.invalidateQueries({ queryKey: ["room-timeline"] });
-      setIsPaymentModalOpen(false); // Close payment modal
-      onClose(); // Close management modal
+      setIsPaymentModalOpen(false);
+      onClose();
+    },
+    onError: (err: any) => {
+      toast.error(err.response?.data?.message || "Checkout failed");
     },
   });
 
   if (!booking) return null;
-  const finalBillData = {
-    bookingId: booking.id,
-    roomTotal,
-    foodTotal,
-    miscCharges: Number(watchedMisc),
-    discount: Number(watchedDiscount),
-    subtotal,
-    grandTotal,
-  };
-  const billSummary = {
-    nights,
-    roomTotal,
-    foodTotal,
-    servedItemsCount: servedUnpaidItems.length,
-    miscCharges: Number(watchedMisc),
-    discount: Number(watchedDiscount),
-    grandTotal,
-  };
-  function PaymentSettlementModal({
-    isOpen,
-    onClose,
-    billData,
-    onConfirm,
-    isPending,
-  }: any) {
-    const [paymentMode, setPaymentMode] = useState("CASH");
+  const handlePrint = useReactToPrint({
+    contentRef: contentToPrint,
+    documentTitle: `Bill_${booking?.guestName}_${booking?.room?.roomNumber}`,
+  });
+  const PrintableBill = ({ data, billNo }: any) => (
+    <div
+      id="printable-area"
+      className="hidden print:block p-10 bg-white text-black font-sans"
+    >
+      <div className="text-center space-y-1 mb-8">
+        <h1 className="text-2xl font-bold uppercase">
+          Gairigaon Hill Top Resort
+        </h1>
+        <p className="text-sm">Jaigaon, West Bengal | Ph: +91 8328708365</p>
+        <div className="border-b-2 border-black w-20 mx-auto pt-2" />
+      </div>
 
-    return (
-      <Dialog open={isOpen} onOpenChange={onClose}>
-        <DialogContent className="sm:max-w-[420px] p-0 overflow-hidden border-none rounded-[2rem] shadow-2xl">
-          {/* Header Section */}
-          <div className="bg-slate-900 p-8 text-center text-white">
-            <div className="flex justify-center mb-4">
-              <div className="p-3 bg-emerald-500/20 rounded-full text-emerald-400">
-                <CheckCircle2 size={28} />
-              </div>
-            </div>
-            <h2 className="text-xl font-bold tracking-tight">
-              Final Settlement
-            </h2>
-            <p className="text-slate-400 text-xs mt-1 uppercase tracking-widest font-medium">
-              Ready for Payment
-            </p>
+      <div className="flex justify-between text-sm mb-6">
+        <div>
+          <p>
+            <strong>Guest:</strong> {data.booking?.guestName}
+          </p>
+          <p>
+            <strong>Room:</strong> {data.booking?.room?.roomNumber}
+          </p>
+        </div>
+        <div className="text-right">
+          <p>
+            <strong>Bill No:</strong> {billNo}
+          </p>
+          <p>
+            <strong>Date:</strong> {new Date().toLocaleDateString()}
+          </p>
+        </div>
+      </div>
 
-            <div className="mt-6 py-4 bg-white/5 rounded-2xl border border-white/10">
-              <span className="text-[10px] text-slate-400 uppercase font-black">
-                Net Amount
-              </span>
-              <div className="text-4xl font-black text-white tracking-tighter">
-                ₹{billData.grandTotal.toLocaleString()}
-              </div>
-            </div>
-          </div>
+      <table className="w-full text-sm mb-8">
+        <thead className="border-b border-black">
+          <tr>
+            <th className="text-left py-2">Description</th>
+            <th className="text-center">Qty</th>
+            <th className="text-right">Amount</th>
+          </tr>
+        </thead>
+        <tbody className="border-b border-black">
+          <tr>
+            <td className="py-2">Room Stay ({data.nights} nights)</td>
+            <td className="text-center">1</td>
+            <td className="text-right">₹{data.roomTotal}</td>
+          </tr>
+          {data.foodItems?.map((item: any) => (
+            <tr key={item.id}>
+              <td className="py-1">{item.menuItem.name}</td>
+              <td className="text-center">{item.quantity}</td>
+              <td className="text-right">
+                ₹{item.priceAtOrder * item.quantity}
+              </td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
 
-          {/* Breakdown Section */}
-          <div className="p-8 space-y-6 bg-white">
-            <div className="space-y-3">
-              <div className="flex justify-between items-center text-sm">
-                <span className="text-slate-500 font-medium">
-                  Room Charges ({billData.nights}n)
-                </span>
-                <span className="font-bold text-slate-900">
-                  ₹{billData.roomTotal.toLocaleString()}
-                </span>
-              </div>
+      <div className="space-y-1 text-right text-sm">
+        <p>Subtotal: ₹{data.roomTotal + data.foodTotal}</p>
+        {data.miscCharges > 0 && <p>Misc: +₹{data.miscCharges}</p>}
+        {data.discount > 0 && <p>Discount: -₹{data.discount}</p>}
+        {data.advanceAmount > 0 && <p>Advance: -₹{data.advanceAmount}</p>}
+        <p className="text-xl font-bold pt-2">
+          Grand Total: ₹{data.grandTotal}
+        </p>
+      </div>
 
-              <div className="flex justify-between items-center text-sm">
-                <div className="flex flex-col">
-                  <span className="text-slate-500 font-medium">
-                    Restaurant Services
-                  </span>
-                  <span className="text-[10px] text-indigo-500 font-bold uppercase">
-                    {billData.servedItemsCount} Items Served
-                  </span>
-                </div>
-                <span className="font-bold text-slate-900">
-                  ₹{billData.foodTotal.toLocaleString()}
-                </span>
-              </div>
-
-              {billData.miscCharges > 0 && (
-                <div className="flex justify-between items-center text-sm">
-                  <span className="text-slate-500 font-medium">
-                    Miscellaneous
-                  </span>
-                  <span className="font-bold text-slate-900">
-                    + ₹{billData.miscCharges.toLocaleString()}
-                  </span>
-                </div>
-              )}
-
-              {billData.discount > 0 && (
-                <div className="flex justify-between items-center text-sm pt-2 border-t border-slate-100">
-                  <span className="text-orange-600 font-bold uppercase text-[10px]">
-                    Discount Applied
-                  </span>
-                  <span className="font-bold text-orange-600">
-                    - ₹{billData.discount.toLocaleString()}
-                  </span>
-                </div>
-              )}
-            </div>
-
-            {/* Payment Method Toggle */}
-            <div className="pt-4 border-t border-slate-100 space-y-3">
-              <p className="text-[10px] font-black uppercase tracking-widest text-slate-400">
-                Payment Method
-              </p>
-              <div className="flex gap-2 p-1.5 bg-slate-100 rounded-2xl">
-                <button
-                  onClick={() => setPaymentMode("CASH")}
-                  className={`flex-1 py-3 rounded-xl font-bold text-xs transition-all ${paymentMode === "CASH" ? "bg-white text-slate-900 shadow-md" : "text-slate-500 hover:text-slate-700"}`}
-                >
-                  CASH
-                </button>
-                <button
-                  onClick={() => setPaymentMode("ONLINE")}
-                  className={`flex-1 py-3 rounded-xl font-bold text-xs transition-all ${paymentMode === "ONLINE" ? "bg-white text-slate-900 shadow-md" : "text-slate-500 hover:text-slate-700"}`}
-                >
-                  ONLINE / UPI
-                </button>
-              </div>
-            </div>
-
-            {/* Settlement Actions */}
-            <div className="flex gap-3 pt-2">
-              <Button
-                variant="ghost"
-                className="flex-1 h-12 rounded-xl font-bold text-slate-400"
-                onClick={onClose}
-              >
-                Go Back
-              </Button>
-              <Button
-                className="flex-[2] h-12 rounded-xl font-black text-[10px] uppercase tracking-widest bg-emerald-600 hover:bg-emerald-700 text-white shadow-xl shadow-emerald-100"
-                onClick={() => onConfirm(paymentMode)}
-                disabled={isPending}
-              >
-                {isPending ? (
-                  <Loader2 className="animate-spin" />
-                ) : (
-                  "Complete Transaction"
-                )}
-              </Button>
-            </div>
-          </div>
-        </DialogContent>
-      </Dialog>
-    );
-  }
+      <div className="mt-20 text-center text-xs">
+        <p>Thank you for staying with us!</p>
+        <p>Computer Generated Invoice</p>
+      </div>
+    </div>
+  );
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
       <DialogContent className="sm:max-w-[1100px] p-0 overflow-hidden border-none shadow-2xl rounded-2xl">
@@ -677,7 +593,7 @@ export default function BookingManagerModal({
 
                       <div className="flex gap-3 pt-2">
                         <Button
-                          variant="ghost"
+                          variant="terminalGhost"
                           className="flex-1 h-12 rounded-xl font-bold text-slate-400"
                           onClick={() => setIsCancelModalOpen(false)}
                         >
@@ -778,11 +694,23 @@ export default function BookingManagerModal({
           </div>
 
           <PaymentSettlementModal
+            ref={contentToPrint}
             isOpen={isPaymentModalOpen}
             onClose={() => setIsPaymentModalOpen(false)}
-            billData={billSummary}
+            billData={{
+              nights,
+              roomTotal,
+              foodTotal,
+              servedItemsCount: servedUnpaidItems.length,
+              foodItems: servedUnpaidItems,
+              miscCharges: watchedMisc,
+              discount: watchedDiscount,
+              grandTotal,
+              booking,
+              advanceAmount: booking.advanceAmount,
+            }}
             isPending={checkoutMutation.isPending}
-            onConfirm={(mode: string) => checkoutMutation.mutate(mode)}
+            onConfirm={(payload: any) => checkoutMutation.mutate(payload)}
           />
           {/* RIGHT COLUMN: RESTAURANT & BILLING */}
 
@@ -904,7 +832,7 @@ export default function BookingManagerModal({
                       ₹
                     </span>
                     <Input
-                      type="number"
+                      type="text"
                       {...form.register("miscCharges")}
                       className="pl-7 h-10 bg-slate-50 border-none rounded-lg text-sm font-semibold focus-visible:ring-indigo-500"
                       placeholder="0"
@@ -920,7 +848,7 @@ export default function BookingManagerModal({
                       ₹
                     </span>
                     <Input
-                      type="number"
+                      type="text"
                       {...form.register("discount")}
                       className="pl-7 h-10 bg-orange-50/50 border-none rounded-lg text-sm font-semibold text-orange-700 focus-visible:ring-orange-500"
                       placeholder="0"
@@ -938,17 +866,37 @@ export default function BookingManagerModal({
                     ₹{(roomTotal + foodTotal).toLocaleString()}
                   </span>
                 </div>
-                <div className="flex justify-between text-xs font-medium text-slate-500">
-                  <span>Taxes & Fees (0%)</span>
-                  <span className="text-slate-700">₹0.00</span>
-                </div>
+                {booking?.advanceAmount > 0 && (
+                  <div className="flex justify-between text-xs font-medium text-slate-500">
+                    <span>Advance Payment</span>
+                    <span className="text-slate-700">
+                      ₹{booking?.advanceAmount}
+                    </span>
+                  </div>
+                )}
+                {watchedMisc > 0 && (
+                  <div className="flex justify-between text-xs font-medium text-slate-500">
+                    <span>Miscellaneous</span>
+                    <span className="text-slate-700">₹{watchedMisc}</span>
+                  </div>
+                )}
+                {watchedDiscount > 0 && (
+                  <div className="flex justify-between text-xs font-medium text-slate-500">
+                    <span>Discount</span>
+                    <span className="text-slate-700">
+                      {" "}
+                      - ₹{watchedDiscount}
+                    </span>
+                  </div>
+                )}
+
                 <div className="flex justify-between items-end pt-2">
                   <span className="text-xs font-black text-slate-900 uppercase">
                     Total Balance Due
                   </span>
                   <div className="text-right">
                     <p className="text-3xl font-black text-slate-900 tracking-tight">
-                      {/* ₹{grandTotal.toLocaleString()} */}
+                      ₹{grandTotal.toLocaleString()}
                     </p>
                   </div>
                 </div>
@@ -965,12 +913,12 @@ export default function BookingManagerModal({
                   Checkout
                 </Button>
                 <Button
-                  variant="outline"
+                  variant="terminalGhost"
                   className="h-12 border-slate-200 text-slate-600 rounded-xl font-bold hover:bg-slate-50"
-                  onClick={() => updateMutation.mutate(form.getValues())}
+                  onClick={handlePrint}
                 >
                   <Save size={18} className="mr-2" />
-                  Update Folio
+                  Print Bill
                 </Button>
               </div>
             </div>
