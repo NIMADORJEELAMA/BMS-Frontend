@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect } from "react";
 import { useForm, useFieldArray } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
@@ -22,7 +22,7 @@ import {
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "react-hot-toast";
 import api from "../../../lib/axios";
-import { useReactToPrint } from "react-to-print";
+
 import {
   Dialog,
   DialogContent,
@@ -71,7 +71,6 @@ export default function BookingManagerModal({
   onClose,
   bookingId,
 }: any) {
-  const contentToPrint = useRef(null);
   const queryClient = useQueryClient();
   console.log("booking", bookingId);
   const [isCancelModalOpen, setIsCancelModalOpen] = useState(false);
@@ -148,6 +147,7 @@ export default function BookingManagerModal({
       toast.error(errorMessage);
     },
   });
+
   // Inside your Component
   const foodOrders = booking?.foodOrders || [];
   const servedUnpaidItems =
@@ -247,84 +247,6 @@ export default function BookingManagerModal({
   });
 
   if (!booking) return null;
-  const handlePrint = useReactToPrint({
-    contentRef: contentToPrint,
-    documentTitle: `Bill_${booking?.guestName}_${booking?.room?.roomNumber}`,
-  });
-  const PrintableBill = ({ data, billNo }: any) => (
-    <div
-      id="printable-area"
-      className="hidden print:block p-10 bg-white text-black font-sans"
-    >
-      <div className="text-center space-y-1 mb-8">
-        <h1 className="text-2xl font-bold uppercase">
-          Gairigaon Hill Top Resort
-        </h1>
-        <p className="text-sm">Jaigaon, West Bengal | Ph: +91 8328708365</p>
-        <div className="border-b-2 border-black w-20 mx-auto pt-2" />
-      </div>
-
-      <div className="flex justify-between text-sm mb-6">
-        <div>
-          <p>
-            <strong>Guest:</strong> {data.booking?.guestName}
-          </p>
-          <p>
-            <strong>Room:</strong> {data.booking?.room?.roomNumber}
-          </p>
-        </div>
-        <div className="text-right">
-          <p>
-            <strong>Bill No:</strong> {billNo}
-          </p>
-          <p>
-            <strong>Date:</strong> {new Date().toLocaleDateString()}
-          </p>
-        </div>
-      </div>
-
-      <table className="w-full text-sm mb-8">
-        <thead className="border-b border-black">
-          <tr>
-            <th className="text-left py-2">Description</th>
-            <th className="text-center">Qty</th>
-            <th className="text-right">Amount</th>
-          </tr>
-        </thead>
-        <tbody className="border-b border-black">
-          <tr>
-            <td className="py-2">Room Stay ({data.nights} nights)</td>
-            <td className="text-center">1</td>
-            <td className="text-right">₹{data.roomTotal}</td>
-          </tr>
-          {data.foodItems?.map((item: any) => (
-            <tr key={item.id}>
-              <td className="py-1">{item.menuItem.name}</td>
-              <td className="text-center">{item.quantity}</td>
-              <td className="text-right">
-                ₹{item.priceAtOrder * item.quantity}
-              </td>
-            </tr>
-          ))}
-        </tbody>
-      </table>
-
-      <div className="space-y-1 text-right text-sm">
-        <p>Subtotal: ₹{data.roomTotal + data.foodTotal}</p>
-        {data.miscCharges > 0 && <p>Misc: +₹{data.miscCharges}</p>}
-        {data.discount > 0 && <p>Discount: -₹{data.discount}</p>}
-        {data.advanceAmount > 0 && <p>Advance: -₹{data.advanceAmount}</p>}
-        <p className="text-xl font-bold pt-2">
-          Grand Total: ₹{data.grandTotal}
-        </p>
-      </div>
-
-      <div className="mt-20 text-center text-xs">
-        <p>Thank you for staying with us!</p>
-        <p>Computer Generated Invoice</p>
-      </div>
-    </div>
-  );
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
       <DialogContent className="sm:max-w-[1100px] p-0 overflow-hidden border-none shadow-2xl rounded-2xl">
@@ -672,7 +594,7 @@ export default function BookingManagerModal({
                   </div>
 
                   {/* Bottom Row: Destructive Action (Isolated) */}
-                  <div className="flex items-center gap-4 pt-2 border-t border-slate-200/50">
+                  {/* <div className="flex items-center gap-4 pt-2 border-t border-slate-200/50">
                     <Button
                       type="button"
                       variant="ghost"
@@ -683,18 +605,16 @@ export default function BookingManagerModal({
                       Cancel Reservation
                     </Button>
 
-                    {/* Subtle helper text for Admin context */}
                     <p className="text-[10px] text-slate-400 font-medium italic italic">
                       * Ensure guest ID is verified before check-in.
                     </p>
-                  </div>
+                  </div> */}
                 </div>
               </div>
             )}
           </div>
 
           <PaymentSettlementModal
-            ref={contentToPrint}
             isOpen={isPaymentModalOpen}
             onClose={() => setIsPaymentModalOpen(false)}
             billData={{
@@ -870,7 +790,7 @@ export default function BookingManagerModal({
                   <div className="flex justify-between text-xs font-medium text-slate-500">
                     <span>Advance Payment</span>
                     <span className="text-slate-700">
-                      ₹{booking?.advanceAmount}
+                      - ₹{booking?.advanceAmount}
                     </span>
                   </div>
                 )}
@@ -904,6 +824,14 @@ export default function BookingManagerModal({
 
               <div className="grid grid-cols-2 gap-3">
                 <Button
+                  variant="destructive"
+                  // className="h-12 border-slate-200 text-slate-600 rounded-xl font-bold hover:bg-slate-50"
+                  onClick={() => setIsCancelModalOpen(true)}
+                >
+                  <Trash2 size={14} />
+                  Cancel Reservation
+                </Button>
+                <Button
                   className="h-12 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl font-bold shadow-lg shadow-indigo-100 transition-all flex items-center justify-center gap-2"
                   // onClick={() => checkoutMutation.mutate()}
                   onClick={() => setIsPaymentModalOpen(true)}
@@ -911,14 +839,6 @@ export default function BookingManagerModal({
                 >
                   <CreditCard size={18} />
                   Checkout
-                </Button>
-                <Button
-                  variant="terminalGhost"
-                  className="h-12 border-slate-200 text-slate-600 rounded-xl font-bold hover:bg-slate-50"
-                  onClick={handlePrint}
-                >
-                  <Save size={18} className="mr-2" />
-                  Print Bill
                 </Button>
               </div>
             </div>

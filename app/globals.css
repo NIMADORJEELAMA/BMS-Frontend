@@ -182,26 +182,16 @@ body {
   }
 }
 
-@media print {
-  /* Hide everything by default */
-  body * {
-    visibility: hidden;
+/* @media print {
+  .print-content {
+    display: block !important;
+    position: static !important;
+    width: 100% !important;
+    margin: 0 !important;
+    padding: 20px !important;
   }
-  /* Only show the element with id="printable-bill" and its children */
-  #printable-bill,
-  #printable-bill * {
-    visibility: visible;
+
+  body > *:not(.print-content) {
+    display: none !important;
   }
-  #printable-bill {
-    position: absolute;
-    left: 0;
-    top: 0;
-    width: 100%;
-    padding: 20px;
-    background: white;
-  }
-  /* Remove headers/footers added by browsers */
-  @page {
-    margin: 0;
-  }
-}
+} */
