@@ -21,7 +21,7 @@ export default function Navbar() {
     "/dashboard/operations": "Attendance Tracker",
     "/dashboard/rooms": "Room Management",
     "/dashboard/bookings": "Check-In Desk",
-    "/dashboard/history": "System History",
+    "/dashboard/history": "Booking History",
   };
 
   // Fallback to "Admin Panel" if the route isn't in our list

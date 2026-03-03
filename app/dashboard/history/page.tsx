@@ -69,19 +69,27 @@ export default function BookingHistoryPage() {
   });
   const history = data?.history || [];
 
-  const totalRevenue = history.reduce((acc, item) => acc + item.totalBill, 0);
+  const totalRevenue = history.reduce(
+    (acc: any, item: any) => acc + item.totalBill,
+    0,
+  );
 
-  const checkedOut = history.filter((i) => i.status === "CHECKED_OUT").length;
-  const cancelled = history.filter((i) => i.status === "CANCELLED").length;
+  const checkedOut = history.filter(
+    (i: any) => i.status === "CHECKED_OUT",
+  ).length;
+  const cancelled = history.filter((i: any) => i.status === "CANCELLED").length;
 
-  const cashTotal = history.reduce((acc, i) => acc + (i.cashAmount || 0), 0);
+  const cashTotal = history.reduce(
+    (acc: any, i: any) => acc + (i.cashAmount || 0),
+    0,
+  );
   const onlineTotal = history.reduce(
-    (acc, i) => acc + (i.onlineAmount || 0),
+    (acc: any, i: any) => acc + (i.onlineAmount || 0),
     0,
   );
 
   // Revenue by Date
-  const revenueByDate = history.reduce((acc: any, item) => {
+  const revenueByDate = history.reduce((acc: any, item: any) => {
     const date = formatDate(item.checkOut);
     if (!acc[date]) acc[date] = 0;
     acc[date] += item.totalBill;
@@ -173,20 +181,26 @@ export default function BookingHistoryPage() {
     ];
   }, [data]);
   return (
-    <div className="space-y-8">
+    <div className="space-y-8 p-4">
+      {/* FILTER BAR */}
+      <div className="   flex justify-end">
+        <RangePicker
+          size="large"
+          format="DD/MM/YYYY"
+          allowClear={false}
+          defaultValue={[dayjs().subtract(7, "day"), dayjs()]}
+          onChange={(dates) => {
+            if (dates) {
+              setStartDate(dates[0].format("YYYY-MM-DD")); // API format
+              setEndDate(dates[1].format("YYYY-MM-DD")); // API format
+            }
+          }}
+          className="rounded-2xl"
+        />
+      </div>
       {/* HEADER & STATS */}
       <div className="space-y-10">
         {/* HEADER */}
-        <div className="flex flex-col md:flex-row justify-between gap-6">
-          <div>
-            <h1 className="text-4xl font-black tracking-tight text-slate-900">
-              Archive Dashboard
-            </h1>
-            <p className="text-xs font-bold uppercase tracking-widest text-slate-400">
-              Completed Stays & Revenue Insights
-            </p>
-          </div>
-        </div>
 
         {/* STAT CARDS */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
@@ -234,31 +248,15 @@ export default function BookingHistoryPage() {
           </div>
         </div>
 
-        {/* CHART SECTION */}
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-          {/* Revenue Line Chart */}
-          <div className="bg-white rounded-3xl p-6 shadow-sm border border-slate-100">
-            <h2 className="text-lg font-bold mb-6">Revenue Trend</h2>
-            <ResponsiveContainer width="100%" height={300}>
-              <LineChart data={revenueChartData}>
-                <CartesianGrid strokeDasharray="3 3" />
-                <XAxis dataKey="date" />
-                <YAxis />
-                <Tooltip />
-                <Line
-                  type="monotone"
-                  dataKey="revenue"
-                  stroke="#10b981"
-                  strokeWidth={3}
-                />
-              </LineChart>
-            </ResponsiveContainer>
-          </div>
+        {/* COMPACT CHART SECTION */}
+        <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
+          {/* Booking Status */}
+          <div className="bg-white rounded-2xl p-4 shadow-sm border border-slate-100">
+            <h2 className="text-sm font-bold mb-3 text-slate-700">
+              Booking Status
+            </h2>
 
-          {/* Booking Status Pie */}
-          <div className="bg-white rounded-3xl p-6 shadow-sm border border-slate-100">
-            <h2 className="text-lg font-bold mb-6">Booking Status</h2>
-            <ResponsiveContainer width="100%" height={300}>
+            <ResponsiveContainer width="100%" height={220}>
               <PieChart>
                 <Pie
                   data={[
@@ -266,57 +264,42 @@ export default function BookingHistoryPage() {
                     { name: "Cancelled", value: cancelled },
                   ]}
                   dataKey="value"
-                  outerRadius={100}
-                  label
+                  innerRadius={50}
+                  outerRadius={80}
                 >
-                  {COLORS.map((color, index) => (
-                    <Cell key={index} fill={color} />
-                  ))}
+                  <Cell fill="#10b981" />
+                  <Cell fill="#ef4444" />
                 </Pie>
                 <Tooltip />
               </PieChart>
             </ResponsiveContainer>
           </div>
-        </div>
 
-        {/* Payment Mode Chart */}
-        <div className="bg-white rounded-3xl p-6 shadow-sm border border-slate-100">
-          <h2 className="text-lg font-bold mb-6">Payment Distribution</h2>
-          <ResponsiveContainer width="100%" height={300}>
-            <BarChart
-              data={[
-                { name: "Cash", value: cashTotal },
-                { name: "Online", value: onlineTotal },
-              ]}
-            >
-              <CartesianGrid strokeDasharray="3 3" />
-              <XAxis dataKey="name" />
-              <YAxis />
-              <Tooltip />
-              <Bar dataKey="value" fill="#3b82f6" radius={[12, 12, 0, 0]} />
-            </BarChart>
-          </ResponsiveContainer>
+          {/* Payment Mode */}
+          <div className="bg-white rounded-2xl p-4 shadow-sm border border-slate-100">
+            <h2 className="text-sm font-bold mb-3 text-slate-700">
+              Payment Mode
+            </h2>
+
+            <ResponsiveContainer width="100%" height={220}>
+              <BarChart
+                data={[
+                  { name: "Cash", value: cashTotal },
+                  { name: "Online", value: onlineTotal },
+                ]}
+              >
+                <XAxis dataKey="name" tick={{ fontSize: 10 }} />
+                <YAxis tick={{ fontSize: 10 }} />
+                <Tooltip />
+                <Bar dataKey="value" fill="#3b82f6" radius={[8, 8, 0, 0]} />
+              </BarChart>
+            </ResponsiveContainer>
+          </div>
         </div>
-      </div>
-      {/* FILTER BAR */}
-      <div className="   flex justify-end">
-        <RangePicker
-          size="large"
-          format="DD/MM/YYYY"
-          allowClear={false}
-          defaultValue={[dayjs().subtract(7, "day"), dayjs()]}
-          onChange={(dates) => {
-            if (dates) {
-              setStartDate(dates[0].format("YYYY-MM-DD")); // API format
-              setEndDate(dates[1].format("YYYY-MM-DD")); // API format
-            }
-          }}
-          className="rounded-2xl"
-        />
       </div>
 
       {/* HISTORY TABLE */}
-      <div className="bg-white border border-slate-200 rounded-[32px] shadow-sm p-4">
+      <div className=" ">
         {isLoading ? (
           <div className="h-[500px] flex items-center justify-center">
             <Loader2 className="animate-spin text-slate-300" size={40} />
