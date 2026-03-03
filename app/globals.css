@@ -1,5 +1,6 @@
 @import "tailwindcss";
 
+/* @import "ag-grid-community/styles/ag-theme-quartz.css"; */
 @plugin "tailwindcss-animate";
 
 @custom-variant dark (&:is(.dark *));
@@ -181,7 +182,32 @@ body {
     @apply bg-background text-foreground;
   }
 }
+.ag-theme-quartz.enterprise-grid {
+  --ag-border-radius: 20px;
+  --ag-header-height: 56px;
+  --ag-row-height: 56px;
+  --ag-font-size: 13px;
+  --ag-header-background-color: #f8fafc;
+  --ag-odd-row-background-color: #ffffff;
+  --ag-row-hover-color: #f1f5f9;
+  --ag-selected-row-background-color: #e0f2fe;
+  --ag-borders: none;
+}
 
+.ant-picker:hover {
+  border-color: #0f172a !important;
+}
+
+.ant-picker {
+  border-radius: 16px !important;
+  border: 1px solid #e2e8f0 !important;
+  padding: 8px 16px !important;
+}
+
+.ant-picker-focused {
+  box-shadow: none !important;
+  border-color: #0f172a !important;
+}
 /* @media print {
   .print-content {
     display: block !important;
