@@ -68,7 +68,7 @@ export default function BookingHistoryPage() {
     },
   });
   const history = data?.history || [];
-
+  console.log("history", history);
   const totalRevenue = history.reduce(
     (acc: any, item: any) => acc + item.totalBill,
     0,
