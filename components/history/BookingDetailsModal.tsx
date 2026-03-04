@@ -44,15 +44,40 @@ export default function BookingReceiptModal({ booking, onClose }: any) {
   const downloadPDF = async () => {
     const element = receiptRef.current;
     if (!element) return;
-    const canvas = await html2canvas(element, { scale: 3 });
-    const imgData = canvas.toDataURL("image/png");
-    const pdf = new jsPDF({
-      orientation: "portrait",
-      unit: "mm",
-      format: [80, canvas.height * 0.264],
-    });
-    pdf.addImage(imgData, "PNG", 0, 0, 80, canvas.height * 0.264);
-    pdf.save(`Receipt_${booking.id.slice(0, 8)}.pdf`);
+
+    try {
+      // 1. Capture the element with a clean white background to avoid 'lab' color errors
+      const canvas = await html2canvas(element, {
+        scale: 2, // Scale 2 is usually plenty for 80mm thermal receipts
+        useCORS: true,
+        backgroundColor: "#ffffff",
+        logging: false,
+      });
+
+      const imgData = canvas.toDataURL("image/png");
+
+      // 2. Define the fixed width (80mm for thermal)
+      const imgWidth = 80;
+
+      // 3. Calculate the height based on the aspect ratio of the captured canvas
+      // Height = (Canvas Height / Canvas Width) * Target Width
+      const imgHeight = (canvas.height * imgWidth) / canvas.width;
+
+      // 4. Initialize PDF with the calculated dynamic height
+      const pdf = new jsPDF({
+        orientation: "portrait",
+        unit: "mm",
+        format: [imgWidth, imgHeight], // Custom [width, height]
+      });
+
+      // 5. Add image at 0,0 filling the exact dimensions
+      pdf.addImage(imgData, "PNG", 0, 0, imgWidth, imgHeight);
+
+      // 6. Save
+      pdf.save(`Receipt_${booking.id.slice(0, 8).toUpperCase()}.pdf`);
+    } catch (error) {
+      console.error("PDF generation failed:", error);
+    }
   };
 
   return (

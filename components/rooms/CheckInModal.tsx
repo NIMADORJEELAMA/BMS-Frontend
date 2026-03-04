@@ -19,8 +19,9 @@ import {
   Users,
   Banknote,
   Globe,
+  Hotel,
 } from "lucide-react";
-import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "react-hot-toast";
 import api from "../../lib/axios";
 
@@ -44,10 +45,8 @@ import { Separator } from "@/components/ui/separator";
 import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
 
-import {
-  EnterpriseDateTimePicker,
-  SimpleDateTimePicker,
-} from "../DateTimePicker";
+import { DatePicker, Select } from "antd";
+import dayjs from "dayjs";
 
 const bookingSchema = z.object({
   roomId: z.string().min(1),
@@ -121,6 +120,7 @@ export default function CheckInModal({ isOpen, onClose, gridData }: any) {
     onError: (err: any) =>
       toast.error(err.response?.data?.message || "Check-in failed"),
   });
+
   useEffect(() => {
     if (isOpen && gridData) {
       setMode("SELECTION");
@@ -278,7 +278,55 @@ export default function CheckInModal({ isOpen, onClose, gridData }: any) {
             >
               <div className="p-6 space-y-6">
                 {/* SECTION 2: STAY DATES   */}
-                <div
+                <div className="grid grid-cols-2 gap-4">
+                  <FormField
+                    control={form.control}
+                    name="checkInDate"
+                    render={({ field }) => (
+                      <FormItem className="flex flex-col">
+                        <FormLabel className="text-[10px] font-bold text-slate-400 uppercase ml-1">
+                          Arrival
+                        </FormLabel>
+                        <DatePicker
+                          showTime
+                          format="YYYY-MM-DD HH:mm"
+                          className="h-12 rounded-lg bg-slate-50 border-slate-200"
+                          value={field.value ? dayjs(field.value) : null}
+                          onChange={(date) =>
+                            field.onChange(
+                              date ? date.format("YYYY-MM-DDTHH:mm") : "",
+                            )
+                          }
+                        />
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                  <FormField
+                    control={form.control}
+                    name="checkOutDate"
+                    render={({ field }) => (
+                      <FormItem className="flex flex-col">
+                        <FormLabel className="text-[10px] font-bold text-slate-400 uppercase ml-1">
+                          Departure
+                        </FormLabel>
+                        <DatePicker
+                          showTime
+                          format="YYYY-MM-DD HH:mm"
+                          className="h-12 rounded-lg bg-slate-50 border-slate-200"
+                          value={field.value ? dayjs(field.value) : null}
+                          onChange={(date) =>
+                            field.onChange(
+                              date ? date.format("YYYY-MM-DDTHH:mm") : "",
+                            )
+                          }
+                        />
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                </div>
+                {/* <div
                   className="grid grid-cols-1 md:grid-cols-2 gap-2    
                    rounded-xl      "
                 >
@@ -317,7 +365,7 @@ export default function CheckInModal({ isOpen, onClose, gridData }: any) {
                       </FormItem>
                     )}
                   />
-                </div>
+                </div> */}
                 {/* SECTION 1: GUEST DETAILS */}
                 <div className="space-y-6">
                   <div className="flex items-center gap-2 text-slate-900">
