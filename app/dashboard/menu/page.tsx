@@ -25,6 +25,7 @@ export default function MenuPage() {
   const [isDeleteOpen, setIsDeleteOpen] = useState(false);
   const [activeItem, setActiveItem] = useState<any>(null);
   const [formData, setFormData] = useState({
+    id: "",
     name: "",
     price: "",
     category: "",
@@ -50,6 +51,7 @@ export default function MenuPage() {
   };
   const resetForm = () => {
     setFormData({
+      id: "",
       name: "",
       price: "",
       category: "",
@@ -87,37 +89,10 @@ export default function MenuPage() {
       },
     );
   };
-  // const handleCreate = (e: React.FormEvent) => {
-  //   e.preventDefault();
-  //   createMutation.mutate(
-  //     {
-  //       ...formData,
-  //       name: formData.name.toUpperCase().trim(),
-  //       price: Number(formData.price),
-  //       category: formData.category.toUpperCase().trim(),
-  //       inventoryItemId:
-  //         formData.type === "ALCOHOL" ? formData.inventoryItemId : null,
-  //     },
-  //     {
-  //       onSuccess: () => {
-  //         toast.success("Menu item added");
-  //         setFormData({
-  //           name: "",
-  //           price: "",
-  //           category: "",
-  //           type: "FOOD",
-  //           inventoryItemId: "",
-  //           isVeg: false,
-  //           isActive: true,
-  //         });
-  //         resetForm();
-  //       },
-  //     },
-  //   );
-  // };
+
   const handleUpdate = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!formData.id) return;
+    if (!formData?.id) return;
 
     // 1. Prepare the data
     const dataToSend = {
@@ -182,16 +157,7 @@ export default function MenuPage() {
       <header className="flex justify-between items-end">
         <div>
           <div className="flex justify-end">
-            <Button
-              variant="default"
-              onClick={handleMenuModel}
-              //   className={`flex items-center gap-2 px-6 py-3 rounded-2xl font-semibold text-sm transition-all shadow-sm cursor-pointer
-              // ${
-              //   isMenuItemFormOpen
-              //     ? "bg-slate-100 text-slate-600 hover:bg-slate-200"
-              //     : "bg-slate-900 text-white hover:bg-black"
-              // }`}
-            >
+            <Button variant="default" onClick={handleMenuModel}>
               {isMenuItemFormOpen ? (
                 <>
                   <X size={18} /> Close Form

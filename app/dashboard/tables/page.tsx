@@ -301,7 +301,7 @@ export default function TablesPage() {
               />
 
               {/* SEPARATOR */}
-              <div className="h-8 w-px bg-slate-200 mx-2 hidden md:block" />
+              <div className="h-12 w-px bg-slate-200 mx-2 hidden md:block" />
 
               {/* NEW TABLE BUTTON */}
 

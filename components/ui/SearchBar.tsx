@@ -24,7 +24,7 @@ export function SearchBar({
           // h-12 to match the Button height
           // rounded-xl for consistent curves
           // bg-slate-50 for that subtle surface feel
-          "h-10 pl-10 pr-4 bg-slate-50 border-slate-200 rounded-xl outline-none focus-visible:ring-1 focus-visible:ring-slate-300 focus-visible:bg-white focus-visible:border-slate-400 transition-all font-medium placeholder:text-slate-400 text-sm shadow-sm",
+          "h-12 pl-10 pr-4 bg-slate-50 border-slate-200 rounded-xl outline-none focus-visible:ring-1 focus-visible:ring-slate-300 focus-visible:bg-white focus-visible:border-slate-400 transition-all font-medium placeholder:text-slate-400 text-sm shadow-sm",
           className,
         )}
       />

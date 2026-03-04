@@ -47,7 +47,7 @@ export default function CategoryDropdown({
         {/* Main Trigger Button - Fixed h-10 */}
         <button
           onClick={() => setIsOpen(!isOpen)}
-          className={`w-full h-10 flex items-center justify-between bg-white border px-4 rounded-xl transition-all duration-200 shadow-sm cursor-pointer ${
+          className={`w-full h-12 flex items-center justify-between bg-white border px-4 rounded-xl transition-all duration-200 shadow-sm cursor-pointer ${
             isOpen
               ? "border-slate-400 ring-2 ring-slate-100"
               : "border-slate-200 hover:border-slate-300"

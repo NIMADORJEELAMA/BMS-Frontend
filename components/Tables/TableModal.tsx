@@ -510,7 +510,7 @@ export default function TableModal({
                   onClose();
                   setError("");
                 }}
-                className="flex-[2] h-10"
+                className="flex-[2] h-12"
               >
                 Cancel
               </Button>
@@ -519,7 +519,7 @@ export default function TableModal({
                   type === "delete" ? () => onConfirm(null) : handleSubmit
                 }
                 disabled={isSubmitting}
-                className={`flex-[8] h-10 rounded-xl font-semibold text-sm flex items-center justify-center gap-2 transition-all cursor-pointer shadow-sm ${
+                className={`flex-[8] h-12 rounded-xl font-semibold text-sm flex items-center justify-center gap-2 transition-all cursor-pointer shadow-sm ${
                   type === "delete"
                     ? "bg-red-600 hover:bg-red-700 text-white"
                     : "bg-black hover:bg-slate-800 text-white"
