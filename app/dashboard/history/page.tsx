@@ -88,11 +88,21 @@ export default function BookingHistoryPage() {
     0,
   );
 
-  // Revenue by Date
+  const totalNetRevenue = history.reduce(
+    (acc: any, item: any) => acc + (item.grandTotal || 0),
+    0,
+  );
+
+  const totalDiscounts = history.reduce(
+    (acc: any, item: any) => acc + (item.discount || 0),
+    0,
+  );
+
+  // Revenue by Date Chart - Now using the discounted amount (Grand Total)
   const revenueByDate = history.reduce((acc: any, item: any) => {
     const date = formatDate(item.checkOut);
     if (!acc[date]) acc[date] = 0;
-    acc[date] += item.totalBill;
+    acc[date] += item.grandTotal || 0;
     return acc;
   }, {});
 
@@ -106,50 +116,95 @@ export default function BookingHistoryPage() {
         headerName: "Guest",
         field: "guestName",
         flex: 1.5,
-        cellRenderer: (params: any) => (
-          <div className="flex flex-col">
-            <span className="font-semibold text-slate-800">
-              {params.data.guestName}
-            </span>
-            <span className="text-xs text-slate-400">
-              {params.data.guestPhone}
-            </span>
-          </div>
-        ),
-      },
-      {
-        headerName: "Room",
-        valueGetter: (params) => params.data.room?.roomNumber,
-        width: 120,
-        cellClass: "font-medium",
+        // Bold the "TOTALS" label
+        cellStyle: (params) =>
+          params.node.isRowPinned()
+            ? { fontWeight: "bold", fontSize: "14px" }
+            : null,
+        cellRenderer: (params: any) => {
+          if (params.node.isRowPinned()) return <span>{params.value}</span>;
+          return (
+            <div className="flex flex-col">
+              <span className="font-semibold text-slate-800">
+                {params.data.guestName}
+              </span>
+              <span className="text-xs text-slate-400">
+                {params.data.guestPhone}
+              </span>
+            </div>
+          );
+        },
       },
       {
         headerName: "Check-In",
         field: "checkIn",
+        // Fix: Don't try to format a date if it's the pinned row
+        filter: false,
         valueFormatter: (params) =>
-          new Date(params.value).toLocaleDateString("en-IN"),
+          params.value
+            ? new Date(params.value).toLocaleDateString("en-IN")
+            : "",
       },
       {
         headerName: "Check-Out",
         field: "checkOut",
+        filter: false,
         valueFormatter: (params) =>
-          new Date(params.value).toLocaleDateString("en-IN"),
+          params.value
+            ? new Date(params.value).toLocaleDateString("en-IN")
+            : "",
       },
       {
         headerName: "Discount",
         field: "discount",
-        width: 130,
+        width: 120,
+        cellClass: "text-red-500 font-medium",
+        filter: false,
+        // Bold if pinned
+        cellStyle: (params) =>
+          params.node.isRowPinned() ? { fontWeight: "bold" } : null,
         valueFormatter: (params) =>
           params.value > 0 ? `- ₹${params.value.toLocaleString()}` : "—",
-        cellClass: "text-red-500 font-medium",
       },
       {
-        headerName: "Final Bill",
-        field: "totalBill",
+        headerName: "Advance",
+        field: "advanceAmount", // Match the key in pinnedRowData
+        filter: false,
+        width: 140,
+        cellStyle: (params) =>
+          params.node.isRowPinned() ? { fontWeight: "bold" } : null,
+        valueFormatter: (params) => `₹${(params.value || 0).toLocaleString()}`,
+      },
+      {
+        headerName: "Cash",
+        field: "cashAmount", // Match the key in pinnedRowData
+        filter: false,
+        width: 140,
+        cellStyle: (params) =>
+          params.node.isRowPinned() ? { fontWeight: "bold" } : null,
+        valueFormatter: (params) => `₹${(params.value || 0).toLocaleString()}`,
+      },
+      {
+        headerName: "Online",
+        field: "onlineAmount", // Match the key in pinnedRowData
+        filter: false,
+        width: 140,
+        cellStyle: (params) =>
+          params.node.isRowPinned() ? { fontWeight: "bold" } : null,
+        valueFormatter: (params) => `₹${(params.value || 0).toLocaleString()}`,
+      },
+      {
+        headerName: "Grand Total",
+        field: "grandTotal",
+        filter: false,
         width: 160,
+        // Keep your existing highlighting but add extra weight for the total
+        cellClass: (params) =>
+          params.node.isRowPinned()
+            ? "text-right font-black text-emerald-800 bg-emerald-100"
+            : "text-right font-bold text-emerald-700 bg-emerald-50/30",
         valueFormatter: (params) =>
           params.value ? `₹${params.value.toLocaleString()}` : "",
-        cellClass: "text-right font-bold text-slate-900",
       },
     ],
     [],
@@ -166,20 +221,37 @@ export default function BookingHistoryPage() {
   );
 
   const pinnedBottomRowData = useMemo(() => {
-    if (!data?.history || data.history.length === 0) return [];
-
-    const totalRevenue = data.history.reduce(
-      (sum: number, booking: any) => sum + (booking.totalBill || 0),
-      0,
-    );
+    if (!history.length) return [];
 
     return [
       {
-        guestName: "TOTAL REVENUE",
-        totalBill: totalRevenue,
+        guestName: "TOTALS",
+        // Providing empty strings/null prevents the "Invalid Date" error in date columns
+        checkIn: "",
+        checkOut: "",
+        room: { roomNumber: "" },
+
+        // Summing the numeric values
+        discount: history.reduce(
+          (s: number, b: any) => s + (b.discount || 0),
+          0,
+        ),
+        advanceAmount: history.reduce(
+          (s: number, b: any) => s + (b.advanceAmount || 0),
+          0,
+        ),
+        cashAmount: history.reduce(
+          (s: number, b: any) => s + (b.cashAmount || 0),
+          0,
+        ),
+        onlineAmount: history.reduce(
+          (s: number, b: any) => s + (b.onlineAmount || 0),
+          0,
+        ),
+        grandTotal: totalNetRevenue,
       },
     ];
-  }, [data]);
+  }, [history, totalNetRevenue]);
   return (
     <div className="space-y-8 p-4">
       {/* FILTER BAR */}
@@ -203,60 +275,64 @@ export default function BookingHistoryPage() {
         {/* HEADER */}
 
         {/* STAT CARDS */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-          {/* Revenue */}
-          <div className="bg-white rounded-3xl p-6 shadow-sm border border-slate-100 flex items-center gap-5">
+        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
+          {/* Card 1: Revenue */}
+          <div className="bg-white rounded-[2rem] p-2 shadow-sm border border-slate-100 flex flex-col items-center justify-center text-center gap-4 transition-transform hover:scale-[1.02]">
             <div className="p-4 bg-emerald-50 text-emerald-600 rounded-2xl">
-              <IndianRupee size={22} />
+              <IndianRupee size={28} />
             </div>
             <div>
-              <p className="text-xs font-bold uppercase text-slate-400">
-                Total Revenue
+              <p className="text-[10px] font-bold uppercase tracking-wider text-slate-400 mb-1">
+                Net Revenue
               </p>
-              <p className="text-2xl font-black text-slate-900">
-                ₹{totalRevenue.toLocaleString()}
+              <p className="text-2xl font-black text-slate-900 leading-tight">
+                ₹{totalNetRevenue.toLocaleString()}
               </p>
+              {totalDiscounts > 0 && (
+                <p className="text-[10px] text-red-400 font-semibold mt-1">
+                  ₹{totalDiscounts.toLocaleString()} discount
+                </p>
+              )}
             </div>
           </div>
 
-          {/* Guests */}
-          <div className="bg-white rounded-3xl p-6 shadow-sm border border-slate-100 flex items-center gap-5">
+          {/* Card 2: Bookings */}
+          <div className="bg-white rounded-[2rem] p-2 shadow-sm border border-slate-100 flex flex-col items-center justify-center text-center gap-4 transition-transform hover:scale-[1.02]">
             <div className="p-4 bg-blue-50 text-blue-600 rounded-2xl">
-              <Users size={22} />
+              <Users size={28} />
             </div>
             <div>
-              <p className="text-xs font-bold uppercase text-slate-400">
+              <p className="text-[10px] font-bold uppercase tracking-wider text-slate-400 mb-1">
                 Total Bookings
               </p>
-              <p className="text-2xl font-black text-slate-900">
+              <p className="text-2xl font-black text-slate-900 leading-tight">
                 {history.length}
               </p>
             </div>
           </div>
 
-          {/* Checked Out */}
-          <div className="bg-white rounded-3xl p-6 shadow-sm border border-slate-100 flex items-center gap-5">
+          {/* Card 3: Checked Out */}
+          <div className="bg-white rounded-[2rem] p-2 shadow-sm border border-slate-100 flex flex-col items-center justify-center text-center gap-4 transition-transform hover:scale-[1.02]">
             <div className="p-4 bg-purple-50 text-purple-600 rounded-2xl">
-              <TrendingUp size={22} />
+              <TrendingUp size={28} />
             </div>
             <div>
-              <p className="text-xs font-bold uppercase text-slate-400">
+              <p className="text-[10px] font-bold uppercase tracking-wider text-slate-400 mb-1">
                 Checked Out
               </p>
-              <p className="text-2xl font-black text-slate-900">{checkedOut}</p>
+              <p className="text-2xl font-black text-slate-900 leading-tight">
+                {checkedOut}
+              </p>
             </div>
           </div>
-        </div>
 
-        {/* COMPACT CHART SECTION */}
-        <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
           {/* Booking Status */}
           <div className="bg-white rounded-2xl p-4 shadow-sm border border-slate-100">
             <h2 className="text-sm font-bold mb-3 text-slate-700">
               Booking Status
             </h2>
 
-            <ResponsiveContainer width="100%" height={220}>
+            <ResponsiveContainer width="100%" height={100}>
               <PieChart>
                 <Pie
                   data={[
@@ -264,8 +340,8 @@ export default function BookingHistoryPage() {
                     { name: "Cancelled", value: cancelled },
                   ]}
                   dataKey="value"
-                  innerRadius={50}
-                  outerRadius={80}
+                  innerRadius={20}
+                  outerRadius={40}
                 >
                   <Cell fill="#10b981" />
                   <Cell fill="#ef4444" />
@@ -274,28 +350,9 @@ export default function BookingHistoryPage() {
               </PieChart>
             </ResponsiveContainer>
           </div>
-
-          {/* Payment Mode */}
-          <div className="bg-white rounded-2xl p-4 shadow-sm border border-slate-100">
-            <h2 className="text-sm font-bold mb-3 text-slate-700">
-              Payment Mode
-            </h2>
-
-            <ResponsiveContainer width="100%" height={220}>
-              <BarChart
-                data={[
-                  { name: "Cash", value: cashTotal },
-                  { name: "Online", value: onlineTotal },
-                ]}
-              >
-                <XAxis dataKey="name" tick={{ fontSize: 10 }} />
-                <YAxis tick={{ fontSize: 10 }} />
-                <Tooltip />
-                <Bar dataKey="value" fill="#3b82f6" radius={[8, 8, 0, 0]} />
-              </BarChart>
-            </ResponsiveContainer>
-          </div>
         </div>
+
+        {/* COMPACT CHART SECTION */}
       </div>
 
       {/* HISTORY TABLE */}
@@ -315,7 +372,7 @@ export default function BookingHistoryPage() {
               columnDefs={columnDefs}
               defaultColDef={defaultColDef}
               pagination
-              paginationPageSize={10}
+              paginationPageSize={20}
               animateRows
               rowSelection="single"
               pinnedBottomRowData={pinnedBottomRowData}
