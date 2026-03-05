@@ -11,284 +11,272 @@ export default function BookingReceiptModal({ booking, onClose }: any) {
   const formatDate = (date: string) =>
     new Date(date).toLocaleDateString("en-GB");
 
-  // 1. Calculate Nights & Charges
   const checkIn = new Date(booking.checkIn);
   const checkOut = new Date(booking.checkOut);
-  const timeDiff = checkOut.getTime() - checkIn.getTime();
-  const nights = Math.max(1, Math.ceil(timeDiff / (1000 * 3600 * 24)));
+  const nights = Math.max(
+    1,
+    Math.ceil((checkOut.getTime() - checkIn.getTime()) / (1000 * 3600 * 24)),
+  );
+
   const roomRate = Number(booking.room?.basePrice) || 0;
   const totalRoomCharge = nights * roomRate;
 
-  // 2. Map Food Items
   const foodItems =
     booking.orders?.flatMap((order: any) =>
       order.items.map((item: any) => ({
         name: item.menuItem.name,
         qty: item.quantity,
-        rate: item.priceAtOrder,
         total: item.quantity * item.priceAtOrder,
       })),
     ) || [];
-  const foodTotal = foodItems.reduce((a: number, b: any) => a + b.total, 0);
 
-  // 3. Financials
+  const foodTotal = foodItems.reduce((a: number, b: any) => a + b.total, 0);
   const grossTotal = Number(booking.totalBill) || 0;
   const miscCharges = grossTotal - (totalRoomCharge + foodTotal);
   const discount = Number(booking.discount) || 0;
   const grandTotal = grossTotal - discount;
   const advance = Number(booking.advanceAmount) || 0;
-  const paidAtCheckout =
-    (Number(booking.cashAmount) || 0) + (Number(booking.onlineAmount) || 0);
 
-  // PDF Download Logic
+  // Shared Receipt Content Component to fix the "Empty" preview
+  const ReceiptContent = () => (
+    <div className="w-[72mm] mx-auto text-black p-1 leading-tight">
+      <div className="text-center mb-4">
+        <h2 className="text-lg font-bold uppercase m-0">GAIRIGAON</h2>
+        <p className="text-[10px] m-0">Hill Top Resort</p>
+        <p className="text-[10px] m-0">North 24 Parganas, West Bengal</p>
+      </div>
+
+      <div className="border-t border-dashed border-black my-2" />
+
+      <div className="text-[11px] space-y-1">
+        <div className="flex justify-between">
+          <span>BILL NO:</span>
+          <span className="font-bold">
+            #{booking.id.slice(0, 8).toUpperCase()}
+          </span>
+        </div>
+        <div className="flex justify-between">
+          <span>GUEST:</span>
+          <span className="font-bold">{booking.guestName}</span>
+        </div>
+        <div className="flex justify-between">
+          <span>ROOM:</span>
+          <span className="font-bold">{booking.room?.roomNumber}</span>
+        </div>
+        <div className="flex justify-between">
+          <span>PERIOD:</span>
+          <span className="font-bold">
+            {formatDate(booking.checkIn)} - {formatDate(booking.checkOut)}
+          </span>
+        </div>
+      </div>
+
+      <div className="border-t border-dashed border-black my-2" />
+
+      <table className="w-full text-[11px] border-collapse">
+        <thead>
+          <tr className="border-b border-black">
+            <th className="text-left py-1">ITEM</th>
+            <th className="text-center py-1">QTY</th>
+            <th className="text-right py-1">AMT</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td className="py-1">Room Stay ({nights}N)</td>
+            <td className="text-center">-</td>
+            <td className="text-right">₹{totalRoomCharge}</td>
+          </tr>
+          {foodItems.map((item: any, i: number) => (
+            <tr key={i}>
+              <td className="py-1">{item.name}</td>
+              <td className="text-center">{item.qty}</td>
+              <td className="text-right">₹{item.total}</td>
+            </tr>
+          ))}
+          {miscCharges > 0 && (
+            <tr>
+              <td className="py-1">Misc Charges</td>
+              <td className="text-center">-</td>
+              <td className="text-right">₹{miscCharges}</td>
+            </tr>
+          )}
+        </tbody>
+      </table>
+
+      <div className="border-t border-dashed border-black my-2" />
+
+      <div className="text-[11px] space-y-1">
+        <div className="flex justify-between">
+          <span>GROSS TOTAL</span>
+          <span>₹{grossTotal}</span>
+        </div>
+        {discount > 0 && (
+          <div className="flex justify-between">
+            <span>DISCOUNT</span>
+            <span>-₹{discount}</span>
+          </div>
+        )}
+        <div className="flex justify-between font-bold text-sm border-t border-black pt-1 mt-1">
+          <span>GRAND TOTAL</span>
+          <span>₹{grandTotal}</span>
+        </div>
+      </div>
+
+      <div className="border-t border-dashed border-black my-2" />
+
+      <div className="text-[11px] space-y-1">
+        {advance > 0 && (
+          <div className="flex justify-between">
+            <span>ADVANCE PAID</span>
+            <span>₹{advance}</span>
+          </div>
+        )}
+        {booking.cashAmount > 0 && (
+          <div className="flex justify-between">
+            <span>CASH PAYMENT</span>
+            <span>₹{booking.cashAmount}</span>
+          </div>
+        )}
+        {booking.onlineAmount > 0 && (
+          <div className="flex justify-between">
+            <span>UPI PAYMENT</span>
+            <span>₹{booking.onlineAmount}</span>
+          </div>
+        )}
+      </div>
+
+      <div className="text-center mt-6 text-[10px] space-y-1">
+        <div className="font-bold uppercase italic">
+          Status: {booking.paymentStatus}
+        </div>
+        <div>Thank You for staying at Gairigaon!</div>
+        <div className="text-[8px] opacity-70">Computer Generated Receipt</div>
+      </div>
+    </div>
+  );
+
+  const printReceipt = () => {
+    const win = window.open("", "", "width=400,height=800");
+    if (!win) return;
+
+    const padRight = (text: string, length: number) =>
+      text.length >= length
+        ? text.slice(0, length)
+        : text + " ".repeat(length - text.length);
+
+    const padLeft = (text: string, length: number) =>
+      text.length >= length
+        ? text.slice(0, length)
+        : " ".repeat(length - text.length) + text;
+
+    const formatItem = (name: string, qty: number | string, amt: number) => {
+      const itemCol = padRight(name, 16);
+      const qtyCol = padLeft(String(qty), 4);
+      const amtCol = padLeft(String(amt), 8);
+      return `${itemCol}${qtyCol}${amtCol}`;
+    };
+
+    const items = [
+      formatItem(`Room Stay (${nights}N)`, "", totalRoomCharge),
+      ...foodItems.map((i: any) => formatItem(i.name, i.qty, i.total)),
+      ...(miscCharges > 0
+        ? [formatItem("Misc Charges", "-", miscCharges)]
+        : []),
+    ].join("\n");
+
+    const receipt = `
+                    
+    Gairigaon Hill Top Resort
+       Jaigaon, West Bengal
+--------------------------------
+Bill No : ${booking.id.slice(0, 8).toUpperCase()}
+Guest   : ${booking.guestName}
+Room    : ${booking.room?.roomNumber}
+CheckIn : ${formatDate(booking.checkIn)}
+CheckOut: ${formatDate(booking.checkOut)}
+--------------------------------
+ITEM             QTY     AMT
+--------------------------------
+${items}
+--------------------------------
+Gross Total          ${grossTotal}
+${discount > 0 ? `Discount            -${discount}` : ""}
+Grand Total          ${grandTotal}
+--------------------------------
+${advance > 0 ? `Advance              ${advance}\n` : ""}
+${booking.cashAmount > 0 ? `Cash                 ${booking.cashAmount}\n` : ""}
+${booking.onlineAmount > 0 ? `UPI                  ${booking.onlineAmount}\n` : ""}
+--------------------------------
+STATUS: ${booking.paymentStatus.toUpperCase()}
+
+        Thank You!
+     
+`;
+
+    win.document.write(`
+<html>
+<head>
+<style>
+body{
+  font-family: monospace;
+  font-size:12px;
+  white-space: pre;
+  margin:0;
+  padding-top:15px;
+  padding-bottom:25px;
+}
+</style>
+</head>
+<body>
+${receipt}
+</body>
+</html>
+`);
+
+    win.document.close();
+
+    setTimeout(() => {
+      win.print();
+      win.close();
+    }, 300);
+  };
   const downloadPDF = async () => {
     const element = receiptRef.current;
     if (!element) return;
-
-    try {
-      // 1. Capture the element with a clean white background to avoid 'lab' color errors
-      const canvas = await html2canvas(element, {
-        scale: 2, // Scale 2 is usually plenty for 80mm thermal receipts
-        useCORS: true,
-        backgroundColor: "#ffffff",
-        logging: false,
-      });
-
-      const imgData = canvas.toDataURL("image/png");
-
-      // 2. Define the fixed width (80mm for thermal)
-      const imgWidth = 80;
-
-      // 3. Calculate the height based on the aspect ratio of the captured canvas
-      // Height = (Canvas Height / Canvas Width) * Target Width
-      const imgHeight = (canvas.height * imgWidth) / canvas.width;
-
-      // 4. Initialize PDF with the calculated dynamic height
-      const pdf = new jsPDF({
-        orientation: "portrait",
-        unit: "mm",
-        format: [imgWidth, imgHeight], // Custom [width, height]
-      });
-
-      // 5. Add image at 0,0 filling the exact dimensions
-      pdf.addImage(imgData, "PNG", 0, 0, imgWidth, imgHeight);
-
-      // 6. Save
-      pdf.save(`Receipt_${booking.id.slice(0, 8).toUpperCase()}.pdf`);
-    } catch (error) {
-      console.error("PDF generation failed:", error);
-    }
+    const canvas = await html2canvas(element, {
+      scale: 3,
+      backgroundColor: "#ffffff",
+    });
+    const imgData = canvas.toDataURL("image/png");
+    const pdf = new jsPDF({
+      orientation: "portrait",
+      unit: "mm",
+      format: [80, (canvas.height * 80) / canvas.width],
+    });
+    pdf.addImage(imgData, "PNG", 0, 0, 80, (canvas.height * 80) / canvas.width);
+    pdf.save(`Receipt_${booking.id.slice(0, 8)}.pdf`);
   };
 
   return (
-    <div className="fixed inset-0 bg-black/60 backdrop-blur-md flex items-center justify-center z-50 p-4 animate-in fade-in duration-300">
-      {/* FLOATING ACTION BAR */}
-      <div className="absolute top-6 right-6 flex items-center gap-3 bg-white/10 p-2 rounded-2xl border border-white/20 backdrop-blur-xl print:hidden">
-        <Button
-          size="icon"
-          variant="secondary"
-          onClick={() => window.print()}
-          title="Print Thermal"
-          className="rounded-xl"
-        >
+    <div className="fixed inset-0 bg-black/80 flex items-center justify-center z-50 p-4">
+      <div className="absolute top-6 right-6 flex gap-3">
+        <Button size="icon" onClick={printReceipt}>
           <Printer size={18} />
         </Button>
-        <Button
-          size="icon"
-          variant="secondary"
-          onClick={downloadPDF}
-          title="Download PDF"
-          className="rounded-xl"
-        >
+        <Button size="icon" onClick={downloadPDF}>
           <Download size={18} />
         </Button>
-        <div className="w-px h-6 bg-white/20 mx-1" />
-        <Button
-          size="icon"
-          variant="destructive"
-          onClick={onClose}
-          className="rounded-xl"
-        >
+        <Button size="icon" variant="destructive" onClick={onClose}>
           <X size={18} />
         </Button>
       </div>
 
-      {/* THERMAL RECEIPT CONTAINER */}
-      <div className="max-h-[90vh] overflow-y-auto no-scrollbar shadow-2xl rounded-sm">
-        <div
-          ref={receiptRef}
-          className="thermal-receipt bg-white p-6 w-[80mm] text-slate-900 font-mono shadow-inner"
-          style={{ fontFamily: "'Courier New', Courier, monospace" }}
-        >
-          {/* LOGO & HEADER */}
-          <div className="text-center mb-3">
-            <div className="text-xl font-bold tracking-[0.2em]">
-              🏔 GAIRIGAON
-            </div>
-            <div className="text-[10px] uppercase tracking-widest mt-1">
-              Hill Top Resort
-            </div>
-            <div className="text-[9px] text-slate-500 mt-1">
-              North 24 Paragnas, West Bengal
-            </div>
-          </div>
-
-          <div className="border-b border-dashed border-slate-300 my-3"></div>
-
-          {/* BILL META */}
-          <div className="text-[11px] space-y-1">
-            <div className="flex justify-between">
-              <span>BILL NO:</span>{" "}
-              <span className="font-bold">
-                #{booking.id.slice(0, 8).toUpperCase()}
-              </span>
-            </div>
-            <div className="flex justify-between">
-              <span>GUEST:</span>{" "}
-              <span className="font-bold uppercase">{booking.guestName}</span>
-            </div>
-            <div className="flex justify-between">
-              <span>ROOM:</span> <span>{booking.room?.roomNumber}</span>
-            </div>
-            <div className="flex justify-between text-[9px] text-slate-500 italic">
-              <span>PERIOD:</span>{" "}
-              <span>
-                {formatDate(booking.checkIn)} - {formatDate(booking.checkOut)}
-              </span>
-            </div>
-          </div>
-
-          <div className="border-b-2 border-slate-900 my-3"></div>
-
-          {/* ITEMS TABLE */}
-          <div className="text-[11px]">
-            <div className="flex justify-between font-bold border-b border-slate-900 pb-1 mb-2">
-              <span className="w-1/2 text-left">ITEM</span>
-              <span className="w-1/4 text-right">QTY/RT</span>
-              <span className="w-1/4 text-right">AMT</span>
-            </div>
-
-            {/* ROOM CHARGE */}
-            <div className="flex justify-between items-start mb-2">
-              <div className="w-1/2">
-                <div>Room Stay</div>
-                <div className="text-[9px] text-slate-500 italic">
-                  @₹{roomRate}
-                </div>
-              </div>
-              <span className="w-1/4 text-right">{nights}N</span>
-              <span className="w-1/4 text-right">₹{totalRoomCharge}</span>
-            </div>
-
-            {/* FOOD ITEMS */}
-            {foodItems.map((item: any, i: number) => (
-              <div key={i} className="flex justify-between items-start mb-2">
-                <div className="w-1/2">
-                  <div className="truncate">{item.name}</div>
-                  <div className="text-[9px] text-slate-500 italic">
-                    @₹{item.rate}
-                  </div>
-                </div>
-                <span className="w-1/4 text-right">x{item.qty}</span>
-                <span className="w-1/4 text-right">₹{item.total}</span>
-              </div>
-            ))}
-
-            {/* MISC CHARGES */}
-            {miscCharges > 0 && (
-              <div className="flex justify-between py-1 border-t border-dotted">
-                <span className="w-1/2">Misc. Charges</span>
-                <span className="w-1/4 text-right">-</span>
-                <span className="w-1/4 text-right">₹{miscCharges}</span>
-              </div>
-            )}
-          </div>
-
-          <div className="border-b border-dashed border-slate-400 my-3"></div>
-
-          {/* TOTALS */}
-          <div className="text-[11px] space-y-1">
-            <div className="flex justify-between">
-              <span>GROSS AMOUNT</span>
-              <span>₹{grossTotal}</span>
-            </div>
-            {discount > 0 && (
-              <div className="flex justify-between text-red-600 font-bold">
-                <span>DISCOUNT</span>
-                <span>-₹{discount}</span>
-              </div>
-            )}
-            <div className="flex justify-between font-bold text-base border-t-2 border-slate-900 pt-1 mt-1">
-              <span>GRAND TOTAL</span>
-              <span>₹{grandTotal}</span>
-            </div>
-          </div>
-
-          <div className="border-b border-dashed border-slate-400 my-3"></div>
-
-          {/* SETTLEMENT */}
-          <div className="text-[10px] space-y-1">
-            <div className="font-bold text-[9px] uppercase text-slate-500 mb-1">
-              Payment Breakdown
-            </div>
-            {advance > 0 && (
-              <div className="flex justify-between">
-                <span>ADVANCE:</span> <span>₹{advance}</span>
-              </div>
-            )}
-            {booking.cashAmount > 0 && (
-              <div className="flex justify-between">
-                <span>CASH:</span> <span>₹{booking.cashAmount}</span>
-              </div>
-            )}
-            {booking.onlineAmount > 0 && (
-              <div className="flex justify-between">
-                <span>UPI/ONLINE:</span> <span>₹{booking.onlineAmount}</span>
-              </div>
-            )}
-            <div className="flex justify-between font-bold border-t border-slate-900 mt-1 pt-1 text-[11px]">
-              <span>TOTAL RECEIVED</span>
-              <span>₹{advance + paidAtCheckout}</span>
-            </div>
-          </div>
-
-          <div className="text-center text-[9px] mt-6 pt-4 border-t border-slate-200">
-            <p className="font-bold tracking-widest uppercase">
-              Status: {booking.paymentStatus}
-            </p>
-            <p className="mt-2 italic">Thank You for staying at Gairigaon!</p>
-            <p className="mt-1">Computer Generated Receipt</p>
-          </div>
+      <div className="bg-white p-4 shadow-2xl max-h-[90vh] overflow-y-auto font-mono">
+        <div ref={receiptRef}>
+          <ReceiptContent />
         </div>
       </div>
-
-      {/* PRINT STYLES */}
-      <style jsx global>{`
-        @media print {
-          body * {
-            visibility: hidden;
-          }
-          .thermal-receipt,
-          .thermal-receipt * {
-            visibility: visible;
-          }
-          .thermal-receipt {
-            position: absolute;
-            left: 0;
-            top: 0;
-            width: 80mm;
-            padding: 0;
-            margin: 0;
-            box-shadow: none;
-          }
-          .print\:hidden {
-            display: none !important;
-          }
-        }
-        .no-scrollbar::-webkit-scrollbar {
-          display: none;
-        }
-      `}</style>
     </div>
   );
 }

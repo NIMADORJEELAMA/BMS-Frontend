@@ -208,7 +208,7 @@ body {
   box-shadow: none !important;
   border-color: #0f172a !important;
 }
-@media print {
+/* @media print {
   body * {
     visibility: hidden;
   }
@@ -224,9 +224,9 @@ body {
     top: 0;
     width: 80mm;
   }
-}
+} */
 
-.thermal-receipt {
+/* .thermal-receipt {
   width: 80mm;
   font-family: "Courier New", monospace;
   font-size: 12px;
@@ -236,4 +236,4 @@ body {
 .separator {
   border-top: 1px dashed #000;
   margin: 6px 0;
-}
+} */
