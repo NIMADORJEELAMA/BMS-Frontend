@@ -15,8 +15,7 @@ import {
 import { FileDown, Loader2, Plus, Tag, Upload, X } from "lucide-react";
 import { useState, useRef } from "react";
 import toast from "react-hot-toast";
-import Papa from "papaparse";
-import BulkPreviewModal from "./BulkPreviewModal";
+
 export default function MenuPage() {
   const { data: menuItems = [], isLoading } = useMenu();
   const createMutation = useCreateMenuItem();
@@ -87,16 +86,15 @@ export default function MenuPage() {
     });
   };
 
-  const handleConfirmUpload = (finalData: any[]) => {
-    // Now we use finalData instead of previewData state
-    uploadMutation.mutate(finalData, {
+  const handleConfirmUpload = () => {
+    // We send the original file or the parsed JSON?
+    // Sending the File is better so the server can re-validate.
+    // However, for this preview, let's assume we send the data we just verified.
+    uploadMutation.mutate(previewData, {
       onSuccess: () => {
         setIsPreviewOpen(false);
         setPreviewData([]);
         toast.success("Bulk upload successful!");
-      },
-      onError: (error: any) => {
-        toast.error(error?.response?.data?.message || "Upload failed");
       },
     });
   };
@@ -229,57 +227,17 @@ export default function MenuPage() {
     });
   };
 
-  const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-
-    // Basic validation before parsing
-    if (file.type !== "text/csv" && !file.name.endsWith(".csv")) {
-      toast.error("Please upload a valid CSV file");
-      return;
-    }
-
-    Papa.parse(file, {
-      header: true,
-      skipEmptyLines: true,
-      complete: (results) => {
-        // Logic to sanitize data (optional but recommended)
-        const sanitizedData = results.data.map((item: any) => ({
-          ...item,
-          price: parseFloat(item.price) || 0,
-          isVeg: String(item.isVeg).toLowerCase() === "true",
-        }));
-
-        setPreviewData(sanitizedData);
-        setIsPreviewOpen(true);
-
-        // Reset input so the same file can be uploaded again if needed
-        if (fileInputRef.current) fileInputRef.current.value = "";
-      },
-      error: (error) => {
-        toast.error("Error parsing CSV: " + error.message);
-      },
-    });
-  };
-
   return (
-    <div className="mx-auto space-y-8 p-8 bg-white  ">
+    <div className="mx-auto space-y-8 p-8 bg-white min-h-screen">
       <header className="flex justify-between items-end">
         <div>
           <div className="flex justify-end">
             <input
               type="file"
               ref={fileInputRef}
-              onChange={handleFileSelect}
+              onChange={handleCsvUpload}
               accept=".csv"
               className="hidden"
-            />
-            <BulkPreviewModal
-              isOpen={isPreviewOpen}
-              onClose={() => setIsPreviewOpen(false)}
-              data={previewData}
-              onConfirm={handleConfirmUpload}
-              isPending={uploadMutation.isPending}
             />
             <Button
               variant="ghost"
