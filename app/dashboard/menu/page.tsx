@@ -100,7 +100,7 @@ export default function MenuPage() {
       name: formData.name.toUpperCase().trim(),
       price: Number(formData.price),
       category: formData.category.toUpperCase().trim(),
-      isActive: true,
+      isActive: formData.isActive,
     };
 
     // 2. Use 'payload' as the key to match your hook

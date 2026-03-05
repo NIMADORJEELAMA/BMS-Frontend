@@ -17,6 +17,9 @@ export const useCreateMenuItem = () => {
   return useMutation({
     mutationFn: (payload: any) => api.post("/menu", payload),
     onSuccess: () => qc.invalidateQueries({ queryKey: ["menu"] }),
+    onError: () => {
+      toast.error("Failed to delete item");
+    },
   });
 };
 
@@ -26,6 +29,9 @@ export const useUpdateMenuItem = () => {
   return useMutation({
     mutationFn: ({ id, payload }: any) => api.patch(`/menu/${id}`, payload),
     onSuccess: () => qc.invalidateQueries({ queryKey: ["menu"] }),
+    onError: () => {
+      toast.error("Failed to delete item");
+    },
   });
 };
 

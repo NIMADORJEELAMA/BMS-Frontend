@@ -6,7 +6,9 @@ import type { AgGridReact as AgGridReactType } from "ag-grid-react";
 import { ColDef } from "ag-grid-community";
 import "@/lib/agGrid";
 
-import { Pencil, Trash2, Search } from "lucide-react";
+import { Pencil, Trash2, Search, Utensils } from "lucide-react";
+import GenericDropdown from "../ui/GenericDropdown";
+import StatusToggle from "../ui/StatusToggle";
 
 interface MenuItem {
   id: string;
@@ -32,7 +34,68 @@ export default function EnterpriseMenuTable({
 }: Props) {
   const gridRef = useRef<AgGridReactType>(null);
   const [quickFilter, setQuickFilter] = useState("");
+  const [selectedType, setSelectedType] = useState("ALL");
+  const [selectedStatus, setSelectedStatus] = useState<boolean | "ALL">(true);
+  const [selectedCategory, setSelectedCategory] = useState("ALL");
+  const menuTypes = [
+    { id: "FOOD", name: "Food Items" },
+    { id: "ALCOHOL", name: "Alcohol/Drinks" },
+  ];
+  const categories = useMemo(() => {
+    const unique = Array.from(new Set(items.map((i) => i.category)));
 
+    return unique.map((c) => ({
+      id: c,
+      name: c,
+    }));
+  }, [items]);
+
+  const filteredItems = useMemo(() => {
+    return items.filter((item) => {
+      const typeMatch = selectedType === "ALL" || item.type === selectedType;
+      const statusMatch =
+        selectedStatus === "ALL" || item.isActive === selectedStatus;
+
+      const categoryMatch =
+        selectedCategory === "ALL" || item.category === selectedCategory;
+
+      return typeMatch && statusMatch && categoryMatch;
+    });
+  }, [items, selectedType, selectedStatus, selectedCategory]);
+  const handleCategoryChange = (categoryId: string) => {
+    setSelectedCategory(categoryId);
+  };
+  const handleTypeChange = (typeId: string) => {
+    setSelectedType(typeId);
+    const filterInstance =
+      typeId === "ALL"
+        ? null
+        : {
+            filterType: "text",
+            type: "equals",
+            filter: typeId,
+          };
+    gridRef.current?.api
+      .setColumnFilterModel("type", filterInstance)
+      .then(() => {
+        gridRef.current?.api.onFilterChanged();
+      });
+  };
+  const handleStatusChange = (status: boolean | "ALL") => {
+    setSelectedStatus(status);
+
+    if (status === "ALL") {
+      gridRef.current?.api.setColumnFilterModel("isActive", null);
+    } else {
+      gridRef.current?.api.setColumnFilterModel("isActive", {
+        filterType: "number",
+        type: "equals",
+        filter: status ? 1 : 0,
+      });
+    }
+
+    gridRef.current?.api.onFilterChanged();
+  };
   /* ================= COLUMN DEFINITIONS ================= */
 
   const columnDefs = useMemo<ColDef<MenuItem>[]>(
@@ -40,30 +103,44 @@ export default function EnterpriseMenuTable({
       {
         headerName: "Item",
         field: "name",
-        flex: 1.8,
-        cellStyle: (params) =>
-          params.node.isRowPinned()
-            ? { fontWeight: "bold", fontSize: "14px" }
-            : null,
-        cellRenderer: (params) => {
-          if (params.node.isRowPinned()) return params.value;
+        flex: 1.6,
+        cellRenderer: (params: any) => {
+          const row = params.node.data;
+          if (!row) return params.value;
 
           return (
-            <div className="flex flex-col">
-              <span className="font-semibold text-slate-800">
-                {params.data?.name}
-              </span>
-              <span className="text-xs text-slate-400">
-                {params.data?.category}
-              </span>
+            <div className="flex items-start gap-3 py-1">
+              {/* Veg / Non Veg Dot */}
+              <div
+                className={`w-3 h-3 mt-1 rounded-[2px] border flex-shrink-0 ${
+                  row.isVeg
+                    ? "border-emerald-500 bg-emerald-500"
+                    : "border-red-500 bg-red-500"
+                }`}
+              />
+
+              {/* Item Info */}
+              <div className="flex flex-col leading-tight">
+                <span className="font-semibold text-slate-800 text-sm">
+                  {row.name}
+                </span>
+
+                <div className="flex items-center gap-2 mt-0.5">
+                  <span className="text-[10px] font-semibold px-2 py-[2px]  bg-slate-100 text-slate-600">
+                    {row.category}
+                  </span>
+                </div>
+              </div>
             </div>
           );
         },
       },
+
       {
         headerName: "Type",
         field: "type",
-        width: 130,
+        width: 180,
+        // filter: false,
         // filter: "agSetColumnFilter",
         cellRenderer: (params) => (
           <span className="px-2 py-1 text-xs font-medium bg-slate-100 text-slate-700 rounded">
@@ -74,6 +151,7 @@ export default function EnterpriseMenuTable({
       {
         headerName: "Created On",
         field: "createdAt",
+        filter: false,
         width: 150,
         // filter: "agDateColumnFilter",
         valueFormatter: (params) =>
@@ -85,30 +163,42 @@ export default function EnterpriseMenuTable({
         headerName: "Status",
         field: "isActive",
         width: 140,
-        // filter: "agSetColumnFilter",
-        cellRenderer: (params) => (
-          <span
-            className={`px-3 py-1 text-xs font-semibold rounded ${
-              params.value
-                ? "bg-emerald-100 text-emerald-700"
-                : "bg-slate-200 text-slate-500"
-            }`}
-          >
-            {params.value ? "Active" : "Disabled"}
-          </span>
-        ),
+        filter: true,
+        valueFormatter: (params) => (params.value ? "Active" : "Disabled"),
+        cellRenderer: (params: any) => {
+          if (params.node.isRowPinned()) return null;
+
+          return (
+            <span
+              className={`px-3 py-1 text-xs font-semibold rounded ${
+                params.value
+                  ? "bg-emerald-100 text-emerald-700"
+                  : "bg-slate-200 text-slate-500"
+              }`}
+            >
+              {params.value ? "Active" : "Disabled"}
+            </span>
+          );
+        },
       },
       {
         headerName: "Price",
         field: "price",
         width: 160,
-        // filter: "agNumberColumnFilter",
+        filter: false,
         cellClass: (params) =>
           params.node.isRowPinned()
-            ? "text-right font-black text-emerald-800 bg-emerald-100"
+            ? "text-right font-black text-emerald-800"
             : "text-right font-semibold text-slate-900",
-        valueFormatter: (params) =>
-          params.value ? `₹${params.value.toLocaleString()}` : "",
+        valueFormatter: (params) => {
+          // 1. Check if the row is pinned
+          if (params?.node.isRowPinned()) {
+            return " "; // Return empty string for the total row
+          }
+
+          // 2. Format normally for regular rows
+          return params.value ? `₹${params.value.toLocaleString()}` : "";
+        },
       },
       {
         headerName: "Actions",
@@ -117,22 +207,22 @@ export default function EnterpriseMenuTable({
         pinned: "right",
         sortable: false,
         filter: false,
-        cellRenderer: (params) => {
+        cellRenderer: (params: any) => {
           if (params.node.isRowPinned()) return null;
 
           return (
             <div className="flex justify-end gap-1">
               <button
                 onClick={() => onEdit(params.data!)}
-                className="p-1.5 rounded hover:bg-slate-100"
+                className="p-2 mt-2 rounded hover:text-slate-400 cursor-pointer"
               >
-                <Pencil size={15} />
+                <Pencil size={18} />
               </button>
               <button
                 onClick={() => onDelete(params.data!)}
-                className="p-1.5 rounded text-red-600 hover:bg-red-50"
+                className="p-2 mt-2 rounded text-red-600  hover:text-red-400 cursor-pointer"
               >
-                <Trash2 size={15} />
+                <Trash2 size={18} />
               </button>
             </div>
           );
@@ -174,43 +264,44 @@ export default function EnterpriseMenuTable({
 
   return (
     <div className="space-y-4">
-      {/* SEARCH BAR */}
-      <div className="flex justify-between items-center bg-white border border-slate-200 px-4 py-3">
-        <div className="relative w-80">
-          <Search
-            size={16}
-            className="absolute left-2 top-1/2 -translate-y-1/2 text-slate-400"
+      <div className="justify-end w-full">
+        <div className="flex items-center gap-3 justify-end">
+          <GenericDropdown
+            options={menuTypes}
+            selectedValue={selectedType}
+            onSelect={handleTypeChange}
+            allLabel="All Types"
+            icon={Utensils}
           />
-          <input
-            value={quickFilter}
-            onChange={(e) => {
-              setQuickFilter(e.target.value);
-              gridRef.current?.api.setGridOption(
-                "quickFilterText",
-                e.target.value,
-              );
-            }}
-            placeholder="Search menu items..."
-            className="pl-8 pr-3 py-2 border border-slate-300 text-sm rounded focus:outline-none focus:ring-1 focus:ring-blue-500"
+          <GenericDropdown
+            options={categories}
+            selectedValue={selectedCategory}
+            onSelect={handleCategoryChange}
+            allLabel="All Categories"
           />
+          <div className="flex items-center gap-2">
+            <StatusToggle
+              isActive={selectedStatus === true}
+              onChange={handleStatusChange}
+            />
+          </div>
         </div>
       </div>
 
-      {/* GRID */}
       <div
         className="ag-theme-quartz enterprise-grid"
-        style={{ height: 600, width: "100%" }}
+        style={{ height: "80vh", width: "100%" }}
       >
         <AgGridReact
           ref={gridRef}
-          rowData={items}
+          rowData={filteredItems}
           columnDefs={columnDefs}
           defaultColDef={defaultColDef}
           pagination
           paginationPageSize={20}
           animateRows
           rowSelection="single"
-          pinnedBottomRowData={pinnedBottomRowData}
+          // pinnedBottomRowData={pinnedBottomRowData}
         />
       </div>
     </div>

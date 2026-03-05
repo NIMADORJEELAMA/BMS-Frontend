@@ -63,48 +63,6 @@ export default function MenuModal({
               isPending={isPending}
               alcoholInventory={alcoholInventory}
             />
-
-            {/* <div className="px-8 pb-8">
-              <div className="p-6 rounded-2xl bg-red-50 border border-red-100 mt-4">
-                <div className="flex items-start gap-4">
-                  <div className="p-2 rounded-xl bg-white text-red-600 shadow-sm">
-                    <AlertTriangle size={20} />
-                  </div>
-                  <div className="flex-1">
-                    <h4 className="text-sm font-bold text-red-900">
-                      Danger Zone
-                    </h4>
-                    <p className="text-xs text-red-700 mt-1 leading-relaxed">
-                      Deleting <strong>{formData.name}</strong> is permanent.
-                      This item will disappear from your POS and digital menus
-                      immediately.
-                    </p>
-
-                    <button
-                      type="button"
-                      disabled={isPending}
-                      onClick={() => {
-                        if (
-                          window.confirm(
-                            `Are you absolutely sure you want to delete ${formData.name}?`,
-                          )
-                        ) {
-                          onDelete(formData.id);
-                        }
-                      }}
-                      className="mt-4 flex items-center gap-2 px-4 py-2.5 rounded-xl bg-red-600 text-white text-xs font-bold hover:bg-red-700 transition-all shadow-sm disabled:opacity-50 disabled:cursor-not-allowed"
-                    >
-                      {isPending ? (
-                        <Loader2 className="animate-spin" size={14} />
-                      ) : (
-                        <Trash2 size={14} />
-                      )}
-                      Confirm & Delete
-                    </button>
-                  </div>
-                </div>
-              </div>
-            </div> */}
           </div>
         </motion.div>
       </div>
