@@ -338,14 +338,14 @@ export default function MenuItemForm({
         <button
           type="button"
           onClick={onCancel}
-          className="flex-1 h-10 rounded-xl bg-white border border-slate-200 text-slate-900 font-bold text-xs uppercase tracking-widest hover:bg-slate-900 hover:text-white transition-all cursor-pointer"
+          className="flex-1 h-12 rounded-xl bg-white border border-slate-200 text-slate-900 font-bold text-xs uppercase tracking-widest hover:bg-slate-900 hover:text-white transition-all cursor-pointer"
         >
           Cancel
         </button>
         <button
           disabled={isPending}
           type="submit"
-          className="flex-1 h-10 rounded-xl bg-black text-white font-bold text-xs uppercase tracking-widest hover:bg-slate-800 transition-all disabled:opacity-60 flex items-center justify-center gap-2 shadow-lg cursor-pointer"
+          className="flex-1 h-12 rounded-xl bg-black text-white font-bold text-xs uppercase tracking-widest hover:bg-slate-800 transition-all disabled:opacity-60 flex items-center justify-center gap-2 shadow-lg cursor-pointer"
         >
           {isPending ? (
             <Loader2 className="animate-spin w-4 h-4" />

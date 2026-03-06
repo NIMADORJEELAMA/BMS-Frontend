@@ -264,36 +264,48 @@ export default function MenuPage() {
 
   return (
     <div className="mx-auto space-y-8 p-8 bg-white  ">
-      <header className="flex justify-between items-end">
-        <div>
-          <div className="flex justify-end">
-            <input
-              type="file"
-              ref={fileInputRef}
-              onChange={handleFileSelect}
-              accept=".csv"
-              className="hidden"
-            />
-            <BulkPreviewModal
-              isOpen={isPreviewOpen}
-              onClose={() => setIsPreviewOpen(false)}
-              data={previewData}
-              onConfirm={handleConfirmUpload}
-              isPending={uploadMutation.isPending}
-            />
+      <header className="space-y-4">
+        {/* This input remains hidden but accessible via Ref */}
+        <input
+          type="file"
+          ref={fileInputRef}
+          onChange={handleFileSelect}
+          accept=".csv"
+          className="hidden"
+        />
+
+        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+          {/* Left Side: Create Action */}
+          <div>
+            <Button variant="default" onClick={handleMenuModel}>
+              {isMenuItemFormOpen ? (
+                <>
+                  <X size={18} className="mr-2" /> Close Form
+                </>
+              ) : (
+                <>
+                  <Plus size={18} className="mr-2" /> Add New Item
+                </>
+              )}
+            </Button>
+          </div>
+
+          {/* Right Side: CSV Actions */}
+          <div className="flex flex-wrap items-center gap-2">
             <Button
-              variant="ghost"
-              size="sm"
+              variant="terminalGhost"
               onClick={downloadCsvTemplate}
-              className="text-muted-foreground"
+              className="whitespace-nowrap"
             >
               <FileDown className="mr-2" size={16} />
               Download Template
             </Button>
+
             <Button
-              variant="outline"
+              variant="terminalGhost"
               onClick={() => fileInputRef.current?.click()}
               disabled={uploadMutation.isPending}
+              className="whitespace-nowrap"
             >
               {uploadMutation.isPending ? (
                 <Loader2 className="animate-spin mr-2" size={18} />
@@ -302,19 +314,17 @@ export default function MenuPage() {
               )}
               Bulk Upload (CSV)
             </Button>
-            <Button variant="default" onClick={handleMenuModel}>
-              {isMenuItemFormOpen ? (
-                <>
-                  <X size={18} /> Close Form
-                </>
-              ) : (
-                <>
-                  <Plus size={18} /> Add New Item
-                </>
-              )}
-            </Button>
           </div>
         </div>
+
+        {/* Preview Modal is placed outside the layout flow */}
+        <BulkPreviewModal
+          isOpen={isPreviewOpen}
+          onClose={() => setIsPreviewOpen(false)}
+          data={previewData}
+          onConfirm={handleConfirmUpload}
+          isPending={uploadMutation.isPending}
+        />
       </header>
 
       {isMenuItemFormOpen && (
