@@ -25,7 +25,7 @@ interface MenuItemFormProps {
     name: string;
     price: string;
     category: string;
-    type: "FOOD" | "ALCOHOL";
+    type: "FOOD" | "DRINKS";
     isVeg: boolean;
     inventoryItemId: string;
     isActive: boolean;
@@ -69,8 +69,8 @@ export default function MenuItemForm({
     }
     if (!formData.category.trim()) newErrors.category = "Category is required";
 
-    if (formData.type === "ALCOHOL" && !formData.inventoryItemId) {
-      newErrors.inventoryItemId = "Please link an inventory item for alcohol";
+    if (formData.type === "DRINKS" && !formData.inventoryItemId) {
+      newErrors.inventoryItemId = "Please link an inventory item for drinks";
     }
 
     if (Object.keys(newErrors).length > 0) {
@@ -92,7 +92,7 @@ export default function MenuItemForm({
           {formData.id ? "Update Menu Item" : "Create Menu Item"}
         </h2>
         <p className="text-sm text-slate-500 mt-1">
-          Add a new food or alcohol item to your menu
+          Add a new food or drinks item to your menu
         </p>
       </div>
 
@@ -183,7 +183,7 @@ export default function MenuItemForm({
               Menu Type
             </label>
             <div className="flex bg-slate-100 p-1 rounded-xl h-11">
-              {(["FOOD", "ALCOHOL"] as const).map((t) => (
+              {(["FOOD", "DRINKS"] as const).map((t) => (
                 <button
                   key={t}
                   type="button"
@@ -259,9 +259,9 @@ export default function MenuItemForm({
           </div>
         </div>
 
-        {/* INVENTORY LINK - Only if ALCOHOL */}
+        {/* INVENTORY LINK - Only if DRINKS */}
         <AnimatePresence mode="wait">
-          {formData.type === "ALCOHOL" && (
+          {formData.type === "DRINKS" && (
             <motion.div
               initial={{ opacity: 0, height: 0, marginTop: 0 }}
               animate={{ opacity: 1, height: "auto", marginTop: 16 }}

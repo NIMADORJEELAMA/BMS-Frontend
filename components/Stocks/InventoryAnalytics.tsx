@@ -5,7 +5,7 @@ import { Target, AlertCircle, TrendingUp, ShieldCheck } from "lucide-react";
 export default function InventoryAnalytics({ stats }: { stats: any }) {
   if (!stats) return null;
 
-  const COLORS = { FOOD: "#6366F1", ALCOHOL: "#213448" };
+  const COLORS = { FOOD: "#6366F1", DRINKS: "#213448" };
 
   // Calculate the Gross Base for accurate hover percentages
   const grossAssetBase = stats.chartData.reduce(
@@ -18,7 +18,7 @@ export default function InventoryAnalytics({ stats }: { stats: any }) {
     value: Math.abs(d.value),
     displayValue: d.value,
     count: d.count,
-    fill: d.name.toUpperCase() === "FOOD" ? COLORS.FOOD : COLORS.ALCOHOL,
+    fill: d.name.toUpperCase() === "FOOD" ? COLORS.FOOD : COLORS.DRINKS,
   }));
 
   return (

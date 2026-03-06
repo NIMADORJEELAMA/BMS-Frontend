@@ -127,7 +127,7 @@ export default function StockManagementPage() {
         accessorKey: "type",
         header: "Category",
         cell: ({ row }: any) => {
-          const isAlcohol = row.original.type === "ALCOHOL";
+          const isAlcohol = row.original.type === "DRINKS";
           return (
             <div
               className={`inline-flex items-center gap-2 px-3 py-1 rounded-lg text-[10px] font-black tracking-widest border ${
@@ -332,7 +332,7 @@ export default function StockManagementPage() {
           </div>
 
           <div className="flex bg-slate-100 p-1 rounded-2xl w-full lg:w-auto">
-            {["ALL", "FOOD", "ALCOHOL"].map((t) => (
+            {["ALL", "FOOD", "DRINKS"].map((t) => (
               <button
                 key={t}
                 onClick={() => setTypeFilter(t)}

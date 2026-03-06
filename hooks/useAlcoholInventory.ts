@@ -3,10 +3,10 @@ import api from "@/lib/axios";
 
 export const useAlcoholInventory = (enabled: boolean) =>
   useQuery({
-    queryKey: ["alcohol-inventory"],
+    queryKey: ["drinks-inventory"],
     queryFn: async () => {
       const { data } = await api.get("/inventory/stocks", {
-        params: { type: "ALCOHOL" },
+        params: { type: "DRINKS" },
       });
       return data;
     },

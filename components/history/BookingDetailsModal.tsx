@@ -4,6 +4,7 @@ import { Button } from "@/components/ui/button";
 import jsPDF from "jspdf";
 import html2canvas from "html2canvas";
 import { useRef } from "react";
+import { toPng } from "html-to-image";
 
 export default function BookingReceiptModal({ booking, onClose }: any) {
   const receiptRef = useRef<HTMLDivElement>(null);
@@ -241,23 +242,27 @@ ${receipt}
       win.close();
     }, 300);
   };
+
   const downloadPDF = async () => {
     const element = receiptRef.current;
     if (!element) return;
-    const canvas = await html2canvas(element, {
-      scale: 3,
-      backgroundColor: "#ffffff",
-    });
-    const imgData = canvas.toDataURL("image/png");
-    const pdf = new jsPDF({
-      orientation: "portrait",
-      unit: "mm",
-      format: [80, (canvas.height * 80) / canvas.width],
-    });
-    pdf.addImage(imgData, "PNG", 0, 0, 80, (canvas.height * 80) / canvas.width);
-    pdf.save(`Receipt_${booking.id.slice(0, 8)}.pdf`);
-  };
 
+    try {
+      // This library is much more stable than html2canvas
+      const dataUrl = await toPng(element, { quality: 1.0, pixelRatio: 3 });
+
+      const pdf = new jsPDF({
+        orientation: "portrait",
+        unit: "mm",
+        format: [80, 150], // Adjust height as needed
+      });
+
+      pdf.addImage(dataUrl, "PNG", 0, 0, 80, 150);
+      pdf.save(`Receipt_${booking.id.slice(0, 4)}.pdf`);
+    } catch (err) {
+      console.error("PDF Generation failed", err);
+    }
+  };
   return (
     <div className="fixed inset-0 bg-black/80 flex items-center justify-center z-50 p-4">
       <div className="absolute top-6 right-6 flex gap-3">

@@ -32,7 +32,7 @@ export default function MenuPage() {
     name: "",
     price: "",
     category: "",
-    type: "FOOD" as "FOOD" | "ALCOHOL",
+    type: "FOOD" as "FOOD" | "DRINKS",
     inventoryItemId: "",
     isVeg: false,
     isActive: true,
@@ -44,7 +44,7 @@ export default function MenuPage() {
   const [isPreviewOpen, setIsPreviewOpen] = useState(false);
 
   const { data: alcoholInventory = [] } = useAlcoholInventory(
-    formData.type === "ALCOHOL",
+    formData.type === "DRINKS",
   );
 
   const handleMenuModel = () => {
@@ -128,7 +128,7 @@ export default function MenuPage() {
         price: Number(formData.price),
         category: formData.category.toUpperCase().trim(),
         inventoryItemId:
-          formData.type === "ALCOHOL" ? formData.inventoryItemId : null,
+          formData.type === "DRINKS" ? formData.inventoryItemId : null,
       },
       {
         onSuccess: () => {

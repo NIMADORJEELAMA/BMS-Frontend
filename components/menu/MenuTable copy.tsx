@@ -22,7 +22,7 @@ interface MenuItem {
   name: string;
   price: number;
   category: string;
-  type: "FOOD" | "ALCOHOL";
+  type: "FOOD" | "DRINKS";
   isVeg: boolean;
   isActive: boolean;
   createdAt: string;

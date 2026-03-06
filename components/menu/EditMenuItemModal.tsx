@@ -8,7 +8,7 @@ interface MenuItem {
   name: string;
   price: number;
   category: string;
-  type: "FOOD" | "ALCOHOL";
+  type: "FOOD" | "DRINKS";
   inventoryItemId?: string | null;
 }
 
@@ -28,13 +28,13 @@ interface Props {
   name: string;
   price: string;
   category: string;
-  type: "FOOD" | "ALCOHOL";
+  type: "FOOD" | "DRINKS";
   inventoryItemId: string;
 
   setName: (v: string) => void;
   setPrice: (v: string) => void;
   setCategory: (v: string) => void;
-  setType: (v: "FOOD" | "ALCOHOL") => void;
+  setType: (v: "FOOD" | "DRINKS") => void;
   setInventoryItemId: (v: string) => void;
 
   onClose: () => void;
@@ -123,7 +123,7 @@ export default function EditMenuItemModal({
                 Item Type
               </label>
               <div className="mt-2 flex bg-gray-50 p-1 rounded-2xl">
-                {["FOOD", "ALCOHOL"].map((t) => (
+                {["FOOD", "DRINKS"].map((t) => (
                   <button
                     key={t}
                     type="button"
@@ -141,7 +141,7 @@ export default function EditMenuItemModal({
           </div>
 
           {/* Inventory Link */}
-          {type === "ALCOHOL" && (
+          {type === "DRINKS" && (
             <div className="p-5 bg-purple-50 rounded-3xl border border-purple-100 flex items-center gap-4">
               <Link className="text-purple-600" />
               <select

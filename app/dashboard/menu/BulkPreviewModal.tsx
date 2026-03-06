@@ -105,7 +105,7 @@ export default function BulkPreviewModal({
                       }
                     >
                       <option value="FOOD">FOOD</option>
-                      <option value="ALCOHOL">ALCOHOL</option>
+                      <option value="DRINKS">DRINKS</option>
                     </select>
                   </td>
                   <td className="p-2 text-center">

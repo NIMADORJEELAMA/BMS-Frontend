@@ -15,7 +15,7 @@ interface MenuItem {
   name: string;
   price: number;
   category: string;
-  type: "FOOD" | "ALCOHOL";
+  type: "FOOD" | "DRINKS";
   isVeg: boolean;
   isActive: boolean;
   createdAt: string;
@@ -39,7 +39,7 @@ export default function EnterpriseMenuTable({
   const [selectedCategory, setSelectedCategory] = useState("ALL");
   const menuTypes = [
     { id: "FOOD", name: "Food Items" },
-    { id: "ALCOHOL", name: "Alcohol/Drinks" },
+    { id: "DRINKS", name: "Drinks/Drinks" },
   ];
   const categories = useMemo(() => {
     const unique = Array.from(new Set(items.map((i) => i.category)));

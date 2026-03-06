@@ -256,7 +256,7 @@ export default function StockInForm({
             Classification
           </label>
           <div className="flex gap-2 p-1.5 bg-slate-100 rounded-2xl">
-            {["FOOD", "ALCOHOL"].map((t) => (
+            {["FOOD", "DRINKS"].map((t) => (
               <button
                 key={t}
                 type="button"

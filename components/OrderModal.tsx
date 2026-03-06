@@ -201,8 +201,8 @@ export default function OrderModal({
     }
   };
 
-  const TypeBadge = ({ type }: { type: "FOOD" | "ALCOHOL" }) => {
-    const isAlcohol = type === "ALCOHOL";
+  const TypeBadge = ({ type }: { type: "FOOD" | "DRINKS" }) => {
+    const isAlcohol = type === "DRINKS";
 
     return (
       <span
@@ -215,7 +215,7 @@ export default function OrderModal({
         {isAlcohol ? (
           <>
             <Beer size={10} />
-            {/* <span>Alcohol</span> */}
+            {/* <span>Drinks</span> */}
           </>
         ) : (
           <>
