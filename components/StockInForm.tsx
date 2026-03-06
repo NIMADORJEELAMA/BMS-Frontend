@@ -279,7 +279,7 @@ export default function StockInForm({
             type="button"
             onClick={onClose}
             variant={"terminalGhost"}
-            className="flex-[2] h-10"
+            className="flex-[2] h-12"
             // className="flex-1 py-4 bg-white border border-slate-200 text-slate-600 rounded-2xl font-bold text-[11px] uppercase tracking-widest hover:bg-slate-50 transition-all cursor-pointer"
           >
             Cancel
@@ -288,7 +288,7 @@ export default function StockInForm({
             type="submit"
             disabled={loading}
             variant={"default"}
-            className={`flex-[8] h-10 rounded-xl font-semibold text-sm flex items-center justify-center gap-2 transition-all cursor-pointer shadow-sm`}
+            className={`flex-[8] h-12 rounded-xl font-semibold text-sm flex items-center justify-center gap-2 transition-all cursor-pointer shadow-sm`}
             // className="flex-[2] py-4 bg-slate-900 text-white rounded-2xl font-bold text-[11px] uppercase tracking-widest hover:bg-slate-700 transition-all flex items-center justify-center shadow-lg shadow-indigo-200 disabled:opacity-50 cursor-pointer"
           >
             {loading ? (

@@ -1,57 +1,84 @@
 "use client";
-import { useEffect, useState, useMemo } from "react";
+
+import { useState, useMemo, useEffect, useCallback } from "react";
 import api from "@/lib/axios";
 import toast from "react-hot-toast";
+import dayjs from "dayjs";
+
+// UI Components
+import { DatePicker, Card, Statistic, Tag, Spin, Space } from "antd";
+import { Button } from "@/components/ui/button";
 import {
-  useReactTable,
-  getCoreRowModel,
-  flexRender,
-  getFilteredRowModel,
-  getPaginationRowModel,
-  ColumnDef,
-} from "@tanstack/react-table";
-import {
+  Package,
   Plus,
+  RefreshCcw,
   Search,
   Beer,
   Utensils,
-  ChevronLeft,
-  ChevronRight,
-  Calendar,
-  RefreshCcw,
   AlertCircle,
+  IndianRupee,
   TrendingUp,
-  Package,
-  Layers,
-  ArrowRight,
-  Edit3,
   Trash2,
+  Edit3,
+  Pencil,
 } from "lucide-react";
+import { SearchBar } from "@/components/ui/SearchBar";
+
+// AG Grid & Recharts
+import { AgGridReact } from "ag-grid-react";
+import { ColDef, GridReadyEvent } from "ag-grid-community";
+
+import {
+  ResponsiveContainer,
+  BarChart,
+  Bar,
+  XAxis,
+  YAxis,
+  Tooltip,
+  CartesianGrid,
+} from "recharts";
+import "@/lib/agGrid";
+
 import StockInForm from "@/components/StockInForm";
-import InventoryAnalytics from "@/components/Stocks/InventoryAnalytics";
-import { Button } from "@/components/ui/button";
+
+const { RangePicker } = DatePicker;
 
 export default function StockManagementPage() {
   const [items, setItems] = useState([]);
-  const [editingItem, setEditingItem] = useState<any>(null);
-  const [globalFilter, setGlobalFilter] = useState("");
-  const [typeFilter, setTypeFilter] = useState("ALL");
-  const [isModalOpen, setIsModalOpen] = useState(false);
   const [loading, setLoading] = useState(false);
-  const [persistedStats, setPersistedStats] = useState(null);
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [editingItem, setEditingItem] = useState<any>(null);
+  const [search, setSearch] = useState("");
+  const [typeFilter, setTypeFilter] = useState("ALL");
+  const [dateRange, setDateRange] = useState<[dayjs.Dayjs, dayjs.Dayjs] | null>(
+    null,
+  );
+  const [statusFilter, setStatusFilter] = useState("ALL"); // ALL, LOW, MID, HEALTHY
+  // 1. Check if filter should be active
+  const isExternalFilterPresent = useCallback(() => {
+    return statusFilter !== "ALL";
+  }, [statusFilter]);
 
-  const today = new Date().toISOString().split("T")[0];
-  const [startDate, setStartDate] = useState("");
-  const [endDate, setEndDate] = useState("");
+  // 2. Logic for the filter
+  const doesExternalFilterPass = useCallback(
+    (node: any) => {
+      if (statusFilter === "ALL") return true;
 
-  const fetchInventory = async () => {
+      const qty = node.data.currentStock;
+      const status = qty < 10 ? "LOW" : qty < 30 ? "MID" : "HEALTHY";
+
+      return status === statusFilter;
+    },
+    [statusFilter],
+  );
+  const fetchInventory = useCallback(async () => {
     try {
       setLoading(true);
       const res = await api.get("/inventory/stocks", {
         params: {
           type: typeFilter === "ALL" ? undefined : typeFilter,
-          startDate,
-          endDate,
+          startDate: dateRange?.[0]?.format("YYYY-MM-DD"),
+          endDate: dateRange?.[1]?.format("YYYY-MM-DD"),
         },
       });
       setItems(res.data);
@@ -60,119 +87,83 @@ export default function StockManagementPage() {
     } finally {
       setLoading(false);
     }
-  };
-  useEffect(() => {
-    if (items.length > 0 && items[0]?.stats) {
-      setPersistedStats(items[0].stats);
-    }
-  }, [items]);
-  const analyticsData = useMemo(() => {
-    // If we have current items with stats, use those
-    if (items.length > 0 && items[0]?.stats) return items[0].stats;
+  }, [typeFilter, dateRange]);
 
-    // Otherwise, fallback to the persisted stats so the chart stays visible
-    return persistedStats;
-  }, [items, persistedStats]);
-  const handleResetFilters = () => {
-    // 1. Reset Category
-    setTypeFilter("ALL");
-
-    // 2. Reset Search (both buffer and active filter)
-    setGlobalFilter("");
-    // setSearchBuffer(""); // If you're using the debounce buffer
-
-    // 3. Reset Dates (Clear both temp and query states)
-    setStartDate("");
-    setEndDate("");
-
-    // 4. Trigger the fetch/refresh logic
-    // If your fetchInventory relies on these states,
-    // ensure it runs after they are cleared.
-    toast.success("Filters Cleared");
-  };
   useEffect(() => {
     fetchInventory();
-  }, [typeFilter, startDate, endDate]);
-  const handleDelete = async (id: string, name: string) => {
-    if (!confirm(`Are you sure you want to delete ${name}?`)) return;
+  }, [fetchInventory]);
 
-    try {
-      setLoading(true);
-      await api.delete(`/inventory/stocks/${id}`);
-      toast.success("Item deleted successfully");
-      fetchInventory();
-    } catch (err) {
-      toast.error("Failed to delete item");
-    } finally {
-      setLoading(false);
-    }
-  };
-  const columns = useMemo(
+  // AG Grid Column Definitions
+  // AG Grid Column Definitions
+  const columnDefs = useMemo<ColDef[]>(
     () => [
       {
-        accessorKey: "name",
-        header: "Asset Detail",
-        cell: (info: any) => (
-          <div className="flex flex-col">
-            <span className="font-bold text-slate-900 text-sm tracking-tight uppercase">
-              {info.getValue()}
+        headerName: "Stock Detail",
+        field: "name",
+        flex: 1.5,
+        pinned: "left",
+        filter: false,
+        // Adding h-full and items-center to the wrapper
+        cellRenderer: (params: any) => (
+          <div className="flex flex-col justify-center h-full leading-tight">
+            <span className="font-bold text-slate-900 uppercase">
+              {params.value}
             </span>
             <span className="text-[10px] text-slate-400 font-medium">
-              SKU-{info.row.original.id.split("-")[0]}
+              SKU-{params.data.id.split("-")[0]}
             </span>
           </div>
         ),
       },
       {
-        accessorKey: "type",
-        header: "Category",
-        cell: ({ row }: any) => {
-          const isAlcohol = row.original.type === "DRINKS";
+        headerName: "Category",
+        field: "type",
+        width: 160,
+        filter: false,
+        // Using cellClass for vertical centering
+        cellClass: "flex items-center mt-2",
+        cellRenderer: (params: any) => {
+          const isAlcohol = params.value === "DRINKS";
           return (
-            <div
-              className={`inline-flex items-center gap-2 px-3 py-1 rounded-lg text-[10px] font-black tracking-widest border ${
-                isAlcohol
-                  ? "bg-purple-50 text-purple-700 border-purple-100"
-                  : "bg-orange-50 text-orange-700 border-orange-100"
-              }`}
+            <Tag
+              color={isAlcohol ? "purple" : "orange"}
+              // icon={isAlcohol ? <Beer size={10} /> : <Utensils size={10} />}
+              className="m-0"
             >
-              {isAlcohol ? <Beer size={12} /> : <Utensils size={12} />}
-              {row.original.type}
-            </div>
+              {params.value}
+            </Tag>
           );
         },
       },
       {
-        accessorKey: "currentStock",
-        header: "Stock Level",
-        cell: ({ row }: any) => {
-          const qty = row.original.currentStock;
+        headerName: "Stock Level",
+        field: "currentStock",
+        flex: 1,
+        filter: false,
+        cellRenderer: (params: any) => {
+          const qty = params.value;
           const status = qty < 10 ? "LOW" : qty < 30 ? "MID" : "HEALTHY";
+          const color =
+            status === "LOW"
+              ? "#ef4444"
+              : status === "MID"
+                ? "#f59e0b"
+                : "#10b981";
           return (
-            <div className="flex flex-col gap-2 min-w-[140px]">
-              <div className="flex justify-between items-end">
-                <span
-                  className={`text-sm font-black ${status === "LOW" ? "text-red-600" : "text-slate-900"}`}
-                >
-                  {qty}{" "}
-                  <span className="text-[10px] text-slate-400 font-bold">
-                    {row.original.unit}
-                  </span>
+            <div className="flex flex-col justify-center h-full w-full pr-4">
+              <div className="flex justify-between text-[10px] font-bold mb-1">
+                <span>
+                  {qty} {params.data.unit}
                 </span>
-                <span
-                  className={`text-[9px] font-black px-1.5 py-0.5 rounded ${
-                    status === "LOW"
-                      ? "bg-red-100 text-red-700"
-                      : "bg-slate-100 text-slate-500"
-                  }`}
-                >
-                  {status}
-                </span>
+                <span style={{ color }}>{status}</span>
               </div>
               <div className="w-full h-1.5 bg-slate-100 rounded-full overflow-hidden">
                 <div
-                  className={`h-full transition-all duration-700 ${status === "LOW" ? "bg-red-500" : status === "MID" ? "bg-amber-500" : "bg-emerald-500"}`}
-                  style={{ width: `${Math.min((qty / 100) * 100, 100)}%` }}
+                  className="h-full transition-all duration-500"
+                  style={{
+                    width: `${Math.min(qty, 100)}%`,
+                    backgroundColor: color,
+                  }}
                 />
               </div>
             </div>
@@ -180,260 +171,275 @@ export default function StockManagementPage() {
         },
       },
       {
-        id: "lastPurchasePrice",
-        header: "Stock Price",
-        cell: ({ row }: any) => (
-          <div className="flex flex-col">
-            <span className="text-sm font-black text-slate-900">
-              ₹{row.original.lastPurchasePrice.toLocaleString()}
-            </span>
-            {/* <span className="text-[10px] text-slate-400 font-bold uppercase tracking-tighter">
-              Stock Asset Value
-            </span> */}
-          </div>
-        ),
+        headerName: "Value (Equity)",
+        filter: false,
+        // Note: valueGetter is better for sorting/filtering
+        valueGetter: (p) => p.data.currentStock * p.data.lastPurchasePrice,
+        width: 180,
+        // FIX: Added cellClass for vertical and horizontal alignment
+        cellClass: "flex items-center font-bold text-slate-700 mt-2",
+        cellRenderer: (p: any) => <span>₹{p.value.toLocaleString()}</span>,
       },
       {
-        id: "valuation",
-        header: "Equity Value",
-        cell: ({ row }: any) => (
-          <div className="flex flex-col">
-            <span className="text-sm font-black text-slate-900">
-              ₹
-              {(
-                row.original.currentStock * row.original.lastPurchasePrice
-              ).toLocaleString()}
-            </span>
-            {/* <span className="text-[10px] text-slate-400 font-bold uppercase tracking-tighter">
-              Current Asset Value
-            </span> */}
-          </div>
-        ),
-      },
-      {
-        accessorKey: "lastStockInDate",
-        header: "Last Restock",
-        cell: ({ row }: any) => (
-          <div className="flex flex-col">
-            <span className="text-xs font-bold text-slate-700">
-              {row.original.lastStockInDate
-                ? new Date(row.original.lastStockInDate).toLocaleDateString()
-                : "No Activity"}
-            </span>
-            {/* <span className="text-[10px] text-slate-400 font-bold uppercase tracking-widest">
-              Last Restocked
-            </span> */}
-          </div>
-        ),
-      },
-      {
-        id: "actions",
-        header: "Actions",
-        cell: ({ row }: any) => (
-          <div className="flex items-center justify-end gap-2">
+        headerName: "Actions",
+        width: 150,
+        filter: false,
+        pinned: "right",
+        // FIX: Added cellClass to center the buttons
+        cellClass: "flex items-center justify-center mt-1",
+        cellRenderer: (params: any) => (
+          <Space size="small">
             <button
               onClick={() => {
-                setEditingItem(row.original);
+                setEditingItem(params.data);
                 setIsModalOpen(true);
               }}
-              className="p-2 text-slate-400 hover:text-indigo-600 hover:bg-indigo-50 rounded-lg transition-all cursor-pointer"
+              className="p-2 mt-2 rounded hover:text-slate-400 cursor-pointer"
             >
-              <Edit3 size={16} />
+              <Pencil size={18} />
             </button>
             <button
-              onClick={() => handleDelete(row.original.id, row.original.name)}
-              className="p-2 text-slate-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-all cursor-pointer"
+              onClick={() => handleDelete(params.data.id, params.data.name)}
+              className="p-2 mt-2 rounded text-red-600  hover:text-red-400 cursor-pointer"
             >
-              <Trash2 size={16} />
+              <Trash2 size={18} />
             </button>
-          </div>
+          </Space>
         ),
       },
     ],
     [],
   );
 
-  const table = useReactTable({
-    data: items,
-    columns,
-    state: { globalFilter },
-    onGlobalFilterChange: setGlobalFilter,
-    getCoreRowModel: getCoreRowModel(),
-    getFilteredRowModel: getFilteredRowModel(),
-    getPaginationRowModel: getPaginationRowModel(),
-    initialState: { pagination: { pageSize: 8 } },
-  });
+  const handleDelete = async (id: string, name: string) => {
+    if (!confirm(`Permanently delete ${name}?`)) return;
+    try {
+      await api.delete(`/inventory/stocks/${id}`);
+      toast.success("Item deleted");
+      fetchInventory();
+    } catch (err) {
+      toast.error("Failed to delete");
+    }
+  };
+
+  const chartData = useMemo(() => items.slice(0, 8), [items]);
 
   return (
-    <div className="p-8 bg-[#F8FAFC] min-h-screen text-slate-900 font-sans">
-      <div className="  mx-auto space-y-8">
-        {/* ENTERPRISE HEADER */}
-        <div className="flex flex-col lg:flex-row justify-between items-start lg:items-end gap-6">
-          <div>
-            <div className="flex items-center gap-3 mb-2">
-              <div className="p-2.5 bg-slate-900 text-white rounded-xl shadow-lg">
-                <Package size={22} />
-              </div>
-              <h1 className="text-4xl font-black tracking-tight text-slate-900">
-                Stock{" "}
-                <span className="text-slate-400 font-medium ">Dashboard</span>
-              </h1>
+    <div className="p-6 bg-[#F8FAFC] min-h-screen space-y-6">
+      {/* HEADER */}
+      <div className="flex flex-col lg:flex-row justify-between items-start lg:items-center gap-4">
+        <div>
+          {/* <div className="flex items-center gap-3">
+            <div className="p-2 bg-slate-900 text-white rounded-xl shadow-lg">
+              <Package size={24} />
             </div>
-            <p className="text-slate-500 font-medium text-sm">
-              Resort Stock Management & Real-time Stock Logistics
-            </p>
+            <h1 className="text-3xl font-black tracking-tight">
+              Stock{" "}
+              <span className="text-slate-400 font-medium">Logistics</span>
+            </h1>
           </div>
-
-          <div className="flex items-center gap-3">
-            <Button
-              onClick={() => setIsModalOpen(true)}
-              // className="bg-slate-900 text-white cursor-pointer px-8 py-4 rounded-2xl font-bold text-xs uppercase tracking-widest flex items-center gap-3 hover:bg-blue-600 transition-all shadow-xl shadow-slate-200"
-            >
-              <Plus size={18} /> Add New Inventory
-            </Button>
-          </div>
+          <p className="text-slate-500 text-sm mt-1">
+            Real-time inventory valuation and asset tracking
+          </p> */}
         </div>
-
-        {/* inventory analytics */}
-
-        {/* {analyticsData && <InventoryAnalytics stats={analyticsData} />} */}
-        <InventoryAnalytics stats={analyticsData} />
-
-        {/* CONTROL CENTER */}
-        <div className="bg-white p-4 rounded-3xl border border-slate-200 shadow-sm flex flex-col lg:flex-row items-center gap-4">
-          <div className="relative flex-1 w-full">
-            <Search
-              className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400"
-              size={16}
-            />
-            <input
-              value={globalFilter ?? ""}
-              onChange={(e) => setGlobalFilter(e.target.value)}
-              placeholder="FILTER BY ITEM NAME OR SKU..."
-              className="w-[360px] pl-12 pr-4 py-3 bg-slate-50 border border-slate-100 rounded-2xl font-bold text-xs focus:ring-2 focus:ring-slate-900 transition-all outline-none"
-            />
-          </div>
-
-          <div className="flex items-center gap-2 bg-slate-50 border border-slate-100 px-4 py-2 rounded-2xl w-full lg:w-auto">
-            <Calendar size={14} className="text-slate-400" />
-            <input
-              type="date"
-              value={startDate}
-              onChange={(e) => setStartDate(e.target.value)}
-              className="bg-transparent border-none text-[10px] font-black outline-none focus:ring-0"
-            />
-            <ArrowRight size={12} className="text-slate-300" />
-            <input
-              type="date"
-              value={endDate}
-              onChange={(e) => setEndDate(e.target.value)}
-              className="bg-transparent border-none text-[10px] font-black outline-none focus:ring-0"
-            />
-          </div>
-
-          <div className="flex bg-slate-100 p-1 rounded-2xl w-full lg:w-auto">
-            {["ALL", "FOOD", "DRINKS"].map((t) => (
-              <button
-                key={t}
-                onClick={() => setTypeFilter(t)}
-                className={`flex-1 lg:px-8 py-2.5 rounded-xl text-[10px] font-black transition-all ${typeFilter === t ? "bg-white text-slate-900 shadow-sm" : "text-slate-400 hover:text-slate-600"}`}
-              >
-                {t}
-              </button>
-            ))}
-          </div>
-
-          <button
-            onClick={handleResetFilters}
-            className="p-3 bg-slate-900 text-white rounded-2xl hover:bg-blue-600 transition-all shadow-lg"
-          >
-            <RefreshCcw size={18} className={loading ? "animate-spin" : ""} />
-          </button>
-        </div>
-
-        {/* DATA GRID */}
-        <div className="bg-white rounded-[40px] border border-slate-200 shadow-sm overflow-hidden">
-          <div className="overflow-x-auto">
-            <table className="w-full text-left">
-              <thead className="bg-slate-50/50 border-b border-slate-100">
-                {table.getHeaderGroups().map((headerGroup) => (
-                  <tr key={headerGroup.id}>
-                    {headerGroup.headers.map((header) => (
-                      <th
-                        key={header.id}
-                        className="px-10 py-5 text-[10px] font-black text-slate-400 uppercase tracking-[0.2em]"
-                      >
-                        {flexRender(
-                          header.column.columnDef.header,
-                          header.getContext(),
-                        )}
-                      </th>
-                    ))}
-                  </tr>
-                ))}
-              </thead>
-              <tbody className="divide-y divide-slate-50">
-                {table.getRowModel().rows.map((row) => (
-                  <tr
-                    key={row.id}
-                    className="hover:bg-slate-50/50 transition-all group"
-                  >
-                    {row.getVisibleCells().map((cell) => (
-                      <td key={cell.id} className="px-10 py-6">
-                        {flexRender(
-                          cell.column.columnDef.cell,
-                          cell.getContext(),
-                        )}
-                      </td>
-                    ))}
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-
-          <div className="p-8 bg-slate-50/50 border-t border-slate-100 flex items-center justify-between">
-            <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">
-              Audit Trail: {table.getState().pagination.pageIndex + 1} /{" "}
-              {table.getPageCount()} Pages
-            </p>
-            <div className="flex gap-3">
-              <button
-                disabled={!table.getCanPreviousPage()}
-                onClick={() => table.previousPage()}
-                className="p-3 bg-white border border-slate-200 rounded-2xl disabled:opacity-30 hover:shadow-md transition-all"
-              >
-                <ChevronLeft size={20} />
-              </button>
-              <button
-                disabled={!table.getCanNextPage()}
-                onClick={() => table.nextPage()}
-                className="p-3 bg-white border border-slate-200 rounded-2xl disabled:opacity-30 hover:shadow-md transition-all"
-              >
-                <ChevronRight size={20} />
-              </button>
-            </div>
-          </div>
-        </div>
-
-        {/* MODAL OVERLAY */}
-        {isModalOpen && (
-          <div className="fixed inset-0 bg-slate-900/40 backdrop-blur-md z-[100] flex items-center justify-center p-4">
-            <StockInForm
-              editData={editingItem} // Pass edit data
-              onClose={() => {
-                setIsModalOpen(false);
-                setEditingItem(null); // Clear edit state on close
-              }}
-              onSuccess={() => {
-                fetchInventory();
-                setIsModalOpen(false);
-                setEditingItem(null);
-              }}
-            />
-          </div>
-        )}
+        <Button
+          variant={"default"}
+          onClick={() => setIsModalOpen(true)}
+          className="bg-slate-900 h-12 rounded-xl font-bold uppercase tracking-wider text-xs"
+        >
+          <Plus size={18} className="mr-2" /> Add New Stock
+        </Button>
       </div>
+
+      {/* ANALYTICS ROW */}
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
+        <div className="lg:col-span-4 grid grid-cols-2 gap-4">
+          <Card className="rounded-2xl border-none shadow-sm">
+            <Statistic
+              title={
+                <span className="text-[12px] font-extrabold uppercase text-slate-900">
+                  Total Equity
+                </span>
+              }
+              value={items.reduce(
+                (acc, curr: any) =>
+                  acc + curr.currentStock * curr.lastPurchasePrice,
+                0,
+              )}
+              prefix={<IndianRupee size={14} />}
+            />
+          </Card>
+          <Card className="rounded-2xl border-none shadow-sm">
+            <Statistic
+              title={
+                <span className="text-[12px] font-extrabold uppercase text-slate-900">
+                  Low Stock
+                </span>
+              }
+              value={items.filter((i: any) => i.currentStock < 10).length}
+              suffix={<AlertCircle size={14} className="text-red-500" />}
+            />
+          </Card>
+          <div className="col-span-2 bg-indigo-600 rounded-2xl p-5 text-white shadow-lg shadow-indigo-100 flex items-center justify-between">
+            <div>
+              <p className="text-xs opacity-80 uppercase font-bold">
+                Health Score
+              </p>
+              <h3 className="text-2xl font-black">94.2%</h3>
+            </div>
+            <TrendingUp size={32} className="opacity-40" />
+          </div>
+        </div>
+
+        <Card
+          className="lg:col-span-8 rounded-2xl border-none shadow-sm"
+          styles={{ body: { padding: "12px" } }}
+        >
+          <ResponsiveContainer width="100%" height={160}>
+            <BarChart data={chartData}>
+              <CartesianGrid
+                strokeDasharray="3 3"
+                vertical={false}
+                stroke="#f1f5f9"
+              />
+              <XAxis
+                dataKey="name"
+                axisLine={false}
+                tickLine={false}
+                tick={{ fontSize: 10, fill: "#94a3b8" }}
+              />
+              <Tooltip
+                cursor={{ fill: "#f8fafc" }}
+                contentStyle={{
+                  borderRadius: "12px",
+                  border: "none",
+                  boxShadow: "0 10px 15px -3px rgba(0,0,0,0.1)",
+                }}
+              />
+              <Bar
+                dataKey="currentStock"
+                fill="#6366f1"
+                radius={[4, 4, 0, 0]}
+                barSize={30}
+              />
+            </BarChart>
+          </ResponsiveContainer>
+        </Card>
+      </div>
+
+      {/* CONTROL CENTER */}
+      <div className="  p-3   flex flex-col lg:flex-row items-center gap-4">
+        <SearchBar
+          placeholder="Filter by SKU or Name..."
+          value={search}
+          onChange={(e) => setSearch(e.target.value)}
+          containerClassName="flex-1"
+        />
+        {/* STOCK STATUS FILTER */}
+        <div className="flex bg-slate-100 p-1 rounded-xl">
+          {["ALL", "LOW", "MID", "HEALTHY"].map((s) => (
+            <button
+              key={s}
+              onClick={() => setStatusFilter(s)}
+              className={`px-4 py-3 rounded-lg text-[10px] font-black transition-all ${
+                statusFilter === s
+                  ? "bg-white text-slate-900 shadow-sm"
+                  : "text-slate-400 hover:text-slate-600"
+              }`}
+            >
+              {/* Optional: Add colored dots for visual cue */}
+              <span className="flex items-center gap-2">
+                {s !== "ALL" && (
+                  <span
+                    className={`w-1.5 h-1.5 rounded-full ${
+                      s === "LOW"
+                        ? "bg-red-500"
+                        : s === "MID"
+                          ? "bg-amber-500"
+                          : "bg-emerald-500"
+                    }`}
+                  />
+                )}
+                {s}
+              </span>
+            </button>
+          ))}
+        </div>
+
+        <RangePicker
+          className="h-12 rounded-xl border-slate-200"
+          value={dateRange}
+          onChange={(vals) => setDateRange(vals as any)}
+        />
+
+        <div className="flex bg-slate-100 p-1 rounded-xl">
+          {["ALL", "FOOD", "DRINKS"].map((t) => (
+            <button
+              key={t}
+              onClick={() => setTypeFilter(t)}
+              className={`px-6 py-3 rounded-lg text-[10px] font-black transition-all ${typeFilter === t ? "bg-white text-slate-900 shadow-sm" : "text-slate-400 hover:text-slate-600"}`}
+            >
+              {t}
+            </button>
+          ))}
+        </div>
+
+        <Button
+          variant={"terminalGhost"}
+          onClick={fetchInventory}
+          // className="h-12 w-12 flex items-center justify-center rounded-xl bg-slate-900 text-white border-none"
+        >
+          <RefreshCcw size={16} className={loading ? "animate-spin" : ""} />
+        </Button>
+      </div>
+
+      {/* AG GRID DATA TABLE */}
+      <div className="bg-white rounded-3xl border border-slate-200 shadow-sm overflow-hidden flex flex-col">
+        <div className="ag-theme-quartz w-full h-[500px]">
+          {loading ? (
+            <div className="h-full flex items-center justify-center">
+              <Spin size="large" />
+            </div>
+          ) : (
+            <AgGridReact
+              rowData={items}
+              columnDefs={columnDefs}
+              quickFilterText={search}
+              pagination={true}
+              paginationPageSize={20}
+              rowHeight={60}
+              headerHeight={50}
+              // This ensures all columns inherit vertical centering
+              defaultColDef={{
+                resizable: true,
+                sortable: true,
+                filter: true,
+                cellClass: "flex items-center",
+              }}
+              isExternalFilterPresent={isExternalFilterPresent}
+              doesExternalFilterPass={doesExternalFilterPass}
+            />
+          )}
+        </div>
+      </div>
+
+      {/* MODAL */}
+      {isModalOpen && (
+        <div className="fixed inset-0 bg-slate-900/40 backdrop-blur-md z-[100] flex items-center justify-center p-4">
+          <StockInForm
+            editData={editingItem}
+            onClose={() => {
+              setIsModalOpen(false);
+              setEditingItem(null);
+            }}
+            onSuccess={() => {
+              fetchInventory();
+              setIsModalOpen(false);
+              setEditingItem(null);
+            }}
+          />
+        </div>
+      )}
     </div>
   );
 }

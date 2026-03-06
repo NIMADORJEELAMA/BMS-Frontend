@@ -57,12 +57,18 @@ export default function EnterprisePerformanceReport() {
         width: 70,
         pinned: "left",
         suppressMovable: true, // Recommended for a rank column
+        cellRenderer: (params: any) => (
+          <span className="font-bold text-slate-700">{params.value}</span>
+        ),
       },
       {
         field: "name",
         headerName: "Product",
         flex: 1,
         filter: "agTextColumnFilter",
+        cellRenderer: (params: any) => (
+          <span className="font-bold text-slate-700">{params.value}</span>
+        ),
       },
       {
         field: "quantity",
@@ -205,7 +211,7 @@ function KPICard({
 
   return (
     <Card
-      className="border-slate-200 rounded-2xl shadow-sm overflow-hidden"
+      className="border-slate-200 rounded-[6rem] shadow-sm overflow-hidden"
       styles={{ body: { padding: "16px" } }}
     >
       <div
