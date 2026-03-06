@@ -68,7 +68,6 @@ export default function RoomModal({
       basePrice: 0,
     },
   });
-  console.log("initialData", initialData);
 
   useEffect(() => {
     if (isOpen) {
@@ -234,10 +233,13 @@ export default function RoomModal({
             {/* Action Buttons */}
             <div className="pt-4 flex gap-3">
               <Button
+                type="button" // <--- ADD THIS LINE
                 variant={"terminalGhost"}
-                onClick={onClose}
+                onClick={(e) => {
+                  e.preventDefault(); // Good practice to prevent any default behavior
+                  onClose();
+                }}
                 className="flex-[2]"
-                // className="flex-1 py-4 bg-white border border-slate-200 text-slate-600 rounded-2xl font-bold text-[11px] uppercase tracking-widest hover:bg-slate-50 transition-all"
               >
                 Cancel
               </Button>

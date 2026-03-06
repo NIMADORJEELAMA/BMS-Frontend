@@ -277,7 +277,7 @@ export default function BookingHistoryPage() {
         {/* STAT CARDS */}
         <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
           {/* Card 1: Revenue */}
-          <div className="bg-white rounded-[2rem] p-2 shadow-sm border border-slate-100 flex flex-col items-center justify-center text-center gap-4 transition-transform hover:scale-[1.02]">
+          <div className="bg-white rounded-2xl p-2 shadow-sm border border-slate-100 flex flex-col items-center justify-center text-center gap-4 transition-transform hover:scale-[1.02]">
             <div className="p-4 bg-emerald-50 text-emerald-600 rounded-2xl">
               <IndianRupee size={28} />
             </div>
@@ -297,7 +297,7 @@ export default function BookingHistoryPage() {
           </div>
 
           {/* Card 2: Bookings */}
-          <div className="bg-white rounded-[2rem] p-2 shadow-sm border border-slate-100 flex flex-col items-center justify-center text-center gap-4 transition-transform hover:scale-[1.02]">
+          <div className="bg-white rounded-2xl p-2 shadow-sm border border-slate-100 flex flex-col items-center justify-center text-center gap-4 transition-transform hover:scale-[1.02]">
             <div className="p-4 bg-blue-50 text-blue-600 rounded-2xl">
               <Users size={28} />
             </div>
@@ -312,7 +312,7 @@ export default function BookingHistoryPage() {
           </div>
 
           {/* Card 3: Checked Out */}
-          <div className="bg-white rounded-[2rem] p-2 shadow-sm border border-slate-100 flex flex-col items-center justify-center text-center gap-4 transition-transform hover:scale-[1.02]">
+          <div className="bg-white rounded-2xl p-2 shadow-sm border border-slate-100 flex flex-col items-center justify-center text-center gap-4 transition-transform hover:scale-[1.02]">
             <div className="p-4 bg-purple-50 text-purple-600 rounded-2xl">
               <TrendingUp size={28} />
             </div>

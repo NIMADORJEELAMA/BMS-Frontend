@@ -1,12 +1,17 @@
 "use client";
-import { useState } from "react";
+
+import { useState, useMemo } from "react";
 import { useUsers, useDeleteUser } from "@/hooks/useUsers";
 import StaffModal from "@/components/staff/StaffModal";
-import { Plus, Search, Shield, User, Trash2, Edit3 } from "lucide-react";
+import { Plus, Shield, User, Trash2, Edit3, Settings2 } from "lucide-react";
 import toast from "react-hot-toast";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
 import { SearchBar } from "@/components/ui/SearchBar";
+
+// AG Grid Imports
+import { AgGridReact } from "ag-grid-react";
+import { ColDef } from "ag-grid-community";
+import "@/lib/agGrid";
 
 export default function StaffPage() {
   const { data: users = [], isLoading } = useUsers();
@@ -15,13 +20,7 @@ export default function StaffPage() {
   const [selectedUser, setSelectedUser] = useState<any>(null);
   const [search, setSearch] = useState("");
 
-  const filteredUsers = users.filter(
-    (u: any) =>
-      u.name.toLowerCase().includes(search.toLowerCase()) ||
-      u.email.toLowerCase().includes(search.toLowerCase()),
-  );
-
-  const handleDelete = async (id: string, name: string) => {
+  const handleDelete = (id: string, name: string) => {
     if (confirm(`Confirm permanent removal of ${name}?`)) {
       deleteUser.mutate(id, {
         onSuccess: () => toast.success("Employee removed from records"),
@@ -34,27 +33,113 @@ export default function StaffPage() {
     }
   };
 
+  // AG Grid Column Definitions
+  const columnDefs = useMemo<ColDef[]>(
+    () => [
+      {
+        headerName: "Employee",
+        field: "name",
+        flex: 2,
+        cellRenderer: (params: any) => (
+          <div className="flex items-center gap-3 h-full">
+            <div className="w-8 h-8 rounded-full bg-slate-100 flex items-center justify-center text-slate-500 font-bold border border-slate-200 text-[10px] uppercase">
+              {params.data.name.charAt(0)}
+            </div>
+            <div className="leading-tight">
+              <p className="text-sm font-semibold text-slate-900">
+                {params.data.name}
+              </p>
+              <p className="text-[11px] text-slate-500">{params.data.email}</p>
+            </div>
+          </div>
+        ),
+      },
+      {
+        headerName: "Role",
+        field: "role",
+        width: 150,
+        cellRenderer: (params: any) => (
+          /* Added h-full to allow vertical centering */
+          <div className="flex items-center justify-start gap-2 h-full">
+            {params.value === "ADMIN" ? (
+              <Shield size={14} className="text-indigo-500" />
+            ) : (
+              <User size={14} className="text-slate-400" />
+            )}
+            <span className="text-xs font-medium text-slate-700 uppercase">
+              {params.value?.replace("_", " ")}
+            </span>
+          </div>
+        ),
+      },
+      {
+        headerName: "Status",
+        field: "isActive",
+        width: 130,
+        cellRenderer: (params: any) => (
+          <span
+            className={`flex items-center justify-start gap-2 h-full  ${
+              params.value ? "  text-emerald-700  " : "  text-slate-500  "
+            }`}
+          >
+            <span
+              className={`w-1.5 h-1.5 rounded-2xl ${params.value ? "bg-emerald-500" : "bg-slate-400"}`}
+            />
+            {params.value ? "Active" : "Inactive"}
+          </span>
+        ),
+      },
+      {
+        headerName: "Actions",
+        field: "id",
+        width: 120,
+        sortable: false,
+        filter: false,
+        pinned: "right",
+        cellRenderer: (params: any) => (
+          <div className="flex justify-center items-center gap-1 h-full">
+            <button
+              onClick={() => {
+                setSelectedUser(params.data);
+                setIsModalOpen(true);
+              }}
+              className="p-1.5 text-slate-400 hover:text-slate-900 hover:  rounded-md transition-all cursor-pointer"
+            >
+              <Edit3 size={15} />
+            </button>
+            <button
+              onClick={() => handleDelete(params.data.id, params.data.name)}
+              className="p-1.5 text-slate-400 hover:text-red-600 hover: rounded-md transition-all cursor-pointer"
+            >
+              <Trash2 size={15} />
+            </button>
+          </div>
+        ),
+      },
+    ],
+    [],
+  );
+
+  const defaultColDef = useMemo(
+    () => ({
+      sortable: true,
+      filter: true,
+      resizable: true,
+    }),
+    [],
+  );
+
   return (
-    <div className="space-y-6 p-6">
+    <div className="space-y-6 p-6 bg-[#fcfcfd] min-h-screen">
       {/* ENTERPRISE HEADER */}
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
-        <div>
-          <h1 className="text-2xl font-bold text-slate-900 tracking-tight">
-            Personnel Management
-          </h1>
-          <p className="text-slate-500 text-sm">
-            Manage staff access levels and resort permissions.
-          </p>
-        </div>
+        <div></div>
         <div className="flex items-center gap-3">
-          <div className="relative w-full max-w-sm">
-            <SearchBar
-              placeholder="Search employees..."
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
-            />
-          </div>
-
+          <SearchBar
+            placeholder="Quick search..."
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+          />
           <Button
             variant="terminal"
             onClick={() => {
@@ -62,125 +147,27 @@ export default function StaffPage() {
               setIsModalOpen(true);
             }}
           >
-            <Plus />
+            <Plus size={18} />
             Add Employee
           </Button>
         </div>
       </div>
 
-      {/* SUMMARY BAR */}
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-        <div className="bg-white p-4 border border-slate-200 rounded-xl">
-          <p className="text-slate-500 text-xs font-medium uppercase tracking-wider">
-            Total Staff
-          </p>
-          <p className="text-2xl font-bold text-slate-900 mt-1">
-            {users.length}
-          </p>
+      {/* AG GRID TABLE */}
+      <div className="bg-white border border-slate-200 rounded-xl shadow-sm overflow-hidden flex flex-col">
+        <div className="ag-theme-quartz w-full h-[600px]">
+          <AgGridReact
+            rowData={users}
+            columnDefs={columnDefs}
+            defaultColDef={defaultColDef}
+            quickFilterText={search}
+            pagination={true}
+            paginationPageSize={20}
+            animateRows={true}
+            rowHeight={56}
+            headerHeight={48}
+          />
         </div>
-        <div className="bg-white p-4 border border-slate-200 rounded-xl border-l-4 border-l-blue-500">
-          <p className="text-slate-500 text-xs font-medium uppercase tracking-wider">
-            Active Now
-          </p>
-          <p className="text-2xl font-bold text-slate-900 mt-1">
-            {users.filter((u: any) => u.isActive).length}
-          </p>
-        </div>
-      </div>
-
-      {/* DATA TABLE */}
-      <div className="bg-white border border-slate-200 rounded-xl shadow-sm overflow-hidden">
-        <table className="w-full text-left border-collapse">
-          <thead>
-            <tr className="bg-slate-50/50 border-b border-slate-200">
-              <th className="px-6 py-4 text-xs font-semibold text-slate-500 uppercase tracking-wider">
-                Name & Identity
-              </th>
-              <th className="px-6 py-4 text-xs font-semibold text-slate-500 uppercase tracking-wider">
-                Department / Role
-              </th>
-              <th className="px-6 py-4 text-xs font-semibold text-slate-500 uppercase tracking-wider">
-                Account Status
-              </th>
-              <th className="px-6 py-4 text-xs font-semibold text-slate-500 uppercase tracking-wider text-right">
-                Actions
-              </th>
-            </tr>
-          </thead>
-          <tbody className="divide-y divide-slate-100">
-            {filteredUsers.map((user: any) => (
-              <tr
-                key={user.id}
-                className="hover:bg-slate-50/50 transition-colors group"
-              >
-                <td className="px-6 py-4">
-                  <div className="flex items-center gap-3">
-                    <div className="w-10 h-10 rounded-full bg-slate-100 flex items-center justify-center text-slate-500 font-bold border border-slate-200 uppercase">
-                      {user.name.charAt(0)}
-                    </div>
-                    <div>
-                      <p className="text-sm font-semibold text-slate-900">
-                        {user.name}
-                      </p>
-                      <p className="text-xs text-slate-500">{user.email}</p>
-                    </div>
-                  </div>
-                </td>
-                <td className="px-6 py-4">
-                  <div className="flex items-center gap-2">
-                    {user.role === "ADMIN" ? (
-                      <Shield size={14} className="text-indigo-500" />
-                    ) : (
-                      <User size={14} className="text-slate-400" />
-                    )}
-                    <span className="text-xs font-medium text-slate-700 uppercase tracking-tight">
-                      {user.role.replace("_", " ")}
-                    </span>
-                  </div>
-                </td>
-                <td className="px-6 py-4">
-                  <span
-                    className={`inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wide border ${
-                      user.isActive
-                        ? "bg-emerald-50 text-emerald-700 border-emerald-100"
-                        : "bg-slate-50 text-slate-500 border-slate-200"
-                    }`}
-                  >
-                    <span
-                      className={`w-1.5 h-1.5 rounded-full ${user.isActive ? "bg-emerald-500" : "bg-slate-400"}`}
-                    ></span>
-                    {user.isActive ? "Active" : "Inactive"}
-                  </span>
-                </td>
-                <td className="px-6 py-4 text-right">
-                  <div className="flex justify-end items-center gap-1">
-                    <button
-                      onClick={() => {
-                        setSelectedUser(user);
-                        setIsModalOpen(true);
-                      }}
-                      className="p-2 text-slate-400 hover:text-slate-900 hover:bg-slate-100 rounded-md transition-all"
-                    >
-                      <Edit3 size={16} />
-                    </button>
-
-                    <button
-                      onClick={() => handleDelete(user.id, user.name)}
-                      className="p-2 text-slate-400 hover:text-red-600 hover:bg-red-50 rounded-md transition-all"
-                    >
-                      <Trash2 size={16} />
-                    </button>
-                  </div>
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-        {filteredUsers.length === 0 && !isLoading && (
-          <div className="py-20 text-center text-slate-400 text-sm">
-            No matching personnel records found.
-          </div>
-        )}
       </div>
 
       <StaffModal
@@ -188,6 +175,27 @@ export default function StaffPage() {
         onClose={() => setIsModalOpen(false)}
         editingUser={selectedUser}
       />
+    </div>
+  );
+}
+
+function StatsCard({
+  title,
+  value,
+  color,
+}: {
+  title: string;
+  value: number;
+  color?: string;
+}) {
+  return (
+    <div
+      className={`bg-white p-4 border border-slate-200 rounded-xl ${color === "blue" ? "border-l-4 border-l-blue-500" : ""}`}
+    >
+      <p className="text-slate-500 text-[10px] font-bold uppercase tracking-wider">
+        {title}
+      </p>
+      <p className="text-2xl font-bold text-slate-900 mt-1">{value}</p>
     </div>
   );
 }
