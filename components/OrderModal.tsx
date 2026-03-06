@@ -3,7 +3,7 @@ import { useEffect, useState, useCallback } from "react";
 import api from "@/lib/axios";
 import toast from "react-hot-toast";
 import { io } from "socket.io-client";
-import { Beer, X, Utensils } from "lucide-react";
+import { Beer, X, Utensils, Printer } from "lucide-react";
 import { Button } from "./ui/button";
 import {
   AlertDialog,
@@ -16,6 +16,7 @@ import {
   AlertDialogTitle,
   AlertDialogOverlay,
 } from "@/components/ui/alert-dialog";
+import dayjs from "dayjs";
 
 interface OrderModalProps {
   table: any;
@@ -36,6 +37,9 @@ export default function OrderModal({
   const [cashAmount, setCashAmount] = useState<number>(0);
   const [onlineAmount, setOnlineAmount] = useState<number>(0);
   const [isConfirmOpen, setIsConfirmOpen] = useState(false);
+  const [paymentType, setPaymentType] = useState<"FULL_CASH" | "FULL_UPI">(
+    "FULL_CASH",
+  );
   // Update amounts whenever order total changes or split is toggled
   useEffect(() => {
     if (order) {
@@ -226,7 +230,79 @@ export default function OrderModal({
       </span>
     );
   };
+  /* ================= PRINT LOGIC (Thermal Monospace) ================= */
+  const handlePrintReceipt = () => {
+    if (!order) return;
 
+    const win = window.open("", "_blank");
+    if (!win) return;
+    console.log("order==", order);
+    const shortId = order.id.slice(-5).toUpperCase();
+    const tableName = order.table?.number || "N/A";
+    const categoryName = order.table?.category?.name;
+    const isSplit = order.paymentMode === "SPLIT";
+    const dineInfo = `${tableName} (${categoryName})`;
+    // Helper functions for character-width alignment (STRICT 32 chars total)
+    const padRight = (text: string, len: number) =>
+      text.length >= len
+        ? text.slice(0, len)
+        : text + " ".repeat(len - text.length);
+
+    const padLeft = (text: string, len: number) =>
+      text.length >= len
+        ? text.slice(0, len)
+        : " ".repeat(len - text.length) + text;
+
+    // 1. FILTER & MAP ITEMS (Only served items for the bill)
+    const itemsText = (order.items || [])
+      .filter((item: any) => item.status === "SERVED")
+      .map((item: any) => {
+        // COLUMN BUDGET: Name(12) + Qty(4) + Rate(7) + Amt(9) = 32
+        const name = padRight(String(item.menuItem.name).toUpperCase(), 12);
+        const qty = padLeft(String(item.quantity), 4);
+        const rate = padLeft(String(item.priceAtOrder), 7);
+        const amt = padLeft(String(item.priceAtOrder * item.quantity), 9);
+        return `${name}${qty}${rate}${amt}`;
+      })
+      .join("\n");
+
+    const receiptString = `
+  GAIRIGAON HILL ECO TOURISM
+      Jaigaon, West Bengal
+          +91-7547957222
+--------------------------------
+BILL NO : #${shortId}
+DINE IN :${dineInfo}
+WAITER  : ${order.waiter?.name || "N/A"}
+DATE    : ${dayjs().format("DD/MM/YYYY  hh:mm A")}
+--------------------------------
+ITEM         QTY   RATE      AMT
+--------------------------------
+${itemsText}
+--------------------------------
+GRAND TOTAL            ${padLeft(String(order.totalAmount || calculateTotal()), 8)}
+--------------------------------
+          THANK YOU!
+      PLEASE VISIT AGAIN
+
+              
+`;
+
+    win.document.write(`
+    <html><head><style>
+      body { 
+        font-family: 'Courier New', Courier, monospace; 
+        font-size: 12px; 
+        white-space: pre; 
+        margin: 0; 
+        padding: 5mm; 
+        width: 32ch;
+      }
+    </style></head>
+    <body onload="window.print(); window.close();">${receiptString}</body></html>
+  `);
+    win.document.close();
+  };
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
       <div className="bg-white rounded-3xl shadow-2xl w-full max-w-md overflow-hidden animate-in zoom-in duration-200 border border-gray-100">
@@ -236,7 +312,7 @@ export default function OrderModal({
         >
           <div>
             <h3 className="text-xl font-black tracking-tight uppercase">
-              {isBilled ? "Receipt Bill" : `Table ${table.name}`}
+              {isBilled ? "Receipt Bill" : ` ${table.name}`}
             </h3>
             <p
               className={`text-[10px] font-bold uppercase tracking-widest ${isBilled ? "text-blue-600" : "text-gray-400"}`}
@@ -311,19 +387,67 @@ export default function OrderModal({
 
                 {!isSplitPay ? (
                   /* Quick Actions */
-                  <div className="grid grid-cols-2 gap-3">
-                    <Button
-                      variant="default"
-                      onClick={() => handlePayment("FULL_CASH")}
-                    >
-                      Cash
-                    </Button>
-                    <Button
-                      variant="default"
-                      onClick={() => handlePayment("FULL_UPI")}
-                    >
-                      UPI
-                    </Button>
+                  <div className="flex flex-col gap-4">
+                    {/* SLIDER / TOGGLE SECTION */}
+                    <div className="bg-gray-100 p-1 rounded-2xl flex relative h-12">
+                      {/* Sliding Background Indicator */}
+                      <div
+                        className={`absolute top-1 bottom-1 w-[calc(50%-4px)] bg-white rounded-xl shadow-sm transition-all duration-300 ease-in-out ${
+                          paymentType === "FULL_UPI"
+                            ? "translate-x-[100%]"
+                            : "translate-x-0"
+                        }`}
+                      />
+
+                      {/* Cash Option */}
+                      <button
+                        onClick={() => setPaymentType("FULL_CASH")}
+                        className={`flex-1 z-10 flex items-center justify-center gap-2 text-xs font-bold uppercase tracking-wider transition-colors ${
+                          paymentType === "FULL_CASH"
+                            ? "text-blue-600"
+                            : "text-gray-400"
+                        }`}
+                      >
+                        Cash
+                      </button>
+
+                      {/* UPI Option */}
+                      <button
+                        onClick={() => setPaymentType("FULL_UPI")}
+                        className={`flex-1 z-10 flex items-center justify-center gap-2 text-xs font-bold uppercase tracking-wider transition-colors ${
+                          paymentType === "FULL_UPI"
+                            ? "text-blue-600"
+                            : "text-gray-400"
+                        }`}
+                      >
+                        UPI
+                      </button>
+                    </div>
+
+                    {/* CONFIRM SETTLEMENT BUTTON */}
+                    <div className="flex gap-2 items-stretch mt-4">
+                      {/* PRINT RECEIPT (20% Width) */}
+                      <Button
+                        variant="terminalGhost"
+                        className="flex-[0.2] h-12 flex flex-col items-center justify-center p-0"
+                        onClick={handlePrintReceipt}
+                        title="Print Receipt"
+                      >
+                        <Printer size={18} />
+                        <span className="text-[8px] uppercase font-bold ">
+                          Print
+                        </span>
+                      </Button>
+
+                      {/* CONFIRM (80% Width) */}
+                      <Button
+                        variant="default"
+                        className="flex-[0.8] h-12 rounded-xl text-xs font-black uppercase tracking-[0.15em] shadow-lg"
+                        onClick={() => handlePayment(paymentType)}
+                      >
+                        Confirm {paymentType === "FULL_CASH" ? "Cash" : "UPI"}
+                      </Button>
+                    </div>
                   </div>
                 ) : (
                   /* Split Input View */
