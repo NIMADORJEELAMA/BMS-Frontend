@@ -324,6 +324,37 @@ export default function StockManagementPage() {
       {/* HEADER */}
       <div className="flex flex-col lg:flex-row justify-between items-start lg:items-center gap-4">
         <div>
+          <div className="flex flex-wrap gap-2">
+            {/* Hidden File Input */}
+            <input
+              type="file"
+              id="csv-upload"
+              accept=".csv"
+              className="hidden"
+              onChange={handleCSVUpload}
+            />
+
+            {/* Download Template Button */}
+            <Button
+              variant="default"
+              onClick={downloadCSVTemplate}
+              // className="h-12 rounded-xl border-slate-200 text-slate-600 hover:bg-slate-50 font-bold text-xs uppercase tracking-wider"
+            >
+              <div className="flex items-center gap-2">
+                <Download size={14} />
+                Template
+              </div>
+            </Button>
+            <Button
+              variant="default"
+              onClick={() => document.getElementById("csv-upload")?.click()}
+              className="h-12 rounded-xl bg-indigo-600 hover:bg-indigo-700 font-bold text-xs uppercase tracking-wider shadow-md shadow-indigo-100"
+            >
+              <Plus size={18} className="mr-2" />
+              Bulk Stock In
+            </Button>
+            {/* Import CSV Button */}
+          </div>
           {/* <div className="flex items-center gap-3">
             <div className="p-2 bg-slate-900 text-white rounded-xl shadow-lg">
               <Package size={24} />
@@ -344,40 +375,7 @@ export default function StockManagementPage() {
           onConfirm={handleConfirmUpload}
           isPending={isUploading}
         />
-        <div className="flex flex-wrap gap-2">
-          {/* Hidden File Input */}
-          <input
-            type="file"
-            id="csv-upload"
-            accept=".csv"
-            className="hidden"
-            onChange={handleCSVUpload}
-          />
 
-          {/* Download Template Button */}
-          <Button
-            variant="outline"
-            onClick={downloadCSVTemplate}
-            className="h-12 rounded-xl border-slate-200 text-slate-600 hover:bg-slate-50 font-bold text-xs uppercase tracking-wider"
-          >
-            <div className="flex items-center gap-2">
-              <div className="p-1 bg-slate-100 rounded-md">
-                <Download size={14} />
-              </div>
-              Template
-            </div>
-          </Button>
-
-          {/* Import CSV Button */}
-          <Button
-            variant="default"
-            onClick={() => document.getElementById("csv-upload")?.click()}
-            className="h-12 rounded-xl bg-indigo-600 hover:bg-indigo-700 font-bold text-xs uppercase tracking-wider shadow-md shadow-indigo-100"
-          >
-            <Plus size={18} className="mr-2" />
-            Bulk Stock In
-          </Button>
-        </div>
         <Button
           variant={"default"}
           onClick={() => setIsModalOpen(true)}
