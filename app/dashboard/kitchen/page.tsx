@@ -26,7 +26,7 @@ import { useKitchenSocket } from "@/hooks/use-kitchen-socket";
 
 export default function KitchenPage() {
   const [rawItems, setRawItems] = useState([]);
-  // const socket = useMemo(() => io("http://localhost:3000"), []);
+  // const socket = useMemo(() => io("http://localhost:3000"), []) ss;
   const [printingId, setPrintingId] = useState<string | null>(null);
   const fetchKitchenQueue = async () => {
     try {
