@@ -30,7 +30,7 @@ export default function LoginPage() {
       localStorage.setItem("token", response.data.access_token);
       localStorage.setItem("user", JSON.stringify(response.data.user));
 
-      toast.success("Authentication successful. Welcome back!");
+      // toast.success("Authentication successful. Welcome back!");
 
       // Force redirect to dashboard
       router.push("/dashboard");
@@ -58,7 +58,7 @@ export default function LoginPage() {
             <Hotel size={20} />
           </div>
           <span className="text-xl font-black text-white uppercase tracking-tighter italic">
-            minizeo
+            Gairigaon Hill Eco Tourism
           </span>
         </div>
 

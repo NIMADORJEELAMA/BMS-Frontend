@@ -41,9 +41,11 @@ export default function Sidebar() {
     { name: "Tables", href: "/dashboard/tables", icon: Table },
     { name: "Menu Items", href: "/dashboard/menu", icon: UtensilsCrossed },
     { name: "Bill", href: "/dashboard/bills", icon: FileText },
-    { name: "Sales Report", href: "/dashboard/reports", icon: BarChart3 },
+    // { name: "Food Report", href: "/dashboard/reports", icon: BarChart3 },
+    { name: "Sales Report", href: "/dashboard/salesReport", icon: BarChart3 },
+
     {
-      name: "Sales Month",
+      name: "Food Report",
       href: "/dashboard/customReport",
       icon: CalendarDays,
     },
@@ -73,12 +75,12 @@ export default function Sidebar() {
             isOpen ? "opacity-100" : "opacity-0 w-0",
           )}
         >
-          <h2 className="text-2xl font-bold text-blue-400 whitespace-nowrap">
-            minizeo
+          <h2 className="text-xl font-bold text-blue-400 whitespace-nowrap">
+            Hill Top Eco Tourism
           </h2>
-          <p className="text-xs text-slate-400 whitespace-nowrap">
+          {/* <p className="text-xs text-slate-400 whitespace-nowrap">
             Admin Portal
-          </p>
+          </p> */}
         </div>
 
         {/* Toggle Button */}

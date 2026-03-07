@@ -163,7 +163,7 @@ export default function SalesReportPage() {
         <footer className="bg-gray-900 p-8 rounded-[40px] text-center">
           <ShoppingBag className="mx-auto text-blue-500 mb-4" size={32} />
           <p className="text-white font-black uppercase text-xs tracking-widest">
-            minizeo pos intelligence
+            Hill Top pos intelligence
           </p>
           <p className="text-gray-500 text-[10px] mt-1 font-bold">
             Automatic sync enabled • Real-time database accuracy

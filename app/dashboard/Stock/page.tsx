@@ -4,6 +4,7 @@ import { useState, useMemo, useEffect, useCallback } from "react";
 import api from "@/lib/axios";
 import toast from "react-hot-toast";
 import dayjs from "dayjs";
+import Papa from "papaparse";
 
 // UI Components
 import { DatePicker, Card, Statistic, Tag, Spin, Space } from "antd";
@@ -21,6 +22,7 @@ import {
   Trash2,
   Edit3,
   Pencil,
+  Download,
 } from "lucide-react";
 import { SearchBar } from "@/components/ui/SearchBar";
 
@@ -41,6 +43,8 @@ import "@/lib/agGrid";
 
 import StockInForm from "@/components/StockInForm";
 
+import BulkStockModal from "./BulkStockModal";
+
 const { RangePicker } = DatePicker;
 
 export default function StockManagementPage() {
@@ -53,6 +57,9 @@ export default function StockManagementPage() {
   const [dateRange, setDateRange] = useState<[dayjs.Dayjs, dayjs.Dayjs] | null>(
     null,
   );
+  const [previewData, setPreviewData] = useState<any[]>([]);
+  const [isPreviewOpen, setIsPreviewOpen] = useState(false);
+  const [isUploading, setIsUploading] = useState(false);
   const [statusFilter, setStatusFilter] = useState("ALL"); // ALL, LOW, MID, HEALTHY
   // 1. Check if filter should be active
   const isExternalFilterPresent = useCallback(() => {
@@ -93,7 +100,73 @@ export default function StockManagementPage() {
     fetchInventory();
   }, [fetchInventory]);
 
-  // AG Grid Column Definitions
+  const downloadCSVTemplate = () => {
+    // Define the headers based on what your Papaparse logic expects
+    const headers = ["Name", "Quantity", "Unit", "Type", "Price"];
+    const sampleData = ["POTATO", "10", "KG", "FOOD", "35"];
+
+    // Combine into a CSV string
+    const csvContent = [headers, sampleData].map((e) => e.join(",")).join("\n");
+
+    // Create a download link
+    const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.setAttribute("href", url);
+    link.setAttribute("download", "inventory_template.csv");
+    link.style.visibility = "hidden";
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  };
+  const handleCSVUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    Papa.parse(file, {
+      header: true,
+      skipEmptyLines: true,
+      complete: (results) => {
+        // Map CSV keys to match your Preview Modal field names
+        const mappedData = results.data.map((row: any) => ({
+          name: row.Name || "",
+          quantity: row.Quantity || 0,
+          unit: row.Unit || "PCS",
+          type: row.Type?.toUpperCase() === "DRINKS" ? "DRINKS" : "FOOD",
+          price: row.Price || 0,
+          category: row.Category || row.Type || "General", // For your modal's category col
+        }));
+
+        setPreviewData(mappedData);
+        setIsPreviewOpen(true);
+        // Reset input so the same file can be uploaded again if needed
+        e.target.value = "";
+      },
+    });
+  };
+  const handleConfirmUpload = async (finalData: any[]) => {
+    try {
+      setIsUploading(true);
+      // Transform data back to match your backend DTO
+      const payload = finalData.map((item) => ({
+        name: item.name,
+        quantity: parseFloat(item.quantity),
+        unit: item.unit || "PCS",
+        type: item.type,
+        purchasePrice: parseFloat(item.price),
+        reason: "Bulk Import",
+      }));
+
+      await api.post("/inventory/bulk-stocks", { items: payload });
+      toast.success(`Successfully imported ${payload.length} items`);
+      setIsPreviewOpen(false);
+      fetchInventory();
+    } catch (err) {
+      toast.error("Failed to upload data. Please check your inputs.");
+    } finally {
+      setIsUploading(false);
+    }
+  };
   // AG Grid Column Definitions
   const columnDefs = useMemo<ColDef[]>(
     () => [
@@ -171,6 +244,28 @@ export default function StockManagementPage() {
         },
       },
       {
+        headerName: "Last Purchase",
+        field: "lastPurchasePrice",
+        width: 140,
+        filter: false,
+        cellClass: "flex items-center font-medium text-slate-600",
+        cellRenderer: (p: any) => (
+          <span>₹{p.value?.toLocaleString() || "0"}</span>
+        ),
+      },
+      {
+        headerName: "Last Updated",
+        field: "lastStockInDate",
+        width: 160,
+        filter: false,
+        cellClass: "flex items-center text-slate-500 text-xs",
+        cellRenderer: (p: any) => (
+          <span>
+            {p.value ? dayjs(p.value).format("DD MMM, hh:mm A") : "---"}
+          </span>
+        ),
+      },
+      {
         headerName: "Value (Equity)",
         filter: false,
         // Note: valueGetter is better for sorting/filtering
@@ -241,6 +336,47 @@ export default function StockManagementPage() {
           <p className="text-slate-500 text-sm mt-1">
             Real-time inventory valuation and asset tracking
           </p> */}
+        </div>
+        <BulkStockModal
+          isOpen={isPreviewOpen}
+          onClose={() => setIsPreviewOpen(false)}
+          data={previewData}
+          onConfirm={handleConfirmUpload}
+          isPending={isUploading}
+        />
+        <div className="flex flex-wrap gap-2">
+          {/* Hidden File Input */}
+          <input
+            type="file"
+            id="csv-upload"
+            accept=".csv"
+            className="hidden"
+            onChange={handleCSVUpload}
+          />
+
+          {/* Download Template Button */}
+          <Button
+            variant="outline"
+            onClick={downloadCSVTemplate}
+            className="h-12 rounded-xl border-slate-200 text-slate-600 hover:bg-slate-50 font-bold text-xs uppercase tracking-wider"
+          >
+            <div className="flex items-center gap-2">
+              <div className="p-1 bg-slate-100 rounded-md">
+                <Download size={14} />
+              </div>
+              Template
+            </div>
+          </Button>
+
+          {/* Import CSV Button */}
+          <Button
+            variant="default"
+            onClick={() => document.getElementById("csv-upload")?.click()}
+            className="h-12 rounded-xl bg-indigo-600 hover:bg-indigo-700 font-bold text-xs uppercase tracking-wider shadow-md shadow-indigo-100"
+          >
+            <Plus size={18} className="mr-2" />
+            Bulk Stock In
+          </Button>
         </div>
         <Button
           variant={"default"}

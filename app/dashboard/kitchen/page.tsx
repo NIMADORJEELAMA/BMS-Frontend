@@ -26,7 +26,7 @@ import { useKitchenSocket } from "@/hooks/use-kitchen-socket";
 
 export default function KitchenPage() {
   const [rawItems, setRawItems] = useState([]);
-  // const socket = useMemo(() => io("http://localhost:3000"), []) ss;
+  const socket = useMemo(() => io(process.env.NEXT_PUBLIC_SOCKET_URL), []);
   const [printingId, setPrintingId] = useState<string | null>(null);
   const fetchKitchenQueue = async () => {
     try {
@@ -36,13 +36,6 @@ export default function KitchenPage() {
       console.error("Error fetching kitchen queue:", err);
     }
   };
-  useKitchenSocket(
-    useCallback(() => {
-      new Audio("/Notification.mp3").play().catch(() => {});
-      fetchKitchenQueue();
-      toast.success("New KOT Received!", { position: "top-right" });
-    }, [fetchKitchenQueue]),
-  );
 
   // Group items by Order ID
   const groupedOrders = useMemo(() => {
@@ -76,17 +69,17 @@ export default function KitchenPage() {
     );
   }, [rawItems]);
 
-  // useEffect(() => {
-  //   fetchKitchenQueue();
-  //   socket.on("kitchenUpdate", () => {
-  //     new Audio("/Notification.mp3").play().catch(() => {});
-  //     fetchKitchenQueue();
-  //     toast.success("New KOT Received!");
-  //   });
-  //   return () => {
-  //     socket.off("kitchenUpdate");
-  //   };
-  // }, [socket]);
+  useEffect(() => {
+    fetchKitchenQueue();
+    socket.on("kitchenUpdate", () => {
+      new Audio("/Notification.mp3").play().catch(() => {});
+      fetchKitchenQueue();
+      toast.success("New KOT Received!");
+    });
+    return () => {
+      socket.off("kitchenUpdate");
+    };
+  }, [socket]);
 
   const handleMarkItemReady = async (itemId: string) => {
     try {
