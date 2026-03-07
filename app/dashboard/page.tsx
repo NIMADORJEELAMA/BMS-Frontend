@@ -13,7 +13,8 @@ import OrderModal from "../../components/OrderModal";
 import { twMerge } from "tailwind-merge";
 import { ClassValue, clsx } from "clsx";
 
-const SOCKET_URL = "http://localhost:3000";
+const SOCKET_URL =
+  process.env.NEXT_PUBLIC_SOCKET_URL || "http://localhost:3000";
 
 export default function DashboardPage() {
   const queryClient = useQueryClient();
@@ -95,11 +96,13 @@ export default function DashboardPage() {
   }, [liveOrders]);
 
   // Handle Socket Events
+
   useEffect(() => {
-    const socket = io(SOCKET_URL);
+    const socket = io(SOCKET_URL, {
+      transports: ["websocket"],
+    });
 
     socket.on("tableUpdated", () => {
-      // Instead of manual fetch, we tell TanStack to refresh
       queryClient.invalidateQueries({ queryKey: ["table-layout"] });
     });
 
@@ -108,20 +111,47 @@ export default function DashboardPage() {
         const table = tables.find(
           (t: any) => t?.activeOrder?.id === data.orderId,
         );
-        console.log("table", table);
+
         toast(`${table?.name || ""}: Food is READY!`, {
           icon: "🍴",
           style: { background: "#10b981", color: "#fff" },
         });
+
         queryClient.invalidateQueries({ queryKey: ["table-layout"] });
       }
     });
 
     return () => {
-      socket.off("tableUpdated");
-      socket.off("itemStatusUpdated");
+      socket.disconnect(); // important
     };
   }, [tables, queryClient]);
+  // useEffect(() => {
+  //   const socket = io(SOCKET_URL);
+
+  //   socket.on("tableUpdated", () => {
+  //     // Instead of manual fetch, we tell TanStack to refresh
+  //     queryClient.invalidateQueries({ queryKey: ["table-layout"] });
+  //   });
+
+  //   socket.on("itemStatusUpdated", (data) => {
+  //     if (data.status === "READY") {
+  //       const table = tables.find(
+  //         (t: any) => t?.activeOrder?.id === data.orderId,
+  //       );
+  //       console.log("table", table);
+  //       toast(`${table?.name || ""}: Food is READY!`, {
+  //         icon: "🍴",
+  //         style: { background: "#10b981", color: "#fff" },
+  //       });
+  //       queryClient.invalidateQueries({ queryKey: ["table-layout"] });
+  //     }
+  //   });
+
+  //   return () => {
+  //     socket.off("tableUpdated");
+  //     socket.off("itemStatusUpdated");
+  //   };
+  // }, [tables, queryClient]);
 
   // Socket for New Orders
   useSocket(

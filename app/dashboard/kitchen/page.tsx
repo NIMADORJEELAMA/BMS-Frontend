@@ -1,5 +1,5 @@
 "use client";
-import { useEffect, useState, useMemo } from "react";
+import { useEffect, useState, useMemo, useCallback } from "react";
 import api from "@/lib/axios";
 import toast from "react-hot-toast";
 import { io } from "socket.io-client";
@@ -22,9 +22,11 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
 
+import { useKitchenSocket } from "@/hooks/use-kitchen-socket";
+
 export default function KitchenPage() {
   const [rawItems, setRawItems] = useState([]);
-  const socket = useMemo(() => io("http://localhost:3000"), []);
+  // const socket = useMemo(() => io("http://localhost:3000"), []);
   const [printingId, setPrintingId] = useState<string | null>(null);
   const fetchKitchenQueue = async () => {
     try {
@@ -34,6 +36,13 @@ export default function KitchenPage() {
       console.error("Error fetching kitchen queue:", err);
     }
   };
+  useKitchenSocket(
+    useCallback(() => {
+      new Audio("/Notification.mp3").play().catch(() => {});
+      fetchKitchenQueue();
+      toast.success("New KOT Received!", { position: "top-right" });
+    }, [fetchKitchenQueue]),
+  );
 
   // Group items by Order ID
   const groupedOrders = useMemo(() => {
@@ -67,17 +76,17 @@ export default function KitchenPage() {
     );
   }, [rawItems]);
 
-  useEffect(() => {
-    fetchKitchenQueue();
-    socket.on("kitchenUpdate", () => {
-      new Audio("/Notification.mp3").play().catch(() => {});
-      fetchKitchenQueue();
-      toast.success("New KOT Received!");
-    });
-    return () => {
-      socket.off("kitchenUpdate");
-    };
-  }, [socket]);
+  // useEffect(() => {
+  //   fetchKitchenQueue();
+  //   socket.on("kitchenUpdate", () => {
+  //     new Audio("/Notification.mp3").play().catch(() => {});
+  //     fetchKitchenQueue();
+  //     toast.success("New KOT Received!");
+  //   });
+  //   return () => {
+  //     socket.off("kitchenUpdate");
+  //   };
+  // }, [socket]);
 
   const handleMarkItemReady = async (itemId: string) => {
     try {

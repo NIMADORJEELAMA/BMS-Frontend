@@ -17,6 +17,7 @@ import {
   AlertDialogOverlay,
 } from "@/components/ui/alert-dialog";
 import dayjs from "dayjs";
+import { useTableSocket } from "@/hooks/use-table-socket";
 
 interface OrderModalProps {
   table: any;
@@ -72,17 +73,23 @@ export default function OrderModal({
     }
   }, [table.id]);
 
-  useEffect(() => {
-    const socket = io("http://localhost:3000");
-    socket.on("tableUpdated", (data) => {
-      if (data.tableId === table.id) {
-        fetchActiveOrder();
-      }
-    });
-    return () => {
-      socket.disconnect();
-    };
-  }, [table.id, fetchActiveOrder]);
+  useTableSocket(
+    table.id,
+    useCallback(() => {
+      fetchActiveOrder();
+    }, [fetchActiveOrder]),
+  );
+  // useEffect(() => {
+  //   const socket = io("http://localhost:3000");
+  //   socket.on("tableUpdated", (data) => {
+  //     if (data.tableId === table.id) {
+  //       fetchActiveOrder();
+  //     }
+  //   });
+  //   return () => {
+  //     socket.disconnect();
+  //   };
+  // }, [table.id, fetchActiveOrder]);
 
   // Inside OrderModal.tsx
   useEffect(() => {
