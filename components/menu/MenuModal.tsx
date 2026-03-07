@@ -62,6 +62,7 @@ export default function MenuModal({
               onSubmit={onSubmit}
               isPending={isPending}
               alcoholInventory={alcoholInventory}
+              onCancel={onClose}
             />
           </div>
         </motion.div>

@@ -47,10 +47,10 @@ const roomSchema = z.object({
   roomNumber: z.string().min(1, "Room number is required"),
   // type: z.enum(["STANDARD", "DELUXE", "SUITE"]),
   categoryId: z.string().min(1, "Category is required"),
-  basePrice: z.coerce.number().min(1, "Price must be greater than 0"),
+  basePrice: z.coerce.number().min(0),
 });
 
-type RoomFormValues = z.infer<typeof roomSchema>;
+type RoomFormValues = z.input<typeof roomSchema>;
 
 export default function RoomModal({
   isOpen,
@@ -217,11 +217,12 @@ export default function RoomModal({
                       Rate (₹)
                     </FormLabel>
                     <FormControl>
-                      <Input
+                      <input
                         type="number"
                         placeholder="0.00"
-                        {...field}
-                        className="h-12 rounded-xl border-slate-200 focus:ring-indigo-500/20 font-black   text-md"
+                        value={(field.value as number | string) ?? ""}
+                        onChange={(e) => field.onChange(Number(e.target.value))}
+                        className="h-12 rounded-xl border-slate-200 focus:ring-indigo-500/20 font-black text-md"
                       />
                     </FormControl>
                     <FormMessage className="text-[10px]" />

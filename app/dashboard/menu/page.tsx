@@ -15,7 +15,9 @@ import {
 import { FileDown, Loader2, Plus, Tag, Upload, X } from "lucide-react";
 import { useState, useRef } from "react";
 import toast from "react-hot-toast";
+import { MenuItem } from "@/app/types/menu";
 import Papa from "papaparse";
+
 import BulkPreviewModal from "./BulkPreviewModal";
 export default function MenuPage() {
   const { data: menuItems = [], isLoading } = useMenu();
@@ -206,27 +208,6 @@ export default function MenuPage() {
       isActive: item.isActive,
     });
     setIsModalOpen(true);
-  };
-
-  const handleCsvUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-
-    // Optional: Basic file type validation
-    if (file.type !== "text/csv") {
-      toast.error("Please upload a valid CSV file");
-      return;
-    }
-
-    uploadMutation.mutate(file, {
-      onSuccess: (data) => {
-        toast.success(`Bulk upload successful!`);
-        // if (fileInputRef.current) fileInputRef.current.value = ""; // Reset input
-      },
-      onError: (error: any) => {
-        toast.error(error?.response?.data?.message || "CSV Upload failed");
-      },
-    });
   };
 
   const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {

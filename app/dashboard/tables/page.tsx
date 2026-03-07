@@ -329,7 +329,7 @@ export default function TablesPage() {
           categories={categories}
           onClose={closeModal}
           onConfirm={handleModalConfirm}
-          // onCategoryCreated={onCategoryCreated}
+          onCategoryCreated={onCategoryCreated}
         />
       </div>
 

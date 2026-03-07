@@ -142,7 +142,7 @@ export default function EnterpriseMenuTable({
         width: 180,
         // filter: false,
         // filter: "agSetColumnFilter",
-        cellRenderer: (params) => (
+        cellRenderer: (params: any) => (
           <span className="px-2 py-1 text-xs font-medium bg-slate-100 text-slate-700 rounded">
             {params.value}
           </span>
@@ -186,13 +186,13 @@ export default function EnterpriseMenuTable({
         field: "price",
         width: 160,
         filter: false,
-        cellClass: (params) =>
+        cellClass: (params: any) =>
           params.node.isRowPinned()
             ? "text-right font-black text-emerald-800"
             : "text-right font-semibold text-slate-900",
         valueFormatter: (params) => {
           // 1. Check if the row is pinned
-          if (params?.node.isRowPinned()) {
+          if (params?.node?.isRowPinned()) {
             return " "; // Return empty string for the total row
           }
 

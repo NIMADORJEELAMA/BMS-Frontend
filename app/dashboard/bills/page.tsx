@@ -59,7 +59,7 @@ export default function BillHistoryPage() {
   const pinnedBottomRowData = useMemo(() => {
     if (!filteredData.length) return [];
     const total = filteredData.reduce(
-      (sum, item) => sum + Number(item.totalAmount || 0),
+      (sum: number, item: any) => sum + Number(item.totalAmount || 0),
       0,
     );
     return [

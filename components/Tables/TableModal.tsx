@@ -14,7 +14,6 @@ interface TableModalProps {
   onConfirm: (data: any) => Promise<void>;
   onCategoryCreated: (newCat: any) => void;
 }
-
 export default function TableModal({
   isOpen,
   type,
@@ -22,7 +21,7 @@ export default function TableModal({
   categories,
   onClose,
   onConfirm,
-}) {
+}: TableModalProps) {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [formData, setFormData] = useState({
     number: "",

@@ -37,7 +37,6 @@ export default function AttendanceTab() {
       {
         userId,
         date: dateStr,
-        checkIn: "09:00", // Default check-in time
       },
       {
         onSuccess: () => toast.success("Marked Present"),

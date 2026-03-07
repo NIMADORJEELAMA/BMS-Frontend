@@ -55,7 +55,7 @@ export default function StaffModal({ isOpen, onClose, editingUser }: any) {
   const register = useRegisterUser();
   const update = useUpdateUser();
 
-  const form = useForm<z.infer<typeof formSchema>>({
+  const form = useForm<z.input<typeof formSchema>>({
     resolver: zodResolver(formSchema),
     defaultValues: {
       name: "",
@@ -86,7 +86,7 @@ export default function StaffModal({ isOpen, onClose, editingUser }: any) {
     }
   }, [editingUser, isOpen, form]);
 
-  const onSubmit = (values: z.infer<typeof formSchema>) => {
+  const onSubmit = (values: z.input<typeof formSchema>) => {
     const data = { ...values };
     if (!data.password) delete data.password;
 

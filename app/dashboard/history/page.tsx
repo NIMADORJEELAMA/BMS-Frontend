@@ -262,9 +262,9 @@ export default function BookingHistoryPage() {
           allowClear={false}
           defaultValue={[dayjs().subtract(7, "day"), dayjs()]}
           onChange={(dates) => {
-            if (dates) {
-              setStartDate(dates[0].format("YYYY-MM-DD")); // API format
-              setEndDate(dates[1].format("YYYY-MM-DD")); // API format
+            if (dates && dates[0] && dates[1]) {
+              setStartDate(dates[0].format("YYYY-MM-DD"));
+              setEndDate(dates[1].format("YYYY-MM-DD"));
             }
           }}
           className="rounded-2xl"

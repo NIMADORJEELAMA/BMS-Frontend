@@ -71,7 +71,7 @@ const bookingSchema = z.object({
     .optional(),
 });
 
-type BookingValues = z.infer<typeof bookingSchema>;
+type BookingValues = z.input<typeof bookingSchema>;
 
 export default function CheckInModal({ isOpen, onClose, gridData }: any) {
   const queryClient = useQueryClient();

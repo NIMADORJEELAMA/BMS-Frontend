@@ -3,7 +3,8 @@
 import { useState, useEffect } from "react";
 import { useForm, useFieldArray } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
-import * as z from "zod";
+// import * as z from "zod";
+import { z } from "zod";
 import { differenceInDays, format, startOfDay } from "date-fns";
 import {
   ShoppingBag,
@@ -45,27 +46,6 @@ import { DialogDescription } from "@radix-ui/react-dialog";
 
 import PaymentSettlementModal from "@/components/rooms/PaymentSettlementModal";
 
-const manageBookingSchema = z.object({
-  guestName: z.string().min(2, "Name required"),
-  phone: z.string().min(10, "Valid phone required"),
-  documentId: z.string().min(1, "ID required"),
-  address: z.string().min(2, "Address required"),
-  checkInDate: z.string().min(1),
-  checkOutDate: z.string().min(1),
-  secondaryGuests: z
-    .array(
-      z.object({
-        name: z.string().min(2, "Name required"),
-        documentId: z.string().min(1, "ID required"),
-      }),
-    )
-    .optional(),
-  miscCharges: z.coerce.number().min(0).default(0),
-  discount: z.coerce.number().min(0).default(0),
-});
-
-type ManageValues = z.infer<typeof manageBookingSchema>;
-
 export default function BookingManagerModal({
   isOpen,
   onClose,
@@ -77,6 +57,40 @@ export default function BookingManagerModal({
   const [isPaymentModalOpen, setIsPaymentModalOpen] = useState(false);
   const [cancelReason, setCancelReason] = useState("");
 
+  const manageBookingSchema = z.object({
+    guestName: z.string().min(2, "Name required"),
+    phone: z.string().min(10, "Valid phone required"),
+    documentId: z.string().min(1, "ID required"),
+    address: z.string().min(2, "Address required"),
+    checkInDate: z.string().min(1),
+    checkOutDate: z.string().min(1),
+    secondaryGuests: z
+      .array(
+        z.object({
+          name: z.string().min(2, "Name required"),
+          documentId: z.string().min(1, "ID required"),
+        }),
+      )
+      .optional(),
+    miscCharges: z.coerce.number().min(0).default(0),
+    discount: z.coerce.number().min(0).default(0),
+  });
+
+  type ManageValues = z.input<typeof manageBookingSchema>;
+  const form = useForm<ManageValues>({
+    resolver: zodResolver(manageBookingSchema),
+    defaultValues: {
+      guestName: "",
+      phone: "",
+      documentId: "",
+      address: "",
+      checkInDate: "",
+      checkOutDate: "",
+      miscCharges: 0,
+      discount: 0,
+      secondaryGuests: [],
+    },
+  });
   const {
     data: booking,
     isLoading,
@@ -91,26 +105,13 @@ export default function BookingManagerModal({
     enabled: !!bookingId && isOpen, // Only fetch if we have an ID and modal is open
     staleTime: 0,
   });
-  const form = useForm<ManageValues>({
-    resolver: zodResolver(manageBookingSchema),
-    defaultValues: {
-      guestName: "",
-      phone: "",
-      documentId: "",
-      address: "",
-      checkInDate: "",
-      checkOutDate: "",
-      secondaryGuests: [],
-      miscCharges: booking?.totalBill || 0, // Mapping to your DB field if applicable
-      discount: booking?.discount || 0,
-    },
-  });
+
   const { fields, append, remove } = useFieldArray({
     control: form.control,
     name: "secondaryGuests",
   });
-  const watchedMisc = form.watch("miscCharges") || 0;
-  const watchedDiscount = form.watch("discount") || 0;
+  const watchedMisc = Number(form.watch("miscCharges") ?? 0);
+  const watchedDiscount = Number(form.watch("discount") ?? 0);
 
   const confirmCheckInMutation = useMutation({
     mutationFn: (id: string) => {
@@ -134,7 +135,9 @@ export default function BookingManagerModal({
   });
 
   const cancelMutation = useMutation({
-    mutationFn: (id: string) => api.patch(`/rooms/bookings/${id}/cancel`),
+    mutationFn: ({ id, cancelReason }: { id: string; cancelReason: string }) =>
+      api.patch(`/rooms/bookings/${id}/cancel`, { cancelReason }),
+
     onSuccess: () => {
       toast.success("Booking cancelled");
       queryClient.invalidateQueries({ queryKey: ["room-timeline"] });
@@ -528,7 +531,10 @@ export default function BookingManagerModal({
                           onClick={() => {
                             if (!cancelReason)
                               return toast.error("Please provide a reason");
-                            cancelMutation.mutate(booking.id, { cancelReason });
+                            cancelMutation.mutate({
+                              id: booking.id,
+                              cancelReason,
+                            });
                             setIsCancelModalOpen(false);
                           }}
                         >
