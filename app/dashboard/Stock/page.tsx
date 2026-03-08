@@ -23,6 +23,7 @@ import {
   Edit3,
   Pencil,
   Download,
+  Upload,
 } from "lucide-react";
 import { SearchBar } from "@/components/ui/SearchBar";
 
@@ -88,7 +89,7 @@ export default function StockManagementPage() {
           endDate: dateRange?.[1]?.format("YYYY-MM-DD"),
         },
       });
-      setItems(res.data);
+      setItems(res.data?.items);
     } catch (err) {
       toast.error("Failed to fetch inventory");
     } finally {
@@ -102,9 +103,26 @@ export default function StockManagementPage() {
 
   const downloadCSVTemplate = () => {
     // Define the headers based on what your Papaparse logic expects
-    const headers = ["Name", "Quantity", "Unit", "Type", "Price"];
-    const sampleData = ["POTATO", "10", "KG", "FOOD", "35"];
-
+    const headers = [
+      "Name",
+      "Quantity",
+      "Unit",
+      "Type",
+      "PurchasePrice",
+      "SellingPrice",
+      "Category",
+      "IsVeg",
+    ];
+    const sampleData = [
+      "PEPSI 500ML",
+      "24",
+      "pcs",
+      "DRINKS",
+      "35",
+      "50",
+      "BEVERAGES",
+      "TRUE",
+    ];
     // Combine into a CSV string
     const csvContent = [headers, sampleData].map((e) => e.join(",")).join("\n");
 
@@ -127,69 +145,102 @@ export default function StockManagementPage() {
       header: true,
       skipEmptyLines: true,
       complete: (results) => {
-        // Map CSV keys to match your Preview Modal field names
         const mappedData = results.data.map((row: any) => ({
           name: row.Name || "",
           quantity: row.Quantity || 0,
           unit: row.Unit || "PCS",
           type: row.Type?.toUpperCase() === "DRINKS" ? "DRINKS" : "FOOD",
-          price: row.Price || 0,
-          category: row.Category || row.Type || "General", // For your modal's category col
+          purchasePrice: row.PurchasePrice || 0, // Changed from price
+          sellingPrice: row.SellingPrice || 0, // NEW
+          category: row.Category || "RETAIL", // NEW
+          isVeg: row.IsVeg?.toLowerCase() === "true", // NEW
         }));
 
         setPreviewData(mappedData);
         setIsPreviewOpen(true);
-        // Reset input so the same file can be uploaded again if needed
         e.target.value = "";
       },
     });
   };
+
   const handleConfirmUpload = async (finalData: any[]) => {
     try {
       setIsUploading(true);
-      // Transform data back to match your backend DTO
+
+      // This payload now contains everything needed for both tables
       const payload = finalData.map((item) => ({
         name: item.name,
         quantity: parseFloat(item.quantity),
-        unit: item.unit || "PCS",
+        unit: item.unit,
         type: item.type,
-        purchasePrice: parseFloat(item.price),
-        reason: "Bulk Import",
+        purchasePrice: parseFloat(item.purchasePrice),
+        sellingPrice: parseFloat(item.sellingPrice),
+        category: item.category,
+        isVeg: item.isVeg,
+        reason: "Bulk Retail Import",
       }));
 
-      await api.post("/inventory/bulk-stocks", { items: payload });
-      toast.success(`Successfully imported ${payload.length} items`);
+      // Change the endpoint to your new linked import endpoint
+      await api.post("/inventory/bulk-retail", { items: payload });
+
+      toast.success(`Imported and Linked ${payload.length} items`);
       setIsPreviewOpen(false);
       fetchInventory();
     } catch (err) {
-      toast.error("Failed to upload data. Please check your inputs.");
+      toast.error("Failed to link items. Ensure CSV headers are correct.");
     } finally {
       setIsUploading(false);
     }
   };
+  // const handleConfirmUpload = async (finalData: any[]) => {
+  //   try {
+  //     setIsUploading(true);
+  //     // Transform data back to match your backend DTO
+  //     const payload = finalData.map((item) => ({
+  //       name: item.name,
+  //       quantity: parseFloat(item.quantity),
+  //       unit: item.unit || "PCS",
+  //       type: item.type,
+  //       purchasePrice: parseFloat(item.price),
+  //       reason: "Bulk Import",
+  //     }));
+
+  //     await api.post("/inventory/bulk-stocks", { items: payload });
+  //     toast.success(`Successfully imported ${payload.length} items`);
+  //     setIsPreviewOpen(false);
+  //     fetchInventory();
+  //   } catch (err) {
+  //     toast.error("Failed to upload data. Please check your inputs.");
+  //   } finally {
+  //     setIsUploading(false);
+  //   }
+  // };
   // AG Grid Column Definitions
   const columnDefs = useMemo<ColDef[]>(
     () => [
+      // inside columnDefs
       {
         headerName: "Stock Detail",
         field: "name",
         flex: 1.5,
-        pinned: "left",
-        filter: false,
-        // Adding h-full and items-center to the wrapper
         cellRenderer: (params: any) => (
           <div className="flex flex-col justify-center h-full leading-tight">
-            <span className="font-bold text-slate-900 uppercase">
-              {params.value}
-            </span>
-            <span className="text-[10px] text-slate-400 font-medium">
-              SKU-{params.data.id.split("-")[0]}
-            </span>
+            <div className="flex items-center gap-2">
+              <span className="font-bold text-slate-900 uppercase">
+                {params.value}
+              </span>
+            </div>
+            <div className="flex items-center gap-1 text-[10px] text-slate-400 font-medium mt-0.5">
+              <span>SKU-{params.data.id.split("-")[0]}</span>
+              {params.data.menuItemId && (
+                <span className="text-green-600">• Linked </span>
+              )}
+            </div>
           </div>
         ),
       },
       {
-        headerName: "Category",
+        headerName: "Type",
         field: "type",
         width: 160,
         filter: false,
@@ -261,7 +312,7 @@ export default function StockManagementPage() {
         cellClass: "flex items-center text-slate-500 text-xs",
         cellRenderer: (p: any) => (
           <span>
-            {p.value ? dayjs(p.value).format("DD MMM, hh:mm A") : "---"}
+            {p.value ? dayjs(p.value).format("DD/MM/YYYY, hh:mm A") : "---"}
           </span>
         ),
       },
@@ -272,8 +323,10 @@ export default function StockManagementPage() {
         valueGetter: (p) => p.data.currentStock * p.data.lastPurchasePrice,
         width: 180,
         // FIX: Added cellClass for vertical and horizontal alignment
-        cellClass: "flex items-center font-bold text-slate-700 mt-2",
-        cellRenderer: (p: any) => <span>₹{p.value.toLocaleString()}</span>,
+        cellClass: "flex items-center font-bold text-slate-700  ",
+        cellRenderer: (p: any) => (
+          <span className="mt-2">₹{p.value.toLocaleString()}</span>
+        ),
       },
       {
         headerName: "Actions",
@@ -336,21 +389,21 @@ export default function StockManagementPage() {
 
             {/* Download Template Button */}
             <Button
-              variant="default"
+              variant="terminalGhost"
               onClick={downloadCSVTemplate}
               // className="h-12 rounded-xl border-slate-200 text-slate-600 hover:bg-slate-50 font-bold text-xs uppercase tracking-wider"
             >
               <div className="flex items-center gap-2">
                 <Download size={14} />
-                Template
+                Download Template
               </div>
             </Button>
             <Button
-              variant="default"
+              variant="terminalGhost"
               onClick={() => document.getElementById("csv-upload")?.click()}
-              className="h-12 rounded-xl bg-indigo-600 hover:bg-indigo-700 font-bold text-xs uppercase tracking-wider shadow-md shadow-indigo-100"
+              // className="h-12 rounded-xl bg-indigo-600 hover:bg-indigo-700 font-bold text-xs uppercase tracking-wider shadow-md shadow-indigo-100"
             >
-              <Plus size={18} className="mr-2" />
+              <Upload className="mr-2" size={18} />
               Bulk Stock In
             </Button>
             {/* Import CSV Button */}

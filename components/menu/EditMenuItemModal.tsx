@@ -22,7 +22,7 @@ interface InventoryStock {
 interface Props {
   isOpen: boolean;
   item: MenuItem | null;
-  alcoholInventory: InventoryStock[];
+  drinksinventory: InventoryStock[];
   loading: boolean;
 
   name: string;
@@ -44,7 +44,7 @@ interface Props {
 export default function EditMenuItemModal({
   isOpen,
   item,
-  alcoholInventory,
+  drinksinventory,
   loading,
   name,
   price,
@@ -150,7 +150,7 @@ export default function EditMenuItemModal({
                 className="flex-1 px-5 py-4 bg-white rounded-2xl font-bold shadow-sm"
               >
                 <option value="">SELECT INVENTORY ITEM</option>
-                {alcoholInventory.map((inv) => (
+                {drinksinventory.map((inv) => (
                   <option key={inv.id} value={inv.id}>
                     {inv.name} ({inv.currentStock} {inv.unit})
                   </option>

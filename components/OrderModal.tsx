@@ -241,7 +241,7 @@ export default function OrderModal({
   const handlePrintReceipt = () => {
     if (!order) return;
 
-    const win = window.open("", "_blank");
+    const win = window.open("", "", "width=1200,height=800");
     if (!win) return;
     console.log("order==", order);
     const shortId = order.id.slice(-5).toUpperCase();

@@ -4,7 +4,7 @@ import MenuItemForm from "@/components/menu/MenuItemForm";
 import MenuModal from "@/components/menu/MenuModal";
 import MenuTable from "@/components/menu/MenuTable";
 import { Button } from "@/components/ui/button";
-import { useAlcoholInventory } from "@/hooks/useAlcoholInventory";
+import { usedrinksinventory } from "@/hooks/useDrinksInventory";
 import {
   useCreateMenuItem,
   useMenu,
@@ -45,7 +45,7 @@ export default function MenuPage() {
   const [previewData, setPreviewData] = useState<any[]>([]);
   const [isPreviewOpen, setIsPreviewOpen] = useState(false);
 
-  const { data: alcoholInventory = [] } = useAlcoholInventory(
+  const { data: drinksinventory = [] } = usedrinksinventory(
     formData.type === "DRINKS",
   );
 
@@ -312,7 +312,7 @@ export default function MenuPage() {
         <MenuItemForm
           formData={formData}
           setFormData={setFormData}
-          alcoholInventory={alcoholInventory}
+          drinksinventory={drinksinventory}
           isPending={createMutation.isPending}
           onSubmit={handleCreate}
           onCancel={() => setIsMenuItemFormOpen(false)}
@@ -339,7 +339,7 @@ export default function MenuPage() {
         setFormData={setFormData}
         isPending={updateMutation.isPending || deleteMutation.isPending}
         onSubmit={handleUpdate}
-        alcoholInventory={alcoholInventory}
+        drinksinventory={drinksinventory}
       />
 
       <DeleteItemModal

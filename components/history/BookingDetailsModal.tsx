@@ -20,6 +20,7 @@ export default function BookingReceiptModal({ booking, onClose }: any) {
   );
 
   const roomRate = Number(booking.room?.basePrice) || 0;
+
   const totalRoomCharge = nights * roomRate;
 
   const foodItems =
@@ -27,6 +28,7 @@ export default function BookingReceiptModal({ booking, onClose }: any) {
       order.items.map((item: any) => ({
         name: item.menuItem.name,
         qty: item.quantity,
+        rate: item.priceAtOrder,
         total: item.quantity * item.priceAtOrder,
       })),
     ) || [];
@@ -43,8 +45,9 @@ export default function BookingReceiptModal({ booking, onClose }: any) {
     <div className="w-[72mm] mx-auto text-black p-1 leading-tight">
       <div className="text-center mb-4">
         <h2 className="text-lg font-bold uppercase m-0">GAIRIGAON</h2>
-        <p className="text-[10px] m-0">Hill Top Resort</p>
-        <p className="text-[10px] m-0">North 24 Parganas, West Bengal</p>
+        <p className="text-[10px] m-0">Hill Top Eco Tourism</p>
+        <p className="text-[10px] m-0"> Jaigaon, West Bengal</p>
+        <p className="text-[10px] m-0"> +91-7547957222</p>
       </div>
 
       <div className="border-t border-dashed border-black my-2" />
@@ -79,6 +82,8 @@ export default function BookingReceiptModal({ booking, onClose }: any) {
           <tr className="border-b border-black">
             <th className="text-left py-1">ITEM</th>
             <th className="text-center py-1">QTY</th>
+            <th className="text-center py-1">RATE</th>
+
             <th className="text-right py-1">AMT</th>
           </tr>
         </thead>
@@ -86,15 +91,23 @@ export default function BookingReceiptModal({ booking, onClose }: any) {
           <tr>
             <td className="py-1">Room Stay ({nights}N)</td>
             <td className="text-center">-</td>
+            <td className="text-right">₹{roomRate}</td>
+
             <td className="text-right">₹{totalRoomCharge}</td>
           </tr>
-          {foodItems.map((item: any, i: number) => (
-            <tr key={i}>
-              <td className="py-1">{item.name}</td>
-              <td className="text-center">{item.qty}</td>
-              <td className="text-right">₹{item.total}</td>
-            </tr>
-          ))}
+          {foodItems.map(
+            (item: any, i: number) => (
+              console.log("item", item),
+              (
+                <tr key={i}>
+                  <td className="py-1">{item.name}</td>
+                  <td className="text-center">{item.qty}</td>
+                  <td className="text-center">{item.rate}</td>
+                  <td className="text-right">₹{item.total}</td>
+                </tr>
+              )
+            ),
+          )}
           {miscCharges > 0 && (
             <tr>
               <td className="py-1">Misc Charges</td>
@@ -158,7 +171,7 @@ export default function BookingReceiptModal({ booking, onClose }: any) {
   );
 
   const printReceipt = () => {
-    const win = window.open("", "", "width=400,height=800");
+    const win = window.open("", "", "width=1200,height=800");
     if (!win) return;
 
     const padRight = (text: string, length: number) =>
@@ -171,38 +184,54 @@ export default function BookingReceiptModal({ booking, onClose }: any) {
         ? text.slice(0, length)
         : " ".repeat(length - text.length) + text;
 
-    const formatItem = (name: string, qty: number | string, amt: number) => {
+    const formatItem = (
+      name: string,
+      qty: number | string,
+      rate: number | string,
+      amt: number,
+    ) => {
       const itemCol = padRight(name, 16);
       const qtyCol = padLeft(String(qty), 4);
-      const amtCol = padLeft(String(amt), 8);
-      return `${itemCol}${qtyCol}${amtCol}`;
+      const rateCol = padLeft(String(rate), 5);
+      const amtCol = padLeft(String(amt), 7);
+      return `${itemCol}${qtyCol}${rateCol}${amtCol}`;
     };
 
     const items = [
-      formatItem(`Room Stay (${nights}N)`, "", totalRoomCharge),
-      ...foodItems.map((i: any) => formatItem(i.name, i.qty, i.total)),
+      // For Room Stay: Rate is the price per night
+      formatItem(
+        `Room Stay(${nights}N)`,
+        nights,
+        (totalRoomCharge / (nights || 1)).toFixed(0),
+        totalRoomCharge,
+      ),
+
+      // For Food Items: Rate is i.price
+      ...foodItems.map((i: any) => formatItem(i.name, i.qty, i.rate, i.total)),
+
       ...(miscCharges > 0
-        ? [formatItem("Misc Charges", "-", miscCharges)]
+        ? [formatItem("Misc Charges", "1", miscCharges, miscCharges)]
         : []),
     ].join("\n");
 
     const receipt = `
                     
-    Gairigaon Hill Top Resort
-       Jaigaon, West Bengal
+Gairigaon Hill Top Eco Tourism 
+     Jaigaon, West Bengal
+       +91-7547957222
 --------------------------------
 Bill No : ${booking.id.slice(0, 8).toUpperCase()}
 Guest   : ${booking.guestName}
 Room    : ${booking.room?.roomNumber}
-CheckIn : ${formatDate(booking.checkIn)}
-CheckOut: ${formatDate(booking.checkOut)}
+Date : ${formatDate(booking.checkIn)} - ${formatDate(booking.checkOut)}
 --------------------------------
-ITEM             QTY     AMT
+ITEM            QTY  RATE   AMT
 --------------------------------
 ${items}
 --------------------------------
 Gross Total          ${grossTotal}
 ${discount > 0 ? `Discount            -${discount}` : ""}
+--------------------------------
 Grand Total          ${grandTotal}
 --------------------------------
 ${advance > 0 ? `Advance              ${advance}\n` : ""}

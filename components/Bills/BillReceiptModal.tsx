@@ -24,7 +24,7 @@ export default function BillReceiptModal({
 
   /* ================= PRINT LOGIC (Thermal Monospace) ================= */
   const printThermal = () => {
-    const win = window.open("", "");
+    const win = window.open("", "", "width=1200,height=800");
     if (!win) return;
 
     // Helper functions for character-width alignment (STRICT 32 chars total)

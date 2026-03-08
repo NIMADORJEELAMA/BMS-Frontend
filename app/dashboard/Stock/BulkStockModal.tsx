@@ -6,7 +6,7 @@ import {
   DialogFooter,
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
-import { Loader2, Table as TableIcon, Trash2 } from "lucide-react";
+import { Loader2, Table as TableIcon, Trash2, Link } from "lucide-react";
 import { useState, useEffect } from "react";
 
 export default function BulkStockModal({
@@ -16,15 +16,13 @@ export default function BulkStockModal({
   onConfirm,
   isPending,
 }: any) {
-  // Local state to track edits before final submission
   const [localData, setLocalData] = useState<any[]>([]);
 
-  // Sync local state when the modal opens with new data
   useEffect(() => {
     if (isOpen) setLocalData(data);
   }, [isOpen, data]);
 
-  const handleInputChange = (index: number, field: string, value: string) => {
+  const handleInputChange = (index: number, field: string, value: any) => {
     const updated = [...localData];
     updated[index] = { ...updated[index], [field]: value };
     setLocalData(updated);
@@ -36,15 +34,16 @@ export default function BulkStockModal({
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="max-w-5xl max-h-[85vh] flex flex-col">
+      {/* Increased max-width to 6xl to accommodate more columns */}
+      <DialogContent className="max-w-6xl max-h-[85vh] flex flex-col">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
-            <TableIcon size={20} />
-            Edit & Verify Items ({localData.length})
+            <TableIcon size={20} className="text-blue-600" />
+            Bulk Import & Auto-Link ({localData.length})
           </DialogTitle>
           <p className="text-xs text-muted-foreground">
-            You can edit the fields directly in the table below before
-            uploading.
+            Items here will be added to <b>Inventory</b> and automatically
+            created/updated in the <b>Menu</b>.
           </p>
         </DialogHeader>
 
@@ -52,11 +51,17 @@ export default function BulkStockModal({
           <table className="w-full text-sm">
             <thead className="bg-slate-50 sticky top-0 border-b z-10">
               <tr>
-                <th className="p-3 text-left font-medium w-[30%]">Name</th>
-                <th className="p-3 text-left font-medium w-[15%]">Qty</th>
-
-                <th className="p-3 text-left font-medium">Category</th>
-                <th className="p-3 text-left font-medium w-[15%]">Price</th>
+                <th className="p-3 text-left font-bold w-[25%]">Item Name</th>
+                <th className="p-3 text-left font-bold w-[10%]">Qty</th>
+                <th className="p-3 text-left font-bold w-[12%]">Unit</th>
+                <th className="p-3 text-left font-bold w-[15%]">Type</th>
+                <th className="p-3 text-left font-bold w-[15%] text-orange-600">
+                  Buy Price
+                </th>
+                <th className="p-3 text-left font-bold w-[15%] text-emerald-600">
+                  Sell Price
+                </th>
+                <th className="p-3 text-center font-bold w-[7%]"></th>
               </tr>
             </thead>
             <tbody className="divide-y">
@@ -65,15 +70,18 @@ export default function BulkStockModal({
                   key={idx}
                   className="hover:bg-slate-50/50 transition-colors"
                 >
+                  {/* NAME */}
                   <td className="p-2">
                     <input
-                      className="w-full px-2 py-1 border-transparent hover:border-slate-200 focus:border-blue-500 bg-transparent rounded outline-none"
+                      className="w-full px-2 py-1 font-semibold uppercase border-transparent hover:border-slate-200 focus:border-blue-500 bg-transparent rounded outline-none"
                       value={item.name}
                       onChange={(e) =>
                         handleInputChange(idx, "name", e.target.value)
                       }
                     />
                   </td>
+
+                  {/* QUANTITY */}
                   <td className="p-2">
                     <input
                       type="number"
@@ -84,34 +92,23 @@ export default function BulkStockModal({
                       }
                     />
                   </td>
+
+                  {/* UNIT */}
                   <td className="p-2">
-                    <select
-                      className="w-full px-2 py-1 border-transparent hover:border-slate-200 focus:border-blue-500 bg-transparent rounded outline-none cursor-pointer"
-                      value={item.category}
+                    <input
+                      placeholder="e.g. PCS"
+                      className="w-full px-2 py-1 border-transparent hover:border-slate-200 focus:border-blue-500 bg-transparent rounded outline-none text-xs"
+                      value={item.unit}
                       onChange={(e) =>
-                        handleInputChange(idx, "category", e.target.value)
+                        handleInputChange(idx, "unit", e.target.value)
                       }
-                    >
-                      <option value="FOOD">FOOD</option>
-                      <option value="DRINKS">DRINKS</option>
-                    </select>
+                    />
                   </td>
+
+                  {/* TYPE/CATEGORY */}
                   <td className="p-2">
-                    <div className="flex items-center gap-1">
-                      <span className="text-slate-400">₹</span>
-                      <input
-                        type="number"
-                        className="w-full px-2 py-1 border-transparent hover:border-slate-200 focus:border-blue-500 bg-transparent rounded outline-none"
-                        value={item.price}
-                        onChange={(e) =>
-                          handleInputChange(idx, "price", e.target.value)
-                        }
-                      />
-                    </div>
-                  </td>
-                  {/* <td className="p-2">
                     <select
-                      className="w-full px-2 py-1 border-transparent hover:border-slate-200 focus:border-blue-500 bg-transparent rounded outline-none cursor-pointer"
+                      className="w-full px-2 py-1 border-transparent hover:border-slate-200 focus:border-blue-500 bg-transparent rounded outline-none cursor-pointer font-medium"
                       value={item.type}
                       onChange={(e) =>
                         handleInputChange(idx, "type", e.target.value)
@@ -120,11 +117,47 @@ export default function BulkStockModal({
                       <option value="FOOD">FOOD</option>
                       <option value="DRINKS">DRINKS</option>
                     </select>
-                  </td> */}
+                  </td>
+
+                  {/* BUY PRICE (Inventory Cost) */}
+                  <td className="p-2">
+                    <div className="flex items-center gap-1 bg-orange-50/50 rounded px-1">
+                      <span className="text-orange-400">₹</span>
+                      <input
+                        type="number"
+                        className="w-full px-1 py-1 border-transparent bg-transparent outline-none font-medium text-orange-700"
+                        value={item.purchasePrice}
+                        onChange={(e) =>
+                          handleInputChange(
+                            idx,
+                            "purchasePrice",
+                            e.target.value,
+                          )
+                        }
+                      />
+                    </div>
+                  </td>
+
+                  {/* SELL PRICE (Menu Price) */}
+                  <td className="p-2">
+                    <div className="flex items-center gap-1 bg-emerald-50/50 rounded px-1">
+                      <span className="text-emerald-400">₹</span>
+                      <input
+                        type="number"
+                        className="w-full px-1 py-1 border-transparent bg-transparent outline-none font-bold text-emerald-700"
+                        value={item.sellingPrice}
+                        onChange={(e) =>
+                          handleInputChange(idx, "sellingPrice", e.target.value)
+                        }
+                      />
+                    </div>
+                  </td>
+
+                  {/* REMOVE ROW */}
                   <td className="p-2 text-center">
                     <button
                       onClick={() => removeRow(idx)}
-                      className="text-slate-400 hover:text-red-500 transition-colors"
+                      className="text-slate-300 hover:text-red-500 transition-colors"
                     >
                       <Trash2 size={16} />
                     </button>
@@ -136,24 +169,26 @@ export default function BulkStockModal({
         </div>
 
         <DialogFooter className="flex items-center justify-between border-t pt-4">
-          <p className="text-sm text-slate-500 italic mr-auto">
-            {localData.length === 0
-              ? "No items to upload"
-              : "Double-check prices before confirming."}
-          </p>
+          <div className="flex items-center gap-2 text-slate-500 mr-auto">
+            <Link size={14} className="text-blue-500" />
+            <p className="text-[11px] italic">
+              Items will be linked by name. If the name matches an existing menu
+              item, its price will be updated.
+            </p>
+          </div>
           <div className="flex gap-2">
             <Button variant="outline" onClick={onClose} disabled={isPending}>
               Cancel
             </Button>
             <Button
-              onClick={() => onConfirm(localData)} // Pass the edited data back!
+              onClick={() => onConfirm(localData)}
               disabled={isPending || localData.length === 0}
-              className="bg-blue-600 hover:bg-blue-700"
+              className="bg-blue-600 hover:bg-blue-700 min-w-[140px]"
             >
               {isPending ? (
                 <Loader2 className="animate-spin mr-2" size={16} />
               ) : null}
-              Confirm & Upload
+              Confirm & Link
             </Button>
           </div>
         </DialogFooter>

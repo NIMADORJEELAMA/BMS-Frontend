@@ -700,7 +700,7 @@ export default function BookingManagerModal({
                             <div className="flex-1">
                               <div className="flex items-center gap-2">
                                 <span className="text-[10px] font-bold bg-slate-100 px-1.5 py-0.5 rounded text-slate-600">
-                                  #{order.orderNumber || order.id.slice(-4)}
+                                  ID #{order.orderNumber || order.id.slice(-4)}
                                 </span>
                                 {/* Optional: Add a timestamp or order date if available */}
                               </div>

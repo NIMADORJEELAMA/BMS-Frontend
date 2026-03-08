@@ -39,7 +39,7 @@ export default function EnterpriseMenuTable({
   const [selectedCategory, setSelectedCategory] = useState("ALL");
   const menuTypes = [
     { id: "FOOD", name: "Food Items" },
-    { id: "DRINKS", name: "Drinks/Drinks" },
+    { id: "DRINKS", name: "Drinks" },
   ];
   const categories = useMemo(() => {
     const unique = Array.from(new Set(items.map((i) => i.category)));
@@ -104,15 +104,18 @@ export default function EnterpriseMenuTable({
         headerName: "Item",
         field: "name",
         flex: 1.6,
+        // 1. Align cell container to the start (left)
+        cellClass: "flex items-center justify-start px-4",
         cellRenderer: (params: any) => {
           const row = params.node.data;
           if (!row) return params.value;
 
           return (
-            <div className="flex items-start gap-3 py-1">
+            // 2. Use items-center for vertical alignment, justify-start for horizontal
+            <div className="flex items-center justify-start gap-3 py-1 w-full h-full">
               {/* Veg / Non Veg Dot */}
               <div
-                className={`w-3 h-3 mt-1 rounded-[2px] border flex-shrink-0 ${
+                className={`w-3 h-3 rounded-[2px] border flex-shrink-0 ${
                   row.isVeg
                     ? "border-emerald-500 bg-emerald-500"
                     : "border-red-500 bg-red-500"
@@ -120,33 +123,58 @@ export default function EnterpriseMenuTable({
               />
 
               {/* Item Info */}
-              <div className="flex flex-col leading-tight">
+              <div className="flex flex-col leading-tight items-start">
                 <span className="font-semibold text-slate-800 text-sm">
                   {row.name}
                 </span>
-
-                <div className="flex items-center gap-2 mt-0.5">
-                  <span className="text-[10px] font-semibold px-2 py-[2px]  bg-slate-100 text-slate-600">
-                    {row.category}
-                  </span>
-                </div>
+                {/* Optional: Add category here if you want it under the name */}
               </div>
             </div>
           );
         },
       },
+      {
+        headerName: "Item",
+        field: "name",
+        flex: 1.6,
+        // 1. Align cell container to the start (left)
+        cellClass: "flex items-center justify-start px-4",
+        cellRenderer: (params: any) => {
+          const row = params.node.data;
+          if (!row) return params.value;
 
+          return (
+            // 2. Use items-center for vertical alignment, justify-start for horizontal
+            <div className="flex items-center justify-start gap-3 py-1 w-full h-full">
+              <div className="flex flex-col leading-tight items-start">
+                <span className="text-[10px] text-slate-800 uppercase font-bold">
+                  {row.category}
+                </span>
+              </div>
+            </div>
+          );
+        },
+      },
       {
         headerName: "Type",
         field: "type",
         width: 180,
-        // filter: false,
-        // filter: "agSetColumnFilter",
-        cellRenderer: (params: any) => (
-          <span className="px-2 py-1 text-xs font-medium bg-slate-100 text-slate-700 rounded">
-            {params.value}
-          </span>
-        ),
+        cellClass: "flex items-center justify-start px-4", // Vertical centering
+        cellRenderer: (params: any) => {
+          const isFood = params.value === "FOOD";
+
+          return (
+            <span
+              className={`px-3 py-1 text-[10px] font-black   uppercase tracking-wider ${
+                isFood
+                  ? "  text-orange-600 border-orange-100"
+                  : "  text-blue-600 border-blue-100"
+              }`}
+            >
+              {params.value}
+            </span>
+          );
+        },
       },
       {
         headerName: "Created On",

@@ -29,6 +29,8 @@ export default function StockInForm({
   const [existingItems, setExistingItems] = useState([]);
   const [searchTerm, setSearchTerm] = useState(editData?.name || "");
   const [showDropdown, setShowDropdown] = useState(false);
+  const [syncWithMenu, setSyncWithMenu] = useState(false);
+  const [sellingPrice, setSellingPrice] = useState("");
   const dropdownRef = useRef<HTMLDivElement>(null);
   const [formData, setFormData] = useState({
     name: editData?.name || "",
@@ -36,10 +38,25 @@ export default function StockInForm({
     unit: editData?.unit || "pcs",
     type: editData?.type || "FOOD",
     purchasePrice: editData?.lastPurchasePrice || "",
+    category: editData?.category || "GENERAL", // ADDED
   });
 
   useEffect(() => {
-    api.get("/inventory/stocks").then((res) => setExistingItems(res.data));
+    api
+      .get("/inventory/stocks")
+      .then((res) => {
+        // res.data is now { items: [...], stats: {...} }
+        // We only want the items array for the search dropdown
+        const stockItems = Array.isArray(res.data)
+          ? res.data
+          : res.data.items || [];
+        setExistingItems(stockItems);
+      })
+      .catch((err) => {
+        console.error("Dropdown fetch error:", err);
+        setExistingItems([]); // Fallback to empty array to prevent .filter crash
+      });
+
     const handleClickOutside = (e: MouseEvent) => {
       if (
         dropdownRef.current &&
@@ -61,6 +78,7 @@ export default function StockInForm({
         unit: editData.unit,
         type: editData.type,
         purchasePrice: editData.lastPurchasePrice,
+        category: editData.category,
       });
     }
   }, [editData]);
@@ -79,6 +97,7 @@ export default function StockInForm({
       name: item.name,
       type: item.type,
       unit: item.unit,
+      category: item.category || "GENERAL",
     });
     setSearchTerm(item.name);
     setShowDropdown(false);
@@ -93,6 +112,8 @@ export default function StockInForm({
         name: searchTerm,
         quantity: Number(formData.quantity),
         purchasePrice: Number(formData.purchasePrice),
+        syncWithMenu,
+        sellingPrice: syncWithMenu ? Number(sellingPrice) : undefined,
       };
 
       if (editData) {
@@ -192,7 +213,43 @@ export default function StockInForm({
             </div>
           )}
         </div>
+        <div className="space-y-4 p-4 bg-indigo-50/50 rounded-2xl border border-indigo-100">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <Tags size={16} className="text-indigo-600" />
+              <span className="text-xs font-bold text-indigo-900 uppercase">
+                Sync with Customer Menu?
+              </span>
+            </div>
+            <input
+              type="checkbox"
+              className="w-5 h-5 accent-indigo-600 cursor-pointer"
+              checked={syncWithMenu}
+              onChange={(e) => setSyncWithMenu(e.target.checked)}
+            />
+          </div>
 
+          {syncWithMenu && (
+            <div className="space-y-2 animate-in slide-in-from-top-2 duration-200">
+              <label className="text-[10px] font-bold text-indigo-700 uppercase">
+                Selling Price (on Menu)
+              </label>
+              <div className="relative">
+                <span className="absolute left-3 top-1/2 -translate-y-1/2 text-indigo-400 text-sm">
+                  ₹
+                </span>
+                <input
+                  type="number"
+                  required
+                  className="w-full pl-8 pr-4 py-2 bg-white rounded-lg border border-indigo-200 text-sm font-bold text-indigo-900 outline-none focus:ring-2 focus:ring-indigo-500/20"
+                  value={sellingPrice}
+                  onChange={(e) => setSellingPrice(e.target.value)}
+                  placeholder="0.00"
+                />
+              </div>
+            </div>
+          )}
+        </div>
         {/* Quantities Group */}
         <div className="grid grid-cols-2 gap-4">
           <div className="space-y-2">
@@ -229,6 +286,24 @@ export default function StockInForm({
           </div>
         </div>
 
+        {/* //category */}
+        <div className="space-y-2">
+          <label className="flex items-center gap-2 text-[11px] font-bold text-slate-700 uppercase tracking-wider">
+            <ClipboardList size={12} className="text-slate-400" />
+            Category
+          </label>
+          <input
+            placeholder="e.g. BEVERAGES, VEGETABLES..."
+            className="w-full px-4 py-3 bg-white rounded-xl border border-slate-200 font-medium text-sm focus:border-indigo-500 outline-none uppercase"
+            value={formData.category}
+            onChange={(e) =>
+              setFormData({
+                ...formData,
+                category: e.target.value.toUpperCase(),
+              })
+            }
+          />
+        </div>
         {/* Pricing */}
         <div className="space-y-2">
           <label className="flex items-center gap-2 text-[11px] font-bold text-slate-700 uppercase tracking-wider">

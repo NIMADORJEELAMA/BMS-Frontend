@@ -31,7 +31,7 @@ interface MenuItemFormProps {
     isActive: boolean;
   };
   setFormData: (data: any) => void;
-  alcoholInventory: any[];
+  drinksinventory: any[];
   isPending: boolean;
   onSubmit: (e: React.FormEvent) => void;
   onCancel: () => void;
@@ -39,13 +39,13 @@ interface MenuItemFormProps {
 export default function MenuItemForm({
   formData,
   setFormData,
-  alcoholInventory,
+  drinksinventory,
   isPending,
   onSubmit,
   onCancel,
 }: MenuItemFormProps) {
   const [errors, setErrors] = useState<Record<string, string>>({});
-
+  console.log("drinksinventory", drinksinventory);
   const updateField = (field: string, value: any) => {
     // Clear error when user starts typing again
     if (errors[field]) {
@@ -292,7 +292,7 @@ export default function MenuItemForm({
                     <option value="" className="text-slate-400 ">
                       Choose an item from stock...
                     </option>
-                    {alcoholInventory.map((inv: any) => (
+                    {drinksinventory.map((inv: any) => (
                       <option key={inv.id} value={inv.id} className="py-2 ">
                         {inv.name.toUpperCase()} — {inv.currentStock}{" "}
                         {inv.unit}{" "}
