@@ -89,6 +89,7 @@ export default function StockManagementPage() {
           endDate: dateRange?.[1]?.format("YYYY-MM-DD"),
         },
       });
+      console.log("res", res);
       setItems(res.data?.items);
     } catch (err) {
       toast.error("Failed to fetch inventory");
@@ -378,34 +379,14 @@ export default function StockManagementPage() {
       <div className="flex flex-col lg:flex-row justify-between items-start lg:items-center gap-4">
         <div>
           <div className="flex flex-wrap gap-2">
-            {/* Hidden File Input */}
-            <input
-              type="file"
-              id="csv-upload"
-              accept=".csv"
-              className="hidden"
-              onChange={handleCSVUpload}
-            />
+            <Button
+              variant={"default"}
+              onClick={() => setIsModalOpen(true)}
+              className="bg-slate-900 h-12 rounded-xl font-bold uppercase tracking-wider text-xs"
+            >
+              <Plus size={18} className="mr-2" /> Add New Stock
+            </Button>
 
-            {/* Download Template Button */}
-            <Button
-              variant="terminalGhost"
-              onClick={downloadCSVTemplate}
-              // className="h-12 rounded-xl border-slate-200 text-slate-600 hover:bg-slate-50 font-bold text-xs uppercase tracking-wider"
-            >
-              <div className="flex items-center gap-2">
-                <Download size={14} />
-                Download Template
-              </div>
-            </Button>
-            <Button
-              variant="terminalGhost"
-              onClick={() => document.getElementById("csv-upload")?.click()}
-              // className="h-12 rounded-xl bg-indigo-600 hover:bg-indigo-700 font-bold text-xs uppercase tracking-wider shadow-md shadow-indigo-100"
-            >
-              <Upload className="mr-2" size={18} />
-              Bulk Stock In
-            </Button>
             {/* Import CSV Button */}
           </div>
           {/* <div className="flex items-center gap-3">
@@ -428,14 +409,36 @@ export default function StockManagementPage() {
           onConfirm={handleConfirmUpload}
           isPending={isUploading}
         />
+        <div>
+          {/* Hidden File Input */}
+          <input
+            type="file"
+            id="csv-upload"
+            accept=".csv"
+            className="hidden"
+            onChange={handleCSVUpload}
+          />
 
-        <Button
-          variant={"default"}
-          onClick={() => setIsModalOpen(true)}
-          className="bg-slate-900 h-12 rounded-xl font-bold uppercase tracking-wider text-xs"
-        >
-          <Plus size={18} className="mr-2" /> Add New Stock
-        </Button>
+          {/* Download Template Button */}
+          <Button
+            variant="terminalGhost"
+            onClick={downloadCSVTemplate}
+            className=" mr-4"
+          >
+            <div className="flex items-center gap-2">
+              <Download size={14} />
+              Download Template
+            </div>
+          </Button>
+          <Button
+            variant="terminalGhost"
+            onClick={() => document.getElementById("csv-upload")?.click()}
+            // className="h-12 rounded-xl bg-indigo-600 hover:bg-indigo-700 font-bold text-xs uppercase tracking-wider shadow-md shadow-indigo-100"
+          >
+            <Upload className="mr-2" size={18} />
+            Bulk Stock In
+          </Button>
+        </div>
       </div>
 
       {/* ANALYTICS ROW */}

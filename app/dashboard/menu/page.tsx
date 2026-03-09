@@ -152,7 +152,6 @@ export default function MenuPage() {
     e.preventDefault();
     if (!formData?.id) return;
 
-    // 1. Prepare the data
     const dataToSend = {
       ...formData,
       name: formData.name.toUpperCase().trim(),
@@ -161,11 +160,10 @@ export default function MenuPage() {
       isActive: formData.isActive,
     };
 
-    // 2. Use 'payload' as the key to match your hook
     updateMutation.mutate(
       {
         id: formData?.id,
-        payload: dataToSend, // Changed from 'data' to 'payload'
+        payload: dataToSend,
       },
       {
         onSuccess: () => {
@@ -173,9 +171,23 @@ export default function MenuPage() {
           setIsModalOpen(false);
           resetForm();
         },
-        onError: (error) => {
-          toast.error("Update failed. Check console.");
-          console.error(error);
+        onError: (error: any) => {
+          // Robust message extraction
+          const responseMessage = error?.response?.data?.message;
+
+          const errorMessage = Array.isArray(responseMessage)
+            ? responseMessage.join(", ") // Joins multiple validation errors: "Name is too short, Price must be a number"
+            : responseMessage ||
+              error.message ||
+              "An unexpected error occurred";
+
+          toast.error(errorMessage);
+
+          console.error("Update Error:", {
+            status: error?.response?.status,
+            message: errorMessage,
+            fullError: error,
+          });
         },
       },
     );
