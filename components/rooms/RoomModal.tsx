@@ -207,8 +207,7 @@ export default function RoomModal({
               />
 
               {/* Base Price */}
-              {/* Base Price */}
-              {/* Base Price */}
+
               <FormField
                 control={form.control}
                 name="basePrice"
