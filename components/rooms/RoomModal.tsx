@@ -208,6 +208,7 @@ export default function RoomModal({
 
               {/* Base Price */}
               {/* Base Price */}
+              {/* Base Price */}
               <FormField
                 control={form.control}
                 name="basePrice"
@@ -219,13 +220,17 @@ export default function RoomModal({
                     </FormLabel>
                     <FormControl>
                       <input
-                        type="number" // Changed to number for better mobile UX
-                        placeholder="0" // Your requested placeholder
-                        // If value is 0, we show "" so the placeholder "0" is visible
-                        value={field.value === 0 ? "" : field.value}
+                        type="text"
+                        placeholder="0"
+                        // We cast field.value to number | string to satisfy the input type requirements
+                        value={
+                          (field.value as number) === 0
+                            ? ""
+                            : (field.value as string | number)
+                        }
                         onChange={(e) => {
                           const val = e.target.value;
-                          // Convert back to number for Zod/React Hook Form
+                          // Ensure we pass a number back to the form state
                           field.onChange(val === "" ? 0 : Number(val));
                         }}
                         className="h-12 rounded-xl px-4 w-full border border-slate-200 focus:ring-indigo-500/20 font-black text-md outline-none"
