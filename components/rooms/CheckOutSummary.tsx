@@ -170,7 +170,7 @@ export default function CheckOutSummary({ bookingId, onClose }: any) {
             </div>
           </div>
 
-          {/* MIDDLE: Services Audit (4 cols) */}
+          {/* MIDDLE: Services Audit (4 cols) W */}
           <div className="lg:col-span-5 p-8 bg-white">
             <div className="flex items-center gap-2 mb-8">
               <div className="p-2 bg-orange-50 text-orange-600 rounded-xl">
