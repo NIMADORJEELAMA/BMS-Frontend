@@ -20,7 +20,7 @@ export default function ItemDrilldownModal({
             <p className="text-[10px] font-black uppercase tracking-widest opacity-50">
               Sales Analysis
             </p>
-            <h2 className="text-3xl font-black uppercase italic tracking-tighter">
+            <h2 className="text-3xl font-black uppercase   tracking-tighter">
               {itemName}
             </h2>
           </div>
@@ -34,7 +34,7 @@ export default function ItemDrilldownModal({
 
         <div className="p-8 grid grid-cols-1 md:grid-cols-2 gap-8">
           {isLoading ? (
-            <div className="col-span-2 py-20 text-center font-black italic text-gray-300 uppercase animate-pulse">
+            <div className="col-span-2 py-20 text-center font-black   text-gray-300 uppercase animate-pulse">
               Syncing Staff Performance...
             </div>
           ) : (
@@ -55,7 +55,7 @@ export default function ItemDrilldownModal({
                     <span className="text-[10px] font-bold text-gray-500 uppercase">
                       {day.date}
                     </span>
-                    <span className="font-black text-gray-900 italic">
+                    <span className="font-black text-gray-900  ">
                       {day.qty}{" "}
                       <small className="text-[8px] opacity-40">PCS</small>
                     </span>
@@ -86,7 +86,7 @@ export default function ItemDrilldownModal({
                         {waiter.name}
                       </span>
                     </div>
-                    <span className="font-black text-amber-600 italic text-lg">
+                    <span className="font-black text-amber-600   text-lg">
                       {waiter.qty}
                     </span>
                   </div>

@@ -1,310 +1,635 @@
 "use client";
-import { useEffect, useState, useMemo } from "react";
+
+import { useState, useMemo, useEffect, useCallback } from "react";
 import api from "@/lib/axios";
 import toast from "react-hot-toast";
+import dayjs from "dayjs";
+import Papa from "papaparse";
+
+// UI Components
+import { DatePicker, Card, Statistic, Tag, Spin, Space } from "antd";
+import { Button } from "@/components/ui/button";
 import {
-  useReactTable,
-  getCoreRowModel,
-  flexRender,
-  getFilteredRowModel,
-  getPaginationRowModel, // Added for pagination
-  ColumnDef,
-} from "@tanstack/react-table";
-import {
+  Package,
   Plus,
+  RefreshCcw,
   Search,
   Beer,
   Utensils,
-  ChevronLeft,
-  ChevronRight,
-  Calendar,
-  Filter,
-  RefreshCcw,
+  AlertCircle,
+  IndianRupee,
+  TrendingUp,
+  Trash2,
+  Edit3,
+  Pencil,
+  Download,
+  Upload,
 } from "lucide-react";
+import { SearchBar } from "@/components/ui/SearchBar";
+
+// AG Grid & Recharts
+import { AgGridReact } from "ag-grid-react";
+import { ColDef, GridReadyEvent } from "ag-grid-community";
+
+import {
+  ResponsiveContainer,
+  BarChart,
+  Bar,
+  XAxis,
+  YAxis,
+  Tooltip,
+  CartesianGrid,
+} from "recharts";
+import "@/lib/agGrid";
+
 import StockInForm from "@/components/StockInForm";
+
+import BulkStockModal from "./BulkStockModal";
+
+const { RangePicker } = DatePicker;
 
 export default function StockManagementPage() {
   const [items, setItems] = useState([]);
-  const [globalFilter, setGlobalFilter] = useState("");
-  const [typeFilter, setTypeFilter] = useState("ALL");
-  const [isModalOpen, setIsModalOpen] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [editingItem, setEditingItem] = useState<any>(null);
+  const [search, setSearch] = useState("");
+  const [typeFilter, setTypeFilter] = useState("ALL");
+  const [dateRange, setDateRange] = useState<[dayjs.Dayjs, dayjs.Dayjs] | null>(
+    null,
+  );
+  const [previewData, setPreviewData] = useState<any[]>([]);
+  const [isPreviewOpen, setIsPreviewOpen] = useState(false);
+  const [isUploading, setIsUploading] = useState(false);
+  const [statusFilter, setStatusFilter] = useState("ALL"); // ALL, LOW, MID, HEALTHY
+  // 1. Check if filter should be active
+  const isExternalFilterPresent = useCallback(() => {
+    return statusFilter !== "ALL";
+  }, [statusFilter]);
 
-  // Date Range State
-  const today = new Date().toISOString().split("T")[0];
-  const [startDate, setStartDate] = useState(today);
-  const [endDate, setEndDate] = useState(today);
+  // 2. Logic for the filter
+  const doesExternalFilterPass = useCallback(
+    (node: any) => {
+      if (statusFilter === "ALL") return true;
 
-  const clearFilters = () => {
-    setGlobalFilter("");
-    setTypeFilter("ALL");
-    setStartDate(today);
-    setEndDate(today);
-    toast.success("Filters Reset");
-  };
-  const fetchInventory = async () => {
+      const qty = node.data.currentStock;
+      const status = qty < 10 ? "LOW" : qty < 30 ? "MID" : "HEALTHY";
+
+      return status === statusFilter;
+    },
+    [statusFilter],
+  );
+  const fetchInventory = useCallback(async () => {
     try {
       setLoading(true);
       const res = await api.get("/inventory/stocks", {
         params: {
           type: typeFilter === "ALL" ? undefined : typeFilter,
-          startDate,
-          endDate,
+          startDate: dateRange?.[0]?.format("YYYY-MM-DD"),
+          endDate: dateRange?.[1]?.format("YYYY-MM-DD"),
         },
       });
-      setItems(res.data);
+      console.log("res", res);
+      setItems(res.data?.items);
     } catch (err) {
       toast.error("Failed to fetch inventory");
     } finally {
       setLoading(false);
     }
-  };
+  }, [typeFilter, dateRange]);
 
   useEffect(() => {
     fetchInventory();
-  }, [typeFilter, startDate, endDate]); // Refresh when filters change
+  }, [fetchInventory]);
 
-  const columns = useMemo<ColumnDef<any>[]>(
+  const downloadCSVTemplate = () => {
+    // Define the headers based on what your Papaparse logic expects
+    const headers = [
+      "Name",
+      "Quantity",
+      "Unit",
+      "Type",
+      "PurchasePrice",
+      "SellingPrice",
+      "Category",
+      "IsVeg",
+    ];
+    const sampleData = [
+      "PEPSI 500ML",
+      "24",
+      "pcs",
+      "DRINKS",
+      "35",
+      "50",
+      "BEVERAGES",
+      "TRUE",
+    ];
+    // Combine into a CSV string
+    const csvContent = [headers, sampleData].map((e) => e.join(",")).join("\n");
+
+    // Create a download link
+    const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.setAttribute("href", url);
+    link.setAttribute("download", "inventory_template.csv");
+    link.style.visibility = "hidden";
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  };
+  const handleCSVUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    Papa.parse(file, {
+      header: true,
+      skipEmptyLines: true,
+      complete: (results) => {
+        const mappedData = results.data.map((row: any) => ({
+          name: row.Name || "",
+          quantity: row.Quantity || 0,
+          unit: row.Unit || "PCS",
+          type: row.Type?.toUpperCase() === "DRINKS" ? "DRINKS" : "FOOD",
+          purchasePrice: row.PurchasePrice || 0, // Changed from price
+          sellingPrice: row.SellingPrice || 0, // NEW
+          category: row.Category || "RETAIL", // NEW
+          isVeg: row.IsVeg?.toLowerCase() === "true", // NEW
+        }));
+
+        setPreviewData(mappedData);
+        setIsPreviewOpen(true);
+        e.target.value = "";
+      },
+    });
+  };
+
+  const handleConfirmUpload = async (finalData: any[]) => {
+    try {
+      setIsUploading(true);
+
+      // This payload now contains everything needed for both tables
+      const payload = finalData.map((item) => ({
+        name: item.name,
+        quantity: parseFloat(item.quantity),
+        unit: item.unit,
+        type: item.type,
+        purchasePrice: parseFloat(item.purchasePrice),
+        sellingPrice: parseFloat(item.sellingPrice),
+        category: item.category,
+        isVeg: item.isVeg,
+        reason: "Bulk Retail Import",
+      }));
+
+      // Change the endpoint to your new linked import endpoint
+      await api.post("/inventory/bulk-retail", { items: payload });
+
+      toast.success(`Imported and Linked ${payload.length} items`);
+      setIsPreviewOpen(false);
+      fetchInventory();
+    } catch (err) {
+      toast.error("Failed to link items. Ensure CSV headers are correct.");
+    } finally {
+      setIsUploading(false);
+    }
+  };
+  // const handleConfirmUpload = async (finalData: any[]) => {
+  //   try {
+  //     setIsUploading(true);
+  //     // Transform data back to match your backend DTO
+  //     const payload = finalData.map((item) => ({
+  //       name: item.name,
+  //       quantity: parseFloat(item.quantity),
+  //       unit: item.unit || "PCS",
+  //       type: item.type,
+  //       purchasePrice: parseFloat(item.price),
+  //       reason: "Bulk Import",
+  //     }));
+
+  //     await api.post("/inventory/bulk-stocks", { items: payload });
+  //     toast.success(`Successfully imported ${payload.length} items`);
+  //     setIsPreviewOpen(false);
+  //     fetchInventory();
+  //   } catch (err) {
+  //     toast.error("Failed to upload data. Please check your inputs.");
+  //   } finally {
+  //     setIsUploading(false);
+  //   }
+  // };
+  // AG Grid Column Definitions
+  const columnDefs = useMemo<ColDef[]>(
     () => [
+      // inside columnDefs
       {
-        accessorKey: "type",
-        header: "Category",
-        cell: ({ row }) => (
-          <div
-            className={`flex items-center gap-2 font-black text-[10px] uppercase tracking-widest ${row.original.type === "ALCOHOL" ? "text-purple-600" : "text-orange-600"}`}
-          >
-            {row.original.type === "ALCOHOL" ? (
-              <Beer size={14} />
-            ) : (
-              <Utensils size={14} />
-            )}
-            {row.original.type}
+        headerName: "Stock Detail",
+        field: "name",
+        flex: 1.5,
+        cellRenderer: (params: any) => (
+          <div className="flex flex-col justify-center h-full leading-tight">
+            <div className="flex items-center gap-2">
+              <span className="font-bold text-slate-900 uppercase">
+                {params.value}
+              </span>
+            </div>
+            <div className="flex items-center gap-1 text-[10px] text-slate-400 font-medium mt-0.5">
+              <span>SKU-{params.data.id.split("-")[0]}</span>
+              {params.data.menuItemId && (
+                <span className="text-green-600">• Linked </span>
+              )}
+            </div>
           </div>
         ),
       },
       {
-        accessorKey: "name",
-        header: "Item Name",
-        cell: (info) => (
-          <span className="font-black text-gray-900 uppercase italic">
-            {info.getValue() as string}
-          </span>
-        ),
-      },
-      {
-        accessorKey: "stockQty",
-        header: "Current Stock",
-        cell: ({ row }) => (
-          <div className="flex items-center gap-2">
-            <span
-              className={`text-lg font-black ${row.original.stockQty < 10 ? "text-red-600 animate-pulse" : "text-gray-900"}`}
+        headerName: "Type",
+        field: "type",
+        width: 160,
+        filter: false,
+        // Using cellClass for vertical centering
+        cellClass: "flex items-center mt-2",
+        cellRenderer: (params: any) => {
+          const isAlcohol = params.value === "DRINKS";
+          return (
+            <Tag
+              color={isAlcohol ? "purple" : "orange"}
+              // icon={isAlcohol ? <Beer size={10} /> : <Utensils size={10} />}
+              className="m-0"
             >
-              {row.original.stockQty}
-            </span>
-            <span className="text-[10px] text-gray-400 font-bold uppercase">
-              {row.original.unit}
-            </span>
-          </div>
+              {params.value}
+            </Tag>
+          );
+        },
+      },
+      {
+        headerName: "Stock Level",
+        field: "currentStock",
+        flex: 1,
+        filter: false,
+        cellRenderer: (params: any) => {
+          const qty = params.value;
+          const status = qty < 10 ? "LOW" : qty < 30 ? "MID" : "HEALTHY";
+          const color =
+            status === "LOW"
+              ? "#ef4444"
+              : status === "MID"
+                ? "#f59e0b"
+                : "#10b981";
+          return (
+            <div className="flex flex-col justify-center h-full w-full pr-4">
+              <div className="flex justify-between text-[10px] font-bold mb-1">
+                <span>
+                  {qty} {params.data.unit}
+                </span>
+                <span style={{ color }}>{status}</span>
+              </div>
+              <div className="w-full h-1.5 bg-slate-100 rounded-full overflow-hidden">
+                <div
+                  className="h-full transition-all duration-500"
+                  style={{
+                    width: `${Math.min(qty, 100)}%`,
+                    backgroundColor: color,
+                  }}
+                />
+              </div>
+            </div>
+          );
+        },
+      },
+      {
+        headerName: "Last Purchase",
+        field: "lastPurchasePrice",
+        width: 140,
+        filter: false,
+        cellClass: "flex items-center font-medium text-slate-600",
+        cellRenderer: (p: any) => (
+          <span>₹{p.value?.toLocaleString() || "0"}</span>
         ),
       },
       {
-        accessorKey: "lastPurchasePrice",
-        header: "Last Purchase",
-        cell: ({ row }) => (
-          <span className="font-bold text-gray-900">
-            ₹{row.original.lastPurchasePrice || 0}
+        headerName: "Last Updated",
+        field: "lastStockInDate",
+        width: 160,
+        filter: false,
+        cellClass: "flex items-center text-slate-500 text-xs",
+        cellRenderer: (p: any) => (
+          <span>
+            {p.value ? dayjs(p.value).format("DD/MM/YYYY, hh:mm A") : "---"}
           </span>
         ),
       },
       {
-        accessorKey: "lastStockInDate",
-        header: "Last Restock",
-        cell: ({ row }) => (
-          <span className="text-xs font-bold text-gray-500">
-            {row.original.lastStockInDate
-              ? new Date(row.original.lastStockInDate).toLocaleDateString()
-              : "N/A"}
-          </span>
+        headerName: "Value (Equity)",
+        filter: false,
+        // Note: valueGetter is better for sorting/filtering
+        valueGetter: (p) => p.data.currentStock * p.data.lastPurchasePrice,
+        width: 180,
+        // FIX: Added cellClass for vertical and horizontal alignment
+        cellClass: "flex items-center font-bold text-slate-700  ",
+        cellRenderer: (p: any) => (
+          <span className="mt-2">₹{p.value.toLocaleString()}</span>
+        ),
+      },
+      {
+        headerName: "Actions",
+        width: 150,
+        filter: false,
+        pinned: "right",
+        // FIX: Added cellClass to center the buttons
+        cellClass: "flex items-center justify-center mt-1",
+        cellRenderer: (params: any) => (
+          <Space size="small">
+            <button
+              onClick={() => {
+                setEditingItem(params.data);
+                setIsModalOpen(true);
+              }}
+              className="p-2 mt-2 rounded hover:text-slate-400 cursor-pointer"
+            >
+              <Pencil size={18} />
+            </button>
+            <button
+              onClick={() => handleDelete(params.data.id, params.data.name)}
+              className="p-2 mt-2 rounded text-red-600  hover:text-red-400 cursor-pointer"
+            >
+              <Trash2 size={18} />
+            </button>
+          </Space>
         ),
       },
     ],
     [],
   );
 
-  const table = useReactTable({
-    data: items,
-    columns,
-    state: { globalFilter },
-    onGlobalFilterChange: setGlobalFilter,
-    getCoreRowModel: getCoreRowModel(),
-    getFilteredRowModel: getFilteredRowModel(),
-    getPaginationRowModel: getPaginationRowModel(),
-    initialState: { pagination: { pageSize: 8 } }, // Set default page size
-  });
+  const handleDelete = async (id: string, name: string) => {
+    if (!confirm(`Permanently delete ${name}?`)) return;
+    try {
+      await api.delete(`/inventory/stocks/${id}`);
+      toast.success("Item deleted");
+      fetchInventory();
+    } catch (err) {
+      toast.error("Failed to delete");
+    }
+  };
+
+  const chartData = useMemo(() => items.slice(0, 8), [items]);
 
   return (
-    <div className="p-8 bg-gray-50 min-h-screen">
-      <div className="max-w-6xl mx-auto space-y-6">
-        {/* TOP HEADER */}
-        <div className="flex justify-between items-end">
-          <div>
-            <h1 className="text-4xl font-black tracking-tighter italic uppercase text-gray-900">
-              Inventory Feed
+    <div className="p-6 bg-[#F8FAFC] min-h-screen space-y-6">
+      {/* HEADER */}
+      <div className="flex flex-col lg:flex-row justify-between items-start lg:items-center gap-4">
+        <div>
+          <div className="flex flex-wrap gap-2">
+            <Button
+              variant={"default"}
+              onClick={() => setIsModalOpen(true)}
+              className="bg-slate-900 h-12 rounded-xl font-bold uppercase tracking-wider text-xs"
+            >
+              <Plus size={18} className="mr-2" /> Add New Stock
+            </Button>
+
+            {/* Import CSV Button */}
+          </div>
+          {/* <div className="flex items-center gap-3">
+            <div className="p-2 bg-slate-900 text-white rounded-xl shadow-lg">
+              <Package size={24} />
+            </div>
+            <h1 className="text-3xl font-black tracking-tight">
+              Stock{" "}
+              <span className="text-slate-400 font-medium">Logistics</span>
             </h1>
-            <p className="text-gray-400 font-bold text-[10px] uppercase tracking-widest">
-              Real-time Resort Logistics
-            </p>
           </div>
-          <button
-            onClick={() => setIsModalOpen(true)}
-            className="bg-gray-900 text-white px-8 py-4 rounded-[20px] font-black uppercase text-xs tracking-widest flex items-center gap-3 hover:bg-blue-600 transition-all shadow-xl"
+          <p className="text-slate-500 text-sm mt-1">
+            Real-time inventory valuation and asset tracking
+          </p> */}
+        </div>
+        <BulkStockModal
+          isOpen={isPreviewOpen}
+          onClose={() => setIsPreviewOpen(false)}
+          data={previewData}
+          onConfirm={handleConfirmUpload}
+          isPending={isUploading}
+        />
+        <div>
+          {/* Hidden File Input */}
+          <input
+            type="file"
+            id="csv-upload"
+            accept=".csv"
+            className="hidden"
+            onChange={handleCSVUpload}
+          />
+
+          {/* Download Template Button */}
+          <Button
+            variant="terminalGhost"
+            onClick={downloadCSVTemplate}
+            className=" mr-4"
           >
-            <Plus size={18} /> Update Stock
-          </button>
-        </div>
-
-        {/* FILTERS PANEL */}
-        <div className="bg-white p-6 rounded-[32px] border border-gray-100 shadow-sm space-y-4">
-          <div className="flex flex-wrap items-center gap-4">
-            {/* Category Filter */}
-            <div className="flex bg-gray-100 p-1 rounded-2xl">
-              {["ALL", "FOOD", "ALCOHOL"].map((t) => (
-                <button
-                  key={t}
-                  onClick={() => setTypeFilter(t)}
-                  className={`px-6 py-2 rounded-xl text-[10px] font-black transition-all ${typeFilter === t ? "bg-white text-black shadow-sm" : "text-gray-400"}`}
-                >
-                  {t}
-                </button>
-              ))}
-            </div>
-
-            {/* Date Range */}
-            <div className="flex items-center gap-2 bg-gray-100 px-4 py-2 rounded-2xl">
-              <Calendar size={14} className="text-gray-400" />
-              <input
-                type="date"
-                value={startDate}
-                onChange={(e) => setStartDate(e.target.value)}
-                className="bg-transparent border-none text-[10px] font-black focus:ring-0"
-              />
-              <span className="text-gray-400 text-[10px] font-black">TO</span>
-              <input
-                type="date"
-                value={endDate}
-                onChange={(e) => setEndDate(e.target.value)}
-                className="bg-transparent border-none text-[10px] font-black focus:ring-0"
-              />
-            </div>
-
-            {/* Search */}
-            <div className="relative flex-1 min-w-[200px]">
-              <Search
-                className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400"
-                size={16}
-              />
-              <input
-                value={globalFilter ?? ""}
-                onChange={(e) => setGlobalFilter(e.target.value)}
-                placeholder="QUICK SEARCH..."
-                className="w-full pl-10 pr-4 py-2 bg-gray-50 border-none rounded-2xl font-bold text-xs focus:ring-1 focus:ring-gray-900"
-              />
-            </div>
-
             <div className="flex items-center gap-2">
-              <button
-                onClick={clearFilters}
-                className="px-4 py-3 text-[10px] font-black text-red-500 uppercase tracking-widest hover:bg-red-50 rounded-2xl transition-all"
-              >
-                Clear
-              </button>
-              <button
-                onClick={fetchInventory}
-                className="p-3 bg-gray-900 text-white rounded-2xl hover:bg-blue-600 transition-all shadow-lg shadow-gray-200"
-              >
-                <RefreshCcw
-                  size={18}
-                  className={loading ? "animate-spin" : ""}
-                />
-              </button>
+              <Download size={14} />
+              Download Template
             </div>
-          </div>
+          </Button>
+          <Button
+            variant="terminalGhost"
+            onClick={() => document.getElementById("csv-upload")?.click()}
+            // className="h-12 rounded-xl bg-indigo-600 hover:bg-indigo-700 font-bold text-xs uppercase tracking-wider shadow-md shadow-indigo-100"
+          >
+            <Upload className="mr-2" size={18} />
+            Bulk Stock In
+          </Button>
         </div>
-
-        {/* TABLE SECTION */}
-        <div className="bg-white rounded-[32px] border border-gray-100 shadow-sm overflow-hidden">
-          <table className="w-full text-left">
-            <thead className="bg-gray-50/50 border-b border-gray-100">
-              {table.getHeaderGroups().map((headerGroup) => (
-                <tr key={headerGroup.id}>
-                  {headerGroup.headers.map((header) => (
-                    <th
-                      key={header.id}
-                      className="px-8 py-4 text-[10px] font-black text-gray-400 uppercase tracking-widest"
-                    >
-                      {flexRender(
-                        header.column.columnDef.header,
-                        header.getContext(),
-                      )}
-                    </th>
-                  ))}
-                </tr>
-              ))}
-            </thead>
-            <tbody className="divide-y divide-gray-50">
-              {table.getRowModel().rows.map((row) => (
-                <tr key={row.id} className="hover:bg-gray-50/50 transition-all">
-                  {row.getVisibleCells().map((cell) => (
-                    <td key={cell.id} className="px-8 py-5">
-                      {flexRender(
-                        cell.column.columnDef.cell,
-                        cell.getContext(),
-                      )}
-                    </td>
-                  ))}
-                </tr>
-              ))}
-            </tbody>
-          </table>
-
-          {/* PAGINATION CONTROLS */}
-          <div className="p-6 bg-gray-50/30 border-t border-gray-100 flex items-center justify-between">
-            <p className="text-[10px] font-black text-gray-400 uppercase">
-              Showing page {table.getState().pagination.pageIndex + 1} of{" "}
-              {table.getPageCount()}
-            </p>
-            <div className="flex gap-2">
-              <button
-                disabled={!table.getCanPreviousPage()}
-                onClick={() => table.previousPage()}
-                className="p-2 bg-white border border-gray-200 rounded-xl disabled:opacity-30 hover:bg-gray-50 transition-all"
-              >
-                <ChevronLeft size={18} />
-              </button>
-              <button
-                disabled={!table.getCanNextPage()}
-                onClick={() => table.nextPage()}
-                className="p-2 bg-white border border-gray-200 rounded-xl disabled:opacity-30 hover:bg-gray-50 transition-all"
-              >
-                <ChevronRight size={18} />
-              </button>
-            </div>
-          </div>
-        </div>
-
-        {/* MODAL */}
-        {isModalOpen && (
-          <div className="fixed inset-0 bg-gray-900/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-            <StockInForm
-              onClose={() => setIsModalOpen(false)}
-              onSuccess={() => {
-                fetchInventory();
-                setIsModalOpen(false);
-              }}
-            />
-          </div>
-        )}
       </div>
+
+      {/* ANALYTICS ROW */}
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
+        <div className="lg:col-span-4 grid grid-cols-2 gap-4">
+          <Card className="rounded-2xl border-none shadow-sm">
+            <Statistic
+              title={
+                <span className="text-[12px] font-extrabold uppercase text-slate-900">
+                  Total Equity
+                </span>
+              }
+              value={items.reduce(
+                (acc, curr: any) =>
+                  acc + curr.currentStock * curr.lastPurchasePrice,
+                0,
+              )}
+              prefix={<IndianRupee size={14} />}
+            />
+          </Card>
+          <Card className="rounded-2xl border-none shadow-sm">
+            <Statistic
+              title={
+                <span className="text-[12px] font-extrabold uppercase text-slate-900">
+                  Low Stock
+                </span>
+              }
+              value={items.filter((i: any) => i.currentStock < 10).length}
+              suffix={<AlertCircle size={14} className="text-red-500" />}
+            />
+          </Card>
+          <div className="col-span-2 bg-indigo-600 rounded-2xl p-5 text-white shadow-lg shadow-indigo-100 flex items-center justify-between">
+            <div>
+              <p className="text-xs opacity-80 uppercase font-bold">
+                Health Score
+              </p>
+              <h3 className="text-2xl font-black">94.2%</h3>
+            </div>
+            <TrendingUp size={32} className="opacity-40" />
+          </div>
+        </div>
+
+        <Card
+          className="lg:col-span-8 rounded-2xl border-none shadow-sm"
+          styles={{ body: { padding: "12px" } }}
+        >
+          <ResponsiveContainer width="100%" height={160}>
+            <BarChart data={chartData}>
+              <CartesianGrid
+                strokeDasharray="3 3"
+                vertical={false}
+                stroke="#f1f5f9"
+              />
+              <XAxis
+                dataKey="name"
+                axisLine={false}
+                tickLine={false}
+                tick={{ fontSize: 10, fill: "#94a3b8" }}
+              />
+              <Tooltip
+                cursor={{ fill: "#f8fafc" }}
+                contentStyle={{
+                  borderRadius: "12px",
+                  border: "none",
+                  boxShadow: "0 10px 15px -3px rgba(0,0,0,0.1)",
+                }}
+              />
+              <Bar
+                dataKey="currentStock"
+                fill="#6366f1"
+                radius={[4, 4, 0, 0]}
+                barSize={30}
+              />
+            </BarChart>
+          </ResponsiveContainer>
+        </Card>
+      </div>
+
+      {/* CONTROL CENTER */}
+      <div className="  p-3   flex flex-col lg:flex-row items-center gap-4">
+        <SearchBar
+          placeholder="Filter by SKU or Name..."
+          value={search}
+          onChange={(e) => setSearch(e.target.value)}
+          containerClassName="flex-1"
+        />
+        {/* STOCK STATUS FILTER */}
+        <div className="flex bg-slate-100 p-1 rounded-xl">
+          {["ALL", "LOW", "MID", "HEALTHY"].map((s) => (
+            <button
+              key={s}
+              onClick={() => setStatusFilter(s)}
+              className={`px-4 py-3 rounded-lg text-[10px] font-black transition-all ${
+                statusFilter === s
+                  ? "bg-white text-slate-900 shadow-sm"
+                  : "text-slate-400 hover:text-slate-600"
+              }`}
+            >
+              {/* Optional: Add colored dots for visual cue */}
+              <span className="flex items-center gap-2">
+                {s !== "ALL" && (
+                  <span
+                    className={`w-1.5 h-1.5 rounded-full ${
+                      s === "LOW"
+                        ? "bg-red-500"
+                        : s === "MID"
+                          ? "bg-amber-500"
+                          : "bg-emerald-500"
+                    }`}
+                  />
+                )}
+                {s}
+              </span>
+            </button>
+          ))}
+        </div>
+
+        <RangePicker
+          className="h-12 rounded-xl border-slate-200"
+          value={dateRange}
+          onChange={(vals) => setDateRange(vals as any)}
+        />
+
+        <div className="flex bg-slate-100 p-1 rounded-xl">
+          {["ALL", "FOOD", "DRINKS"].map((t) => (
+            <button
+              key={t}
+              onClick={() => setTypeFilter(t)}
+              className={`px-6 py-3 rounded-lg text-[10px] font-black transition-all ${typeFilter === t ? "bg-white text-slate-900 shadow-sm" : "text-slate-400 hover:text-slate-600"}`}
+            >
+              {t}
+            </button>
+          ))}
+        </div>
+
+        <Button
+          variant={"terminalGhost"}
+          onClick={fetchInventory}
+          // className="h-12 w-12 flex items-center justify-center rounded-xl bg-slate-900 text-white border-none"
+        >
+          <RefreshCcw size={16} className={loading ? "animate-spin" : ""} />
+        </Button>
+      </div>
+
+      {/* AG GRID DATA TABLE */}
+      <div className="bg-white rounded-3xl border border-slate-200 shadow-sm overflow-hidden flex flex-col">
+        <div className="ag-theme-quartz w-full h-[500px]">
+          {loading ? (
+            <div className="h-full flex items-center justify-center">
+              <Spin size="large" />
+            </div>
+          ) : (
+            <AgGridReact
+              rowData={items}
+              columnDefs={columnDefs}
+              quickFilterText={search}
+              pagination={true}
+              paginationPageSize={20}
+              rowHeight={60}
+              headerHeight={50}
+              // This ensures all columns inherit vertical centering
+              defaultColDef={{
+                resizable: true,
+                sortable: true,
+                filter: true,
+                cellClass: "flex items-center",
+              }}
+              isExternalFilterPresent={isExternalFilterPresent}
+              doesExternalFilterPass={doesExternalFilterPass}
+            />
+          )}
+        </div>
+      </div>
+
+      {/* MODAL */}
+      {isModalOpen && (
+        <div className="fixed inset-0 bg-slate-900/40 backdrop-blur-md z-[100] flex items-center justify-center p-4">
+          <StockInForm
+            editData={editingItem}
+            onClose={() => {
+              setIsModalOpen(false);
+              setEditingItem(null);
+            }}
+            onSuccess={() => {
+              fetchInventory();
+              setIsModalOpen(false);
+              setEditingItem(null);
+            }}
+          />
+        </div>
+      )}
     </div>
   );
 }

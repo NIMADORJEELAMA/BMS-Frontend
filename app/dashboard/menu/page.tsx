@@ -1,261 +1,365 @@
 "use client";
-
-import { useState, useEffect } from "react";
+import DeleteItemModal from "@/components/menu/DeleteItemModal";
+import MenuItemForm from "@/components/menu/MenuItemForm";
+import MenuModal from "@/components/menu/MenuModal";
+import MenuTable from "@/components/menu/MenuTable";
+import { Button } from "@/components/ui/button";
+import { usedrinksinventory } from "@/hooks/useDrinksInventory";
+import {
+  useCreateMenuItem,
+  useMenu,
+  useUpdateMenuItem,
+  useDeleteMenuItem,
+  useUploadMenuCsv,
+} from "@/hooks/useMenu";
+import { FileDown, Loader2, Plus, Tag, Upload, X } from "lucide-react";
+import { useState, useRef } from "react";
 import toast from "react-hot-toast";
-import { Utensils, Beer, Link, Loader2, Plus, Tag, Pencil } from "lucide-react";
+import { MenuItem } from "@/app/types/menu";
+import Papa from "papaparse";
 
-import { useMenu, useCreateMenuItem, useUpdateMenuItem } from "@/hooks/useMenu";
-import { useAlcoholInventory } from "@/hooks/useAlcoholInventory";
-import EditMenuItemModal from "@/components/menu/EditMenuItemModal";
-
-interface MenuItem {
-  id: string;
-  name: string;
-  price: number;
-  category: string;
-  type: "FOOD" | "ALCOHOL";
-  inventoryItemId?: string | null;
-}
-
+import BulkPreviewModal from "./BulkPreviewModal";
 export default function MenuPage() {
-  /* ------------------ QUERIES ------------------ */
   const { data: menuItems = [], isLoading } = useMenu();
   const createMutation = useCreateMenuItem();
   const updateMutation = useUpdateMenuItem();
+  const deleteMutation = useDeleteMenuItem();
+  const uploadMutation = useUploadMenuCsv();
+  const [selectedItem, setSelectedItem] = useState<MenuItem | null>(null);
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [isDeleteOpen, setIsDeleteOpen] = useState(false);
+  const [activeItem, setActiveItem] = useState<any>(null);
+  const [formData, setFormData] = useState({
+    id: "",
+    name: "",
+    price: "",
+    category: "",
+    type: "FOOD" as "FOOD" | "DRINKS",
+    inventoryItemId: "",
+    isVeg: false,
+    isActive: true,
+  });
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
-  /* ------------------ FORM STATE ------------------ */
-  const [name, setName] = useState("");
-  const [price, setPrice] = useState("");
-  const [category, setCategory] = useState("");
-  const [type, setType] = useState<"FOOD" | "ALCOHOL">("FOOD");
-  const [inventoryItemId, setInventoryItemId] = useState("");
+  const [isMenuItemFormOpen, setIsMenuItemFormOpen] = useState<boolean>(false); // Toggle for create form
+  const [previewData, setPreviewData] = useState<any[]>([]);
+  const [isPreviewOpen, setIsPreviewOpen] = useState(false);
 
-  const [editingItem, setEditingItem] = useState<MenuItem | null>(null);
-  const [isEditModalOpen, setIsEditModalOpen] = useState(false);
-
-  /* ------------------ INVENTORY ------------------ */
-  const { data: alcoholInventory = [] } = useAlcoholInventory(
-    type === "ALCOHOL",
+  const { data: drinksinventory = [] } = usedrinksinventory(
+    formData.type === "DRINKS",
   );
 
-  /* ------------------ CREATE ------------------ */
-  const handleCreateItem = (e: React.FormEvent) => {
+  const handleMenuModel = () => {
+    setIsMenuItemFormOpen(!isMenuItemFormOpen);
+    resetForm();
+  };
+
+  const openDelete = (item: any) => {
+    setActiveItem(item);
+    setIsDeleteOpen(true);
+  };
+  const resetForm = () => {
+    setFormData({
+      id: "",
+      name: "",
+      price: "",
+      category: "",
+      type: "FOOD",
+      inventoryItemId: "",
+      isVeg: false,
+      isActive: true,
+    });
+    setSelectedItem(null); // Clear the selected item reference
+  };
+  const handleCsvSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    Papa.parse(file, {
+      header: true,
+      skipEmptyLines: true,
+      complete: (results) => {
+        setPreviewData(results.data);
+        setIsPreviewOpen(true);
+        if (fileInputRef.current) fileInputRef.current.value = "";
+      },
+      error: (error) => {
+        toast.error("Error parsing CSV: " + error.message);
+      },
+    });
+  };
+
+  const handleConfirmUpload = (finalData: any[]) => {
+    // Now we use finalData instead of previewData state
+    uploadMutation.mutate(finalData, {
+      onSuccess: () => {
+        setIsPreviewOpen(false);
+        setPreviewData([]);
+        toast.success("Bulk upload successful!");
+      },
+      onError: (error: any) => {
+        toast.error(error?.response?.data?.message || "Upload failed");
+      },
+    });
+  };
+  const downloadCsvTemplate = () => {
+    // Define the headers based on your NestJS Service requirements
+    const headers = ["name", "price", "category", "type", "isVeg"];
+    const sampleRow = ["Margherita Pizza", "12.99", "PIZZA", "FOOD", "true"];
+
+    const csvContent = [headers, sampleRow].map((e) => e.join(",")).join("\n");
+
+    const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+
+    link.setAttribute("href", url);
+    link.setAttribute("download", "menu_template.csv");
+    link.style.visibility = "hidden";
+
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  };
+  const handleCreate = (e: React.FormEvent) => {
     e.preventDefault();
-
-    if (!name || !price || !category) {
-      toast.error("Missing required fields");
-      return;
-    }
-
     createMutation.mutate(
       {
-        name: name.toUpperCase().trim(),
-        price: Number(price),
-        category: category.toUpperCase().trim(),
-        type,
-        inventoryItemId: type === "ALCOHOL" ? inventoryItemId : null,
+        ...formData,
+        name: formData.name.toUpperCase().trim(),
+        price: Number(formData.price),
+        category: formData.category.toUpperCase().trim(),
+        inventoryItemId:
+          formData.type === "DRINKS" ? formData.inventoryItemId : null,
       },
       {
         onSuccess: () => {
           toast.success("Menu item added");
-          setName("");
-          setPrice("");
-          setCategory("");
-          setInventoryItemId("");
-          setType("FOOD");
+          resetForm();
+          setIsMenuItemFormOpen(false); // Optional: close form on success
         },
-        onError: (err: any) =>
-          toast.error(err.response?.data?.message || "Create failed"),
+        onError: (error: any) => {
+          // This extracts the "An item named..." message from your JSON response
+          const message =
+            error?.response?.data?.message || "Something went wrong";
+          toast.error(message);
+        },
       },
     );
   };
 
-  /* ------------------ EDIT ------------------ */
-  const openEditModal = (item: MenuItem) => {
-    setEditingItem(item);
-    setName(item.name);
-    setPrice(item.price.toString());
-    setCategory(item.category);
-    setType(item.type);
-    setInventoryItemId(item.inventoryItemId || "");
-    setIsEditModalOpen(true);
-  };
-
-  const handleUpdateItem = (e: React.FormEvent) => {
+  const handleUpdate = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!editingItem) return;
+    if (!formData?.id) return;
+
+    const dataToSend = {
+      ...formData,
+      name: formData.name.toUpperCase().trim(),
+      price: Number(formData.price),
+      category: formData.category.toUpperCase().trim(),
+      isActive: formData.isActive,
+    };
 
     updateMutation.mutate(
       {
-        id: editingItem.id,
-        payload: {
-          name: name.toUpperCase().trim(),
-          price: Number(price),
-          category: category.toUpperCase().trim(),
-          type,
-          inventoryItemId: type === "ALCOHOL" ? inventoryItemId : null,
-        },
+        id: formData?.id,
+        payload: dataToSend,
       },
       {
         onSuccess: () => {
-          toast.success("Item updated");
-          setIsEditModalOpen(false);
-          setEditingItem(null);
+          toast.success("Item updated successfully");
+          setIsModalOpen(false);
+          resetForm();
         },
-        onError: (err: any) =>
-          toast.error(err.response?.data?.message || "Update failed"),
+        onError: (error: any) => {
+          // Robust message extraction
+          const responseMessage = error?.response?.data?.message;
+
+          const errorMessage = Array.isArray(responseMessage)
+            ? responseMessage.join(", ") // Joins multiple validation errors: "Name is too short, Price must be a number"
+            : responseMessage ||
+              error.message ||
+              "An unexpected error occurred";
+
+          toast.error(errorMessage);
+
+          console.error("Update Error:", {
+            status: error?.response?.status,
+            message: errorMessage,
+            fullError: error,
+          });
+        },
       },
     );
   };
+  const handleConfirmDelete = () => {
+    if (!activeItem?.id) return;
+
+    deleteMutation.mutate(activeItem.id, {
+      onSuccess: () => {
+        toast.success(`${activeItem.name} has been archived`);
+        setIsDeleteOpen(false); // Close the modal
+        setActiveItem(null); // Clear reference
+      },
+      onError: (error: any) => {
+        toast.error(error?.response?.data?.message || "Deletion failed");
+      },
+    });
+  };
+  const handleEditClick = (item: MenuItem) => {
+    setSelectedItem(item);
+    setIsMenuItemFormOpen(false);
+    setFormData({
+      id: item.id, // Important for updates/deletes
+      name: item.name,
+      price: item.price.toString(),
+      category: item.category,
+      type: item.type,
+      isVeg: item.isVeg,
+      inventoryItemId: item.inventoryItemId || "",
+      isActive: item.isActive,
+    });
+    setIsModalOpen(true);
+  };
+
+  const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    // Basic validation before parsing
+    if (file.type !== "text/csv" && !file.name.endsWith(".csv")) {
+      toast.error("Please upload a valid CSV file");
+      return;
+    }
+
+    Papa.parse(file, {
+      header: true,
+      skipEmptyLines: true,
+      complete: (results) => {
+        // Logic to sanitize data (optional but recommended)
+        const sanitizedData = results.data.map((item: any) => ({
+          ...item,
+          price: parseFloat(item.price) || 0,
+          isVeg: String(item.isVeg).toLowerCase() === "true",
+        }));
+
+        setPreviewData(sanitizedData);
+        setIsPreviewOpen(true);
+
+        // Reset input so the same file can be uploaded again if needed
+        if (fileInputRef.current) fileInputRef.current.value = "";
+      },
+      error: (error) => {
+        toast.error("Error parsing CSV: " + error.message);
+      },
+    });
+  };
 
   return (
-    <div className="max-w-6xl mx-auto space-y-8 p-8 bg-white min-h-screen">
-      {/* HEADER */}
-      <header className="flex justify-between items-end">
-        <div>
-          <h1 className="text-5xl font-black italic uppercase tracking-tighter">
-            Menu Studio
-          </h1>
-          <p className="text-gray-400 font-bold text-[10px] uppercase tracking-[0.3em]">
-            Minizeo Resort Systems
-          </p>
+    <div className="mx-auto space-y-8 p-8 bg-white  ">
+      <header className="space-y-4">
+        {/* This input remains hidden but accessible via Ref */}
+        <input
+          type="file"
+          ref={fileInputRef}
+          onChange={handleFileSelect}
+          accept=".csv"
+          className="hidden"
+        />
+
+        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+          {/* Left Side: Create Action */}
+          <div>
+            <Button variant="default" onClick={handleMenuModel}>
+              {isMenuItemFormOpen ? (
+                <>
+                  <X size={18} className="mr-2" /> Close Form
+                </>
+              ) : (
+                <>
+                  <Plus size={18} className="mr-2" /> Add New Item
+                </>
+              )}
+            </Button>
+          </div>
+
+          {/* Right Side: CSV Actions */}
+          <div className="flex flex-wrap items-center gap-2">
+            <Button
+              variant="terminalGhost"
+              onClick={downloadCsvTemplate}
+              className="whitespace-nowrap"
+            >
+              <FileDown className="mr-2" size={16} />
+              Download Template
+            </Button>
+
+            <Button
+              variant="terminalGhost"
+              onClick={() => fileInputRef.current?.click()}
+              disabled={uploadMutation.isPending}
+              className="whitespace-nowrap"
+            >
+              {uploadMutation.isPending ? (
+                <Loader2 className="animate-spin mr-2" size={18} />
+              ) : (
+                <Upload className="mr-2" size={18} />
+              )}
+              Bulk Upload (CSV)
+            </Button>
+          </div>
         </div>
 
-        <div className="bg-gray-100 px-4 py-2 rounded-2xl flex items-center gap-2">
-          <Tag size={14} />
-          <span className="text-[10px] font-black uppercase">
-            {menuItems.length} Total Items
-          </span>
-        </div>
+        {/* Preview Modal is placed outside the layout flow */}
+        <BulkPreviewModal
+          isOpen={isPreviewOpen}
+          onClose={() => setIsPreviewOpen(false)}
+          data={previewData}
+          onConfirm={handleConfirmUpload}
+          isPending={uploadMutation.isPending}
+        />
       </header>
 
-      {/* CREATE FORM (RESTORED) */}
-      <form
-        onSubmit={handleCreateItem}
-        className="bg-white p-8 rounded-[40px] border shadow-xl space-y-6"
-      >
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-          <input
-            placeholder="ITEM NAME"
-            value={name}
-            onChange={(e) => setName(e.target.value)}
-            className="input-modern uppercase"
-          />
-
-          <input
-            type="number"
-            placeholder="PRICE"
-            value={price}
-            onChange={(e) => setPrice(e.target.value)}
-            className="input-modern"
-          />
-
-          <input
-            placeholder="CATEGORY"
-            value={category}
-            onChange={(e) => setCategory(e.target.value)}
-            className="input-modern uppercase"
-          />
-
-          {/* FOOD / ALCOHOL TOGGLE */}
-          <div className="flex bg-gray-50 p-1 rounded-2xl">
-            {["FOOD", "ALCOHOL"].map((t) => (
-              <button
-                key={t}
-                type="button"
-                onClick={() => setType(t as any)}
-                className={`flex-1 flex items-center justify-center gap-2 rounded-xl text-[10px] font-black ${
-                  type === t ? "bg-gray-900 text-white" : "text-gray-400"
-                }`}
-              >
-                {t === "FOOD" ? <Utensils size={12} /> : <Beer size={12} />}
-                {t}
-              </button>
-            ))}
-          </div>
-        </div>
-
-        {/* INVENTORY DROPDOWN (RESTORED) */}
-        {type === "ALCOHOL" && (
-          <div className="p-6 bg-purple-50 rounded-[24px] border flex items-center gap-4">
-            <Link className="text-purple-600" />
-            <select
-              value={inventoryItemId}
-              onChange={(e) => setInventoryItemId(e.target.value)}
-              className="flex-1 px-5 py-4 bg-white rounded-2xl font-bold"
-              required
-            >
-              <option value="">SELECT INVENTORY BOTTLE</option>
-              {alcoholInventory.map((inv: any) => (
-                <option key={inv.id} value={inv.id}>
-                  {inv.name} ({inv.currentStock} {inv.unit})
-                </option>
-              ))}
-            </select>
-          </div>
-        )}
-
-        <button
-          disabled={createMutation.isPending}
-          className="w-full py-5 bg-gray-900 text-white rounded-2xl font-black uppercase tracking-widest"
-        >
-          {createMutation.isPending ? (
-            <Loader2 className="animate-spin mx-auto" />
-          ) : (
-            <>
-              <Plus size={16} /> Publish to Menu
-            </>
-          )}
-        </button>
-      </form>
-
-      {/* MENU LIST */}
+      {isMenuItemFormOpen && (
+        <MenuItemForm
+          formData={formData}
+          setFormData={setFormData}
+          drinksinventory={drinksinventory}
+          isPending={createMutation.isPending}
+          onSubmit={handleCreate}
+          onCancel={() => setIsMenuItemFormOpen(false)}
+        />
+      )}
       {isLoading ? (
         <div className="flex justify-center py-20">
           <Loader2 className="animate-spin" />
         </div>
       ) : (
-        <div className="bg-white rounded-[40px] border overflow-hidden">
-          {menuItems.map((item: MenuItem) => (
-            <div
-              key={item.id}
-              className="flex justify-between p-6 border-b hover:bg-gray-50"
-            >
-              <div>
-                <p className="font-black uppercase">{item.name}</p>
-                <p className="text-xs text-gray-400">
-                  ₹{item.price.toFixed(2)}
-                </p>
-              </div>
-              <button
-                onClick={() => openEditModal(item)}
-                className="p-2 rounded-lg hover:bg-blue-50 text-blue-600"
-              >
-                <Pencil />
-              </button>
-            </div>
-          ))}
-        </div>
+        <MenuTable
+          items={menuItems}
+          onEdit={handleEditClick}
+          onDelete={openDelete}
+        />
       )}
 
-      {/* EDIT MODAL */}
-      <EditMenuItemModal
-        isOpen={isEditModalOpen}
-        item={editingItem}
-        alcoholInventory={alcoholInventory}
-        loading={updateMutation.isPending}
-        name={name}
-        price={price}
-        category={category}
-        type={type}
-        inventoryItemId={inventoryItemId}
-        setName={setName}
-        setPrice={setPrice}
-        setCategory={setCategory}
-        setType={setType}
-        setInventoryItemId={setInventoryItemId}
-        onClose={() => setIsEditModalOpen(false)}
-        onSubmit={handleUpdateItem}
+      {/* Keep EditMenuItemModal as is, using synced state */}
+      <MenuModal
+        isOpen={isModalOpen}
+        onClose={() => setIsModalOpen(false)}
+        // onDelete={handleDelete}
+        formData={formData}
+        setFormData={setFormData}
+        isPending={updateMutation.isPending || deleteMutation.isPending}
+        onSubmit={handleUpdate}
+        drinksinventory={drinksinventory}
+      />
+
+      <DeleteItemModal
+        isOpen={isDeleteOpen}
+        itemName={activeItem?.name || ""}
+        isPending={deleteMutation.isPending}
+        onClose={() => setIsDeleteOpen(false)}
+        onConfirm={handleConfirmDelete}
       />
     </div>
   );

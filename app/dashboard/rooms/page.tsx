@@ -1,49 +1,88 @@
 "use client";
+
 import { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import api from "@/lib/axios";
-import { Plus, Bed, Pencil, Trash2, Loader2, Power } from "lucide-react";
+import {
+  Plus,
+  Bed,
+  Pencil,
+  Trash2,
+  Power,
+  MoreVertical,
+  Circle,
+  LayoutGrid,
+  ListFilter,
+  ArrowUpRight,
+} from "lucide-react";
 import toast from "react-hot-toast";
+
+import { Button } from "@/components/ui/button";
+import { Card, CardContent } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+  DropdownMenuSeparator,
+} from "@/components/ui/dropdown-menu";
+import { Skeleton } from "@/components/ui/skeleton";
 import RoomModal from "@/components/rooms/RoomModal";
+import { SearchBar } from "@/components/ui/SearchBar"; // Your custom component
+import CategoryManagerRoom from "@/components/rooms/CategoryManagerRoom";
+import CategoryDropdownRoom from "@/components/rooms/CategoryDropdown";
 
 export default function RoomsPage() {
   const queryClient = useQueryClient();
   const [isModalOpen, setIsModalOpen] = useState(false);
-  const [selectedRoom, setSelectedRoom] = useState<any>(null); // For editing
-
+  const [selectedRoom, setSelectedRoom] = useState<any>(null);
+  const [searchQuery, setSearchQuery] = useState("");
+  const [filter, setFilter] = useState("ALL");
+  const [selectedCategory, setSelectedCategory] = useState("ALL");
   const { data: rooms = [], isLoading } = useQuery({
     queryKey: ["rooms"],
     queryFn: async () => (await api.get("/rooms")).data,
   });
 
-  // Mutation for Toggle Active/Inactive
+  const { data: roomCategories = [] } = useQuery({
+    queryKey: ["room-categories"],
+    queryFn: async () => (await api.get("/rooms/categories")).data,
+  });
+  const filteredRooms = rooms.filter((room: any) => {
+    const categoryName = room.category?.name?.toLowerCase() || "";
+    const categoryId = room.categoryId || "";
+
+    const matchesSearch =
+      room.roomNumber.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      categoryName.includes(searchQuery.toLowerCase());
+
+    const matchesStatus = filter === "ALL" || room.status === filter;
+
+    // FIX: Match against category ID or Name
+    const matchesCategory =
+      selectedCategory === "ALL" || categoryId === selectedCategory;
+
+    return matchesSearch && matchesStatus && matchesCategory;
+  });
+
+  console.log("filteredRooms", filteredRooms);
   const toggleMutation = useMutation({
     mutationFn: async ({ id, isActive }: { id: string; isActive: boolean }) =>
       api.patch(`/rooms/${id}`, { isActive }),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["rooms"] });
-      toast.success("Room status updated");
+      toast.success("Room visibility updated");
     },
   });
 
-  // Mutation for Delete with strict confirmation
   const deleteMutation = useMutation({
     mutationFn: async (id: string) => api.delete(`/rooms/${id}`),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["rooms"] });
-      toast.success("Room permanently removed");
+      toast.success("Room removed successfully");
     },
-    onError: (err: any) =>
-      toast.error(err.response?.data?.message || "Delete failed"),
   });
-
-  const handleDelete = (room: any) => {
-    const confirm = window.confirm(
-      `CRITICAL ACTION: Are you sure you want to delete Room ${room.roomNumber}?\n\nThis will remove all history for this room. If the room is just closed for maintenance, use 'Deactivate' instead.`,
-    );
-    if (confirm) deleteMutation.mutate(room.id);
-  };
-
   const handleEdit = (room: any) => {
     setSelectedRoom(room);
     setIsModalOpen(true);
@@ -54,98 +93,226 @@ export default function RoomsPage() {
     setIsModalOpen(false);
   };
 
+  const onCategoryCreated = (newCategory: any) => {
+    // Invalidate both rooms and categories to keep everything in sync
+    queryClient.invalidateQueries({ queryKey: ["rooms"] });
+    queryClient.invalidateQueries({ queryKey: ["room-categories"] });
+    // toast.success("Category created successfully");
+  };
+
+  const onRefreshCategories = () => {
+    queryClient.invalidateQueries({ queryKey: ["rooms"] });
+    queryClient.invalidateQueries({ queryKey: ["room-categories"] });
+  };
+
   return (
-    <div className="space-y-6">
-      <div className="flex justify-between items-center">
-        <div>
-          <h1 className="text-2xl font-black uppercase italic tracking-tighter text-slate-900">
-            Resort Inventory
-          </h1>
-          <p className="text-slate-400 text-[10px] font-bold uppercase tracking-widest">
-            Manage Rooms & Pricing
-          </p>
-        </div>
-        <button
-          onClick={() => setIsModalOpen(true)}
-          className="bg-slate-900 text-white px-6 py-3 rounded-2xl text-[10px] font-black uppercase tracking-widest flex items-center gap-2"
-        >
-          <Plus size={16} /> Add New Room
-        </button>
-      </div>
+    <div className=" bg-[#F8FAFC] flex flex-col lg:flex-row gap-6 p-6">
+      {/* ENTERPRISE HEADER */}
+      <div className="flex-1 space-y-6 p-6">
+        <div className="flex flex-col lg:flex-row justify-between items-start lg:items-end gap-6 mb-12">
+          {/* <div className="flex bg-slate-100 p-1 rounded-xl w-full md:w-auto">
+            {["ALL", "AVAILABLE", "OCCUPIED"].map((t) => (
+              <button
+                key={t}
+                onClick={() => setFilter(t)}
+                className={`flex-1 px-6 py-2 rounded-lg text-[10px] font-black tracking-widest transition-all ${
+                  filter === t
+                    ? "bg-white text-slate-900 shadow-sm"
+                    : "text-slate-400 hover:text-slate-600"
+                }`}
+              >
+                {t}
+              </button>
+            ))}
+          </div> */}
+          <CategoryDropdownRoom
+            categories={roomCategories}
+            selectedCategory={selectedCategory}
+            setSelectedCategory={setSelectedCategory}
+          />
 
-      <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-4 gap-6">
-        {isLoading ? (
-          <div className="col-span-full py-20 flex justify-center">
-            <Loader2 className="animate-spin text-slate-300" size={40} />
-          </div>
-        ) : (
-          rooms.map((room: any) => (
-            <div
-              key={room.id}
-              className={`bg-white border border-slate-100 p-6 rounded-[32px] shadow-sm hover:shadow-md transition-all group relative ${!room.isActive ? "opacity-60 grayscale" : ""}`}
+          <div className="flex flex-col sm:flex-row items-center gap-3 w-full lg:w-auto">
+            <SearchBar
+              placeholder="Search room number..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              containerClassName="sm:w-80"
+            />
+            <div className="h-8 w-px bg-slate-200 mx-2 hidden md:block" />
+            <Button
+              onClick={() => {
+                setSelectedRoom(null);
+                setIsModalOpen(true);
+              }}
+              variant={"default"}
+              // className="w-full sm:w-auto bg-slate-900 hover:bg-black text-white rounded-xl h-10 px-6 font-bold text-xs  tracking-widest transition-all shadow-lg shadow-slate-200"
             >
-              <div className="flex justify-between items-start mb-4">
-                <div
-                  className={`p-3 rounded-2xl transition-colors ${room.isActive ? "bg-slate-50 text-slate-400 group-hover:text-blue-500" : "bg-red-50 text-red-400"}`}
+              <Plus className="mr-2 h-4 w-4" /> Add Room
+            </Button>
+          </div>
+        </div>
+
+        {/* ROOMS GRID */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5 gap-6">
+          {isLoading
+            ? Array.from({ length: 10 }).map((_, i) => (
+                <Skeleton
+                  key={i}
+                  className="h-[200px] w-full rounded-[32px] bg-slate-100"
+                />
+              ))
+            : filteredRooms.map((room: any) => (
+                <Card
+                  key={room.id}
+                  className={`group relative overflow-hidden rounded-[16px] border-slate-200 transition-all duration-300 hover:shadow-2xl hover:border-slate-300 ${
+                    !room.isActive
+                      ? "bg-slate-50/80 grayscale-[0.5]"
+                      : "bg-white"
+                  }`}
                 >
-                  <Bed size={20} />
-                </div>
-                <div className="flex items-center gap-2">
-                  <button
-                    onClick={() =>
-                      toggleMutation.mutate({
-                        id: room.id,
-                        isActive: !room.isActive,
-                      })
-                    }
-                    title={room.isActive ? "Deactivate Room" : "Activate Room"}
-                    className={`p-2 rounded-lg transition-all ${room.isActive ? "text-emerald-500 hover:bg-emerald-50" : "text-slate-400 hover:bg-slate-100"}`}
-                  >
-                    <Power size={14} />
-                  </button>
-                  <span
-                    className={`px-2 py-1 rounded-md text-[9px] font-black uppercase ${room.status === "AVAILABLE" ? "bg-emerald-50 text-emerald-600" : "bg-amber-50 text-amber-600"}`}
-                  >
-                    {room.status}
-                  </span>
-                </div>
-              </div>
+                  <CardContent className="p-4">
+                    {/* Card Header Actions */}
+                    <div className="flex justify-between items-start mb-4">
+                      <Badge
+                        className={`px-3 py-1 rounded-full text-[9px] font-black uppercase tracking-widest border-none ${
+                          room.status === "AVAILABLE"
+                            ? "bg-emerald-50 text-emerald-600"
+                            : "bg-amber-50 text-amber-600"
+                        }`}
+                      >
+                        <Circle size={8} className="fill-current mr-1.5" />
+                        {room.status}
+                      </Badge>
 
-              <h3 className="text-2xl font-black italic text-slate-900 tracking-tighter">
-                Room {room.roomNumber}
-              </h3>
-              <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">
-                {room.type}
-              </p>
+                      <DropdownMenu>
+                        <DropdownMenuTrigger asChild>
+                          <Button
+                            variant="ghost"
+                            className="h-8 w-8 p-0 rounded-full hover:bg-slate-100"
+                          >
+                            <MoreVertical
+                              size={16}
+                              className="text-slate-400"
+                            />
+                          </Button>
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent
+                          align="end"
+                          className="rounded-xl w-44 p-1.5 border-slate-200"
+                        >
+                          <DropdownMenuItem
+                            onClick={() => handleEdit(room)}
+                            className="rounded-lg h-9 text-xs font-bold uppercase tracking-tight"
+                          >
+                            <Pencil className="mr-2 h-3.5 w-3.5" /> Edit Details
+                          </DropdownMenuItem>
+                          <DropdownMenuItem
+                            onClick={() =>
+                              toggleMutation.mutate({
+                                id: room.id,
+                                isActive: !room.isActive,
+                              })
+                            }
+                            className="rounded-lg h-9 text-xs font-bold uppercase tracking-tight"
+                          >
+                            <Power
+                              className={`mr-2 h-3.5 w-3.5 ${room.isActive ? "text-red-500" : "text-emerald-500"}`}
+                            />
+                            {room.isActive ? "Deactivate" : "Activate"}
+                          </DropdownMenuItem>
+                          <DropdownMenuSeparator className="bg-slate-100" />
+                          <DropdownMenuItem
+                            onClick={() => {
+                              if (confirm("Confirm removal?"))
+                                deleteMutation.mutate(room.id);
+                            }}
+                            className="rounded-lg h-9 text-xs font-bold uppercase tracking-tight text-red-600 focus:bg-red-50 focus:text-red-700"
+                          >
+                            <Trash2 className="mr-2 h-3.5 w-3.5" /> Remove room
+                          </DropdownMenuItem>
+                        </DropdownMenuContent>
+                      </DropdownMenu>
+                    </div>
 
-              <div className="mt-6 flex justify-between items-center">
-                <p className="text-lg font-black text-slate-900 italic">
-                  ₹{room.basePrice}
-                </p>
-                <div className="flex gap-2 opacity-0 group-hover:opacity-100 transition-all">
-                  <button
-                    onClick={() => handleEdit(room)}
-                    className="p-2 hover:bg-slate-50 rounded-lg text-slate-400 hover:text-slate-900"
-                  >
-                    <Pencil size={14} />
-                  </button>
-                  <button
-                    onClick={() => handleDelete(room)}
-                    className="p-2 hover:bg-red-50 rounded-lg text-slate-400 hover:text-red-600"
-                  >
-                    <Trash2 size={14} />
-                  </button>
-                </div>
-              </div>
+                    {/* Room Body */}
+                    <div className="space-y-4">
+                      <div className="flex items-center justify-between">
+                        <div>
+                          <h3 className="text-2xl font-black text-slate-900 tracking-tighter leading-none">
+                            {room.roomNumber}
+                          </h3>
+                          <p className="text-[8px] font-bold text-slate-400 uppercase tracking-[0.2em] mt-2">
+                            {room.category?.name || "Uncategorized"}
+                          </p>
+                        </div>
+                        <div
+                          className={`p-2 rounded-2xl ${!room.isActive ? "bg-red-50 text-red-400" : "bg-slate-50 text-slate-400"}`}
+                        >
+                          <Bed size={18} />
+                        </div>
+                      </div>
+
+                      <div className="pt-1 border-t border-slate-100 flex items-center justify-between">
+                        <div className="flex flex-col">
+                          <span className="text-[9px] font-black text-slate-400 uppercase">
+                            Rate / Night
+                          </span>
+                          <span className="text-x font-black text-slate-900 tracking-tight">
+                            ₹{room.basePrice.toLocaleString()}
+                          </span>
+                        </div>
+                        <div className=" flex justify-end   ">
+                          <span
+                            className={`  gap-1.5 px-2.5 py-1  rounded-[6px] text-[10px] font-black uppercase tracking-wider border transition-all duration-300 ${
+                              room.isActive
+                                ? "bg-emerald-50 text-emerald-700 border-emerald-100 shadow-sm shadow-emerald-100/50"
+                                : "bg-slate-50 text-slate-500 border-slate-200 grayscale"
+                            }`}
+                          >
+                            {room.isActive ? "Active" : "Inactive"}
+                          </span>
+                        </div>
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
+              ))}
+        </div>
+
+        {filteredRooms.length === 0 && !isLoading && (
+          <div className="flex flex-col items-center justify-center py-20 bg-white rounded-[32px] border border-dashed border-slate-200">
+            <div className="p-4 bg-slate-50 rounded-full mb-4">
+              <ListFilter className="text-slate-300" size={32} />
             </div>
-          ))
+            <p className="text-slate-400 font-bold text-sm uppercase tracking-widest">
+              No rooms found for this search
+            </p>
+            <Button
+              variant="ghost"
+              onClick={() => {
+                setSearchQuery("");
+                setFilter("ALL");
+              }}
+              className="mt-2 text-indigo-600 hover:text-indigo-700 underline underline-offset-4"
+            >
+              Reset all filters
+            </Button>
+          </div>
         )}
       </div>
 
+      <div>
+        <CategoryManagerRoom
+          categories={roomCategories}
+          onCategoryCreated={onCategoryCreated}
+          onRefreshCategories={onRefreshCategories}
+        />
+      </div>
       <RoomModal
         isOpen={isModalOpen}
         onClose={closeModal}
-        initialData={selectedRoom} // Pass data if editing
+        initialData={selectedRoom}
+        categories={roomCategories}
       />
     </div>
   );

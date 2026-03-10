@@ -1,55 +1,46 @@
 "use client";
-import { useState, useMemo } from "react";
-import { useBillHistory } from "@/hooks/useHistory";
-import OrderModal from "@/components/OrderModal";
-import {
-  useReactTable,
-  getCoreRowModel,
-  flexRender,
-  createColumnHelper,
-  getPaginationRowModel,
-  getSortedRowModel,
-  getFilteredRowModel,
-  SortingState,
-} from "@tanstack/react-table";
-import {
-  ArrowUpDown,
-  ChevronLeft,
-  ChevronRight,
-  Eye,
-  Search,
-  TrendingUp,
-  Wallet,
-  Clock,
-  FilterX,
-  Loader2,
-} from "lucide-react";
-import DateRangePicker from "@/components/DateRangePicker";
 
-const columnHelper = createColumnHelper<any>();
+import { useState, useMemo, useRef } from "react";
+import { AgGridReact } from "ag-grid-react";
+import type { AgGridReact as AgGridReactType } from "ag-grid-react";
+import { ColDef } from "ag-grid-community";
+import "@/lib/agGrid";
+
+import { useBillHistory } from "@/hooks/useHistory";
+import { Search, Loader2, RotateCcw, Eye, Calendar } from "lucide-react";
+import { DatePicker, ConfigProvider } from "antd";
+import dayjs from "dayjs";
+import BillReceiptModal from "@/components/Bills/BillReceiptModal";
+import { Button } from "@/components/ui/button";
+
+const { RangePicker } = DatePicker;
 
 export default function BillHistoryPage() {
-  const getFormattedDate = (date: Date) => date.toISOString().split("T")[0];
+  const gridRef = useRef<AgGridReactType>(null);
+  const [selectedBill, setSelectedBill] = useState<any>(null);
+  const [statusFilter, setStatusFilter] = useState("ALL");
+  const [searchBuffer, setSearchBuffer] = useState("");
 
-  // 1. Local state for Date Filters
-  const [startDate, setStartDate] = useState(() => {
-    const d = new Date();
-    d.setDate(d.getDate() - 7);
-    return getFormattedDate(d);
+  const [dateRange, setDateRange] = useState<[dayjs.Dayjs, dayjs.Dayjs]>([
+    dayjs().subtract(7, "day"),
+    dayjs(),
+  ]);
+
+  const [queryDates, setQueryDates] = useState({
+    start: dateRange[0].format("YYYY-MM-DD"),
+    end: dateRange[1].format("YYYY-MM-DD"),
   });
-  const [endDate, setEndDate] = useState(() => getFormattedDate(new Date()));
 
-  // 2. TanStack Query Hook
-  const {
-    data = [],
-    isLoading,
-    isFetching,
-  } = useBillHistory(startDate, endDate);
+  const { data, isFetching } = useBillHistory(queryDates.start, queryDates.end);
 
-  const [sorting, setSorting] = useState<SortingState>([]);
-  const [globalFilter, setGlobalFilter] = useState("");
-  const [selectedTable, setSelectedTable] = useState<any>(null);
+  const applyFilters = () => {
+    setQueryDates({
+      start: dateRange[0].format("YYYY-MM-DD"),
+      end: dateRange[1].format("YYYY-MM-DD"),
+    });
+  };
 
+<<<<<<< HEAD
   console.log("selectedTable", selectedTable);
 
   // 3. Stats Calculation (now uses 'data' from Query)
@@ -57,271 +48,256 @@ export default function BillHistoryPage() {
     const paidBills = data.filter((b: any) => b.status === "PAID");
     const totalRevenue = paidBills.reduce(
       (acc, b: any) => acc + Number(b.totalAmount),
+=======
+  const resetToToday = () => {
+    const today = dayjs();
+    setDateRange([today, today]);
+    setQueryDates({
+      start: today.format("YYYY-MM-DD"),
+      end: today.format("YYYY-MM-DD"),
+    });
+  };
+
+  const filteredData = useMemo(() => {
+    if (!data) return [];
+    if (statusFilter === "ALL") return data;
+    return data.filter((bill: any) => bill.status === statusFilter);
+  }, [data, statusFilter]);
+
+  /* ================= PINNED TOTAL ROW ================= */
+  const pinnedBottomRowData = useMemo(() => {
+    if (!filteredData.length) return [];
+    const total = filteredData.reduce(
+      (sum: number, item: any) => sum + Number(item.totalAmount || 0),
+>>>>>>> 97a99bd934e32d8f7d070a1410e2da8f161032ee
       0,
     );
-    const pendingCount = data.filter((b: any) => b.status === "BILLED").length;
-    return { totalRevenue, pendingCount, totalOrders: data.length };
-  }, [data]);
+    return [
+      {
+        isPinnedRow: true, // Custom flag to identify the row in renderers
+        table: { number: "TOTAL" },
+        totalAmount: total,
+        status: "",
+        paymentMode: "",
+        updatedAt: null,
+      },
+    ];
+  }, [filteredData]);
 
-  // 4. Columns Definition (Same as your original)
-  const columns = useMemo(
+  /* ================= COLUMN DEFINITIONS ================= */
+  const columnDefs = useMemo<ColDef[]>(
     () => [
-      columnHelper.accessor("table.number", {
-        header: "Table",
-        cell: (info) => (
-          <div className="flex items-center gap-3">
-            <span className="w-8 h-8 bg-gray-900 text-white rounded-full flex items-center justify-center font-black text-[10px]">
-              {info.getValue()}
-            </span>
-            <span className="text-xs font-bold text-gray-500 uppercase tracking-tighter">
-              Table {info.getValue()}
-            </span>
-          </div>
-        ),
-      }),
-      columnHelper.accessor("totalAmount", {
-        header: ({ column }) => (
-          <button
-            className="flex items-center gap-1 hover:text-blue-600 transition-colors"
-            onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}
-          >
-            Amount <ArrowUpDown size={12} />
-          </button>
-        ),
-        sortingFn: "basic",
-        cell: (info) => (
-          <span className="font-mono font-bold text-gray-900">
-            ₹{Number(info.getValue()).toLocaleString()}
-          </span>
-        ),
-      }),
-      columnHelper.accessor("status", {
-        header: "Status",
-        cell: (info) => {
-          const status = info.getValue();
+      {
+        headerName: "Order Details",
+        flex: 1,
+        // valueGetter makes both Table # and ID searchable in the column filter
+        valueGetter: (params) => {
+          if (params.data?.isPinnedRow) return "TOTAL";
+          return `${params.data?.table?.number} ${params.data?.id}`;
+        },
+        filter: "agTextColumnFilter",
+        floatingFilter: true, // Adds search bar right under header
+        cellRenderer: (params: any) => {
+          const row = params.data;
+          if (!row) return null;
+          if (row.isPinnedRow)
+            return (
+              <span className="font-black text-slate-600 tracking-widest">
+                GRAND TOTAL
+              </span>
+            );
+
+          const tableDisplay = row.table?.number || "N/A";
+          const shortId = row.id ? row.id.slice(-5).toUpperCase() : "N/A";
+
           return (
-            <span
-              className={`px-3 py-1 rounded-full text-[9px] font-black uppercase tracking-widest ${status === "PAID" ? "bg-green-100 text-green-700" : "bg-amber-100 text-amber-700 animate-pulse"}`}
-            >
-              {status}
-            </span>
+            <div className="flex flex-col leading-tight justify-center h-full">
+              <span className="font-bold text-slate-800 text-sm">
+                {tableDisplay}
+              </span>
+              <div className="flex items-center gap-1.5 mt-0.5">
+                <span className="text-[10px] text-slate-400 font-medium">
+                  ID:
+                </span>
+                <span className="text-[10px] font-mono font-bold bg-slate-100 text-slate-500 px-1.5 py-0.5 rounded">
+                  #{shortId}
+                </span>
+              </div>
+            </div>
           );
         },
-      }),
-      columnHelper.accessor("paymentMode", {
-        header: "Payment",
-        cell: (info) => (
-          <div className="flex items-center gap-2">
-            <span className="text-sm">
-              {info.getValue() === "CASH"
-                ? "💵"
-                : info.getValue() === "UPI"
-                  ? "📱"
-                  : "🧾"}
-            </span>
-            <span className="text-[10px] font-bold text-gray-400 uppercase">
-              {info.getValue() || "Pending"}
-            </span>
-          </div>
-        ),
-      }),
-      columnHelper.accessor("updatedAt", {
-        header: "Finalized At",
-        cell: (info) => (
-          <span className="text-xs text-gray-400 font-medium">
-            {new Date(info.getValue()).toLocaleTimeString([], {
-              hour: "2-digit",
-              minute: "2-digit",
-              hour12: true,
-            })}
-          </span>
-        ),
-      }),
-      columnHelper.display({
-        id: "actions",
-        header: () => <div className="text-right">View</div>,
-        cell: (info) => (
-          <div className="text-right">
-            <button
-              onClick={(e) => {
-                e.stopPropagation();
-                setSelectedTable({
-                  ...info.row.original.table,
-                  activeOrder: info.row.original,
-                });
-              }}
-              className="p-2 bg-gray-50 text-gray-400 hover:text-blue-600 hover:bg-blue-50 rounded-xl transition-all"
+      },
+      {
+        headerName: "Status",
+        field: "status",
+        width: 180,
+        filter: false,
+        cellRenderer: (params: any) => {
+          if (params.data?.isPinnedRow) return null;
+          const isPaid = params.value === "PAID";
+          return (
+            <div className="flex items-center h-full">
+              <span
+                className={`px-2.5 py-1 text-[10px] font-black uppercase tracking-wider rounded ${
+                  isPaid ? " text-emerald-700" : "   text-amber-700"
+                }`}
+              >
+                {params.value}
+              </span>
+            </div>
+          );
+        },
+      },
+      {
+        headerName: "Method",
+        field: "paymentMode",
+        width: 130,
+        filter: false,
+        valueFormatter: (p) =>
+          p.data?.isPinnedRow ? "" : p.value?.toUpperCase() || "PENDING",
+      },
+
+      {
+        headerName: "Finalized At",
+        field: "updatedAt",
+        width: 250,
+        filter: false,
+        valueFormatter: (p) =>
+          p.value ? dayjs(p.value).format("DD/MM/YYYY • hh:mm A") : "",
+        cellStyle: {
+          fontSize: "12px",
+          color: "#64748b",
+          fontFamily: "monospace", // Optional: keeps numbers aligned vertically
+        },
+      },
+      {
+        headerName: "Amount",
+        field: "totalAmount",
+        filter: false,
+        width: 160,
+        // 1. Remove default padding and align text to right via AG Grid class
+        cellClass: "p-0 text-right",
+        cellRenderer: (params: any) => {
+          const isPinned = params.data?.isPinnedRow;
+
+          return (
+            <div
+              className={`flex items-center justify-end h-full w-full p-6  font-mono transition-colors ${
+                isPinned
+                  ? "font-black text-emerald-900  "
+                  : "font-bold text-emerald-700  "
+              }`}
             >
-              <Eye size={16} />
-            </button>
-          </div>
-        ),
-      }),
+              ₹{Number(params.value).toLocaleString()}
+            </div>
+          );
+        },
+      },
+      {
+        headerName: "Action",
+        width: 80,
+        pinned: "right",
+        sortable: false,
+        filter: false,
+        cellRenderer: (params: any) => {
+          if (params.data?.isPinnedRow) return null;
+          return (
+            <div className="flex justify-center items-center h-full">
+              <button
+                onClick={() => setSelectedBill(params.data)}
+                className="p-2 text-slate-400 hover:text-slate-600 transition-all cursor-pointer"
+              >
+                <Eye size={18} />
+              </button>
+            </div>
+          );
+        },
+      },
     ],
     [],
   );
 
-  const table = useReactTable({
-    data,
-    columns,
-    state: { sorting, globalFilter },
-    onSortingChange: setSorting,
-    onGlobalFilterChange: setGlobalFilter,
-    getCoreRowModel: getCoreRowModel(),
-    getSortedRowModel: getSortedRowModel(),
-    getFilteredRowModel: getFilteredRowModel(),
-    getPaginationRowModel: getPaginationRowModel(),
-    initialState: { pagination: { pageSize: 10 } },
-  });
+  const defaultColDef = useMemo(
+    () => ({
+      sortable: true,
+      filter: true,
+      floatingFilter: true,
+      resizable: true,
+    }),
+    [],
+  );
 
   return (
-    <div className="max-w-[1400px] mx-auto p-6 space-y-8 min-h-screen bg-white">
-      {/* Header & Date Picker */}
-      <header className="flex flex-col md:flex-row md:items-end justify-between gap-6">
-        <div>
-          <h1 className="text-5xl font-black italic uppercase tracking-tighter text-gray-900">
-            Revenue Logs
-          </h1>
-          <p className="text-gray-400 font-bold text-[10px] uppercase tracking-[0.3em] mt-1">
-            minizeo resort • Financial Records
-          </p>
+    <div className="mx-auto p-4 space-y-6 bg-[#f8fafc]  text-slate-900">
+      {/* HEADER SECTION */}
+      <header className="flex flex-col lg:flex-row justify-between items-center gap-6   py-6  ">
+        <div className="flex bg-slate-100 p-1 rounded-xl">
+          {["ALL", "PAID", "BILLED"].map((s) => (
+            <button
+              key={s}
+              onClick={() => setStatusFilter(s)}
+              className={`px-8 py-2 rounded-lg text-[11px] font-black tracking-widest transition-all ${
+                statusFilter === s
+                  ? "bg-white shadow-md text-blue-600"
+                  : "text-slate-500 hover:text-slate-700"
+              }`}
+            >
+              {s}
+            </button>
+          ))}
         </div>
-        <div className="flex items-center gap-4">
-          <DateRangePicker
-            startDate={startDate}
-            endDate={endDate}
-            onStartChange={setStartDate}
-            onEndChange={setEndDate}
-            onSubmit={() => {}} // Query handles this automatically on date change
+
+        <div className="flex items-center gap-3">
+          <RangePicker
+            value={dateRange}
+            onChange={(val: any) => setDateRange(val)}
+            className="h-11 border-slate-200"
           />
-          {isFetching && (
-            <Loader2 className="animate-spin text-blue-600" size={20} />
-          )}
+
+          <Button
+            variant={"default"}
+            onClick={applyFilters}
+            disabled={isFetching}
+            // className="flex items-center gap-2 px-8 py-3 bg-blue-600 text-white rounded-xl font-bold text-sm hover:bg-blue-700 shadow-lg shadow-blue-200 transition-all"
+          >
+            {isFetching ? (
+              <Loader2 className="animate-spin" size={18} />
+            ) : (
+              <Search size={18} />
+            )}
+            Update Records
+          </Button>
+          <button
+            onClick={resetToToday}
+            className="p-3 bg-slate-50 text-slate-400 hover:text-slate-600 rounded-xl border border-slate-200 transition-all"
+          >
+            <RotateCcw size={18} />
+          </button>
         </div>
       </header>
 
-      {/* Stats Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-        <div className="bg-gray-900 p-8 rounded-[40px] text-white">
-          <TrendingUp className="text-blue-400 mb-4" />
-          <p className="text-[10px] font-black uppercase tracking-widest opacity-50">
-            Total Revenue
-          </p>
-          <h2 className="text-4xl font-black italic">
-            ₹{stats.totalRevenue.toLocaleString()}
-          </h2>
-        </div>
-        <div className="bg-gray-50 p-8 rounded-[40px] border border-gray-100">
-          <Wallet className="text-amber-500 mb-4" />
-          <p className="text-[10px] font-black uppercase tracking-widest text-gray-400">
-            Pending Bills
-          </p>
-          <h2 className="text-4xl font-black italic text-gray-900">
-            {stats.pendingCount}
-          </h2>
-        </div>
-        <div className="bg-gray-50 p-8 rounded-[40px] border border-gray-100">
-          <Clock className="text-gray-400 mb-4" />
-          <p className="text-[10px] font-black uppercase tracking-widest text-gray-400">
-            Total Orders
-          </p>
-          <h2 className="text-4xl font-black italic text-gray-900">
-            {stats.totalOrders}
-          </h2>
-        </div>
-      </div>
-
-      {/* Search Bar */}
-      <div className="relative">
-        <Search
-          className="absolute left-6 top-1/2 -translate-y-1/2 text-gray-400"
-          size={18}
-        />
-        <input
-          value={globalFilter ?? ""}
-          onChange={(e) => setGlobalFilter(e.target.value)}
-          placeholder="SEARCH BY TABLE, AMOUNT, OR STATUS..."
-          className="w-full pl-16 pr-8 py-6 bg-gray-50 rounded-[30px] border-none font-black uppercase text-xs tracking-widest focus:ring-2 focus:ring-gray-900 transition-all text-black"
+      {/* AG GRID TABLE */}
+      <div
+        className="ag-theme-quartz enterprise-grid overflow-hidden border border-slate-200 rounded-xl  "
+        style={{ height: "75vh", width: "100%" }}
+      >
+        <AgGridReact
+          ref={gridRef}
+          rowData={filteredData}
+          columnDefs={columnDefs}
+          defaultColDef={defaultColDef}
+          pagination={true}
+          paginationPageSize={20}
+          animateRows={true}
+          rowHeight={65}
+          pinnedBottomRowData={pinnedBottomRowData}
         />
       </div>
 
-      {/* Table Section */}
-      <div className="bg-white rounded-[40px] border border-gray-100 shadow-sm overflow-hidden">
-        {isLoading ? (
-          <div className="py-20 flex flex-col items-center justify-center gap-4">
-            <Loader2 className="animate-spin text-gray-200" size={40} />
-            <p className="text-[10px] font-black text-gray-300 uppercase tracking-widest">
-              Compiling Records...
-            </p>
-          </div>
-        ) : (
-          <table className="w-full text-left">
-            <thead className="bg-gray-50/50 border-b border-gray-100">
-              {table.getHeaderGroups().map((headerGroup) => (
-                <tr key={headerGroup.id}>
-                  {headerGroup.headers.map((header) => (
-                    <th
-                      key={header.id}
-                      className="px-10 py-5 text-[10px] font-black text-gray-400 uppercase tracking-widest"
-                    >
-                      {header.isPlaceholder
-                        ? null
-                        : flexRender(
-                            header.column.columnDef.header,
-                            header.getContext(),
-                          )}
-                    </th>
-                  ))}
-                </tr>
-              ))}
-            </thead>
-            <tbody className="divide-y divide-gray-50 text-black">
-              {table.getRowModel().rows.map((row) => (
-                <tr key={row.id} className="hover:bg-gray-50/50 transition-all">
-                  {row.getVisibleCells().map((cell) => (
-                    <td key={cell.id} className="px-10 py-6">
-                      {flexRender(
-                        cell.column.columnDef.cell,
-                        cell.getContext(),
-                      )}
-                    </td>
-                  ))}
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        )}
-      </div>
-
-      {/* Pagination */}
-      <div className="flex items-center justify-between px-4">
-        <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest">
-          Showing Page {table.getState().pagination.pageIndex + 1} of{" "}
-          {table.getPageCount()}
-        </p>
-        <div className="flex gap-2">
-          <button
-            onClick={() => table.previousPage()}
-            disabled={!table.getCanPreviousPage()}
-            className="p-4 bg-gray-50 rounded-2xl disabled:opacity-20 hover:bg-gray-100 transition-all"
-          >
-            <ChevronLeft size={20} />
-          </button>
-          <button
-            onClick={() => table.nextPage()}
-            disabled={!table.getCanNextPage()}
-            className="p-4 bg-gray-50 rounded-2xl disabled:opacity-20 hover:bg-gray-100 transition-all"
-          >
-            <ChevronRight size={20} />
-          </button>
-        </div>
-      </div>
-
-      {selectedTable && (
-        <OrderModal
-          table={selectedTable}
-          onClose={() => setSelectedTable(null)}
-          onRefresh={() => {}} // Read-only view
+      {selectedBill && (
+        <BillReceiptModal
+          order={selectedBill}
+          onClose={() => setSelectedBill(null)}
         />
       )}
     </div>

@@ -1,35 +1,7 @@
-// import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-// import api from "@/lib/axios";
-
-// // FETCH MENU
-// export const useMenu = () => {
-//   return useQuery({
-//     queryKey: ["menu"],
-//     queryFn: async () => {
-//       const { data } = await api.get("/menu");
-//       return data;
-//     },
-//   });
-// };
-
-// // ADD MENU ITEM (Mutation)
-// export const useAddMenuItem = () => {
-//   const queryClient = useQueryClient();
-
-//   return useMutation({
-//     mutationFn: async (newItem: any) => {
-//       const { data } = await api.post("/menu", newItem);
-//       return data;
-//     },
-//     onSuccess: () => {
-//       // This "invalidates" the cache, forcing a fresh fetch automatically!
-//       queryClient.invalidateQueries({ queryKey: ["menu"] });
-//     },
-//   });
-// };
-
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import api from "@/lib/axios";
+import { toast } from "react-hot-toast/headless";
+import axios from "axios";
 
 export const useMenu = () =>
   useQuery({
@@ -46,6 +18,9 @@ export const useCreateMenuItem = () => {
   return useMutation({
     mutationFn: (payload: any) => api.post("/menu", payload),
     onSuccess: () => qc.invalidateQueries({ queryKey: ["menu"] }),
+    onError: () => {
+      toast.error("Failed to delete item");
+    },
   });
 };
 
@@ -55,5 +30,34 @@ export const useUpdateMenuItem = () => {
   return useMutation({
     mutationFn: ({ id, payload }: any) => api.patch(`/menu/${id}`, payload),
     onSuccess: () => qc.invalidateQueries({ queryKey: ["menu"] }),
+    onError: () => {
+      toast.error("Failed to delete item");
+    },
+  });
+};
+
+export const useDeleteMenuItem = () => {
+  const qc = useQueryClient();
+
+  return useMutation({
+    mutationFn: (id: string) => api.delete(`/menu/${id}`),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["menu"] });
+      toast.success("Item deleted forever");
+    },
+    onError: () => {
+      toast.error("Failed to delete item");
+    },
+  });
+};
+export const useUploadMenuCsv = () => {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async (payload: any[]) => {
+      // If sending JSON, we don't need FormData
+      const response = await api.post("/menu/bulk", payload);
+      return response.data;
+    },
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ["menu"] }),
   });
 };

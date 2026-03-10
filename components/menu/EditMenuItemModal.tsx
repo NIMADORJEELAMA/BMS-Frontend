@@ -8,7 +8,7 @@ interface MenuItem {
   name: string;
   price: number;
   category: string;
-  type: "FOOD" | "ALCOHOL";
+  type: "FOOD" | "DRINKS";
   inventoryItemId?: string | null;
 }
 
@@ -22,19 +22,19 @@ interface InventoryStock {
 interface Props {
   isOpen: boolean;
   item: MenuItem | null;
-  alcoholInventory: InventoryStock[];
+  drinksinventory: InventoryStock[];
   loading: boolean;
 
   name: string;
   price: string;
   category: string;
-  type: "FOOD" | "ALCOHOL";
+  type: "FOOD" | "DRINKS";
   inventoryItemId: string;
 
   setName: (v: string) => void;
   setPrice: (v: string) => void;
   setCategory: (v: string) => void;
-  setType: (v: "FOOD" | "ALCOHOL") => void;
+  setType: (v: "FOOD" | "DRINKS") => void;
   setInventoryItemId: (v: string) => void;
 
   onClose: () => void;
@@ -44,7 +44,7 @@ interface Props {
 export default function EditMenuItemModal({
   isOpen,
   item,
-  alcoholInventory,
+  drinksinventory,
   loading,
   name,
   price,
@@ -66,7 +66,7 @@ export default function EditMenuItemModal({
       <div className="w-full max-w-2xl rounded-[36px] bg-white shadow-2xl animate-in zoom-in-95 duration-200">
         {/* HEADER */}
         <div className="flex items-center justify-between px-8 py-6 border-b">
-          <h2 className="text-2xl font-black uppercase italic tracking-tighter">
+          <h2 className="text-2xl font-black uppercase   tracking-tighter">
             Edit Menu Item
           </h2>
           <button
@@ -123,7 +123,7 @@ export default function EditMenuItemModal({
                 Item Type
               </label>
               <div className="mt-2 flex bg-gray-50 p-1 rounded-2xl">
-                {["FOOD", "ALCOHOL"].map((t) => (
+                {["FOOD", "DRINKS"].map((t) => (
                   <button
                     key={t}
                     type="button"
@@ -141,7 +141,7 @@ export default function EditMenuItemModal({
           </div>
 
           {/* Inventory Link */}
-          {type === "ALCOHOL" && (
+          {type === "DRINKS" && (
             <div className="p-5 bg-purple-50 rounded-3xl border border-purple-100 flex items-center gap-4">
               <Link className="text-purple-600" />
               <select
@@ -150,7 +150,7 @@ export default function EditMenuItemModal({
                 className="flex-1 px-5 py-4 bg-white rounded-2xl font-bold shadow-sm"
               >
                 <option value="">SELECT INVENTORY ITEM</option>
-                {alcoholInventory.map((inv) => (
+                {drinksinventory.map((inv) => (
                   <option key={inv.id} value={inv.id}>
                     {inv.name} ({inv.currentStock} {inv.unit})
                   </option>

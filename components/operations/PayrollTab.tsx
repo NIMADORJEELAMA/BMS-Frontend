@@ -33,7 +33,7 @@ export default function PayrollTab() {
           <p className="text-[10px] font-black uppercase text-slate-400">
             Total Disbursements
           </p>
-          <h3 className="text-2xl font-black italic text-slate-900 mt-1">
+          <h3 className="text-2xl font-black   text-slate-900 mt-1">
             ₹
             {payroll
               .reduce((sum: any, p: any) => sum + p.netPay, 0)
@@ -44,7 +44,7 @@ export default function PayrollTab() {
           <p className="text-[10px] font-black uppercase text-red-400">
             Total Advances Deducted
           </p>
-          <h3 className="text-2xl font-black italic text-red-600 mt-1">
+          <h3 className="text-2xl font-black   text-red-600 mt-1">
             ₹
             {payroll
               .reduce((sum: any, p: any) => sum + p.totalAdvances, 0)

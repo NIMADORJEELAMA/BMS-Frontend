@@ -1,186 +1,235 @@
 "use client";
-import { useState } from "react";
+
+import { useState, useMemo, useEffect } from "react";
 import { usePerformanceReport } from "@/hooks/useReports";
-import DateRangePicker from "@/components/DateRangePicker";
+import { BarChart3, Receipt, IndianRupee, TrendingUp } from "lucide-react";
 import {
-  BarChart3,
-  Receipt,
-  IndianRupee,
-  Star,
-  ExternalLink,
-  Loader2,
-} from "lucide-react";
-import toast from "react-hot-toast";
-import ItemDrilldownModal from "@/components/ItemDrilldownModal";
+  ResponsiveContainer,
+  Tooltip,
+  BarChart,
+  Bar,
+  XAxis,
+  YAxis,
+  CartesianGrid,
+} from "recharts";
 
-export default function PerformanceReport() {
-  const today = new Date().toISOString().split("T")[0];
-  const [startDate, setStartDate] = useState(today);
-  const [endDate, setEndDate] = useState(today);
-  const [selectedDrilldown, setSelectedDrilldown] = useState<any>(null);
-  // TanStack Query Hook replacing useEffect and local loading state
-  const {
-    data: report,
-    isLoading,
-    isFetching,
-  } = usePerformanceReport(startDate, endDate);
+// UI Components
+import { DatePicker, Card, Statistic, Spin } from "antd";
+import { SearchBar } from "@/components/ui/SearchBar"; // Assuming path
+import { AgGridReact } from "ag-grid-react";
+import "@/lib/agGrid";
 
+import dayjs from "dayjs";
+import { ColDef } from "ag-grid-community";
+
+const { RangePicker } = DatePicker;
+
+export default function EnterprisePerformanceReport() {
+  const [dateRange, setDateRange] = useState<[dayjs.Dayjs, dayjs.Dayjs]>([
+    dayjs(),
+    dayjs(),
+  ]);
+  const [search, setSearch] = useState("");
+  const [debouncedSearch, setDebouncedSearch] = useState("");
+
+  const startDate = dateRange[0].format("YYYY-MM-DD");
+  const endDate = dateRange[1].format("YYYY-MM-DD");
+
+  const { data: report, isLoading } = usePerformanceReport(
+    startDate,
+    endDate,
+    1,
+    1000,
+    debouncedSearch,
+  );
+
+  useEffect(() => {
+    const timer = setTimeout(() => setDebouncedSearch(search), 500);
+    return () => clearTimeout(timer);
+  }, [search]);
+  const columnDefs = useMemo<ColDef[]>(
+    () => [
+      {
+        headerName: "No",
+        // In AG Grid 31.x+, 'node.rowIndex' is common,
+        // but ensure params are used for best practice
+        valueGetter: (params) => (params.node?.rowIndex ?? 0) + 1,
+        width: 70,
+        pinned: "left",
+        suppressMovable: true, // Recommended for a rank column
+        cellRenderer: (params: any) => (
+          <span className="font-bold text-slate-700">{params.value}</span>
+        ),
+      },
+      {
+        field: "name",
+        headerName: "Product",
+        flex: 1,
+        filter: "agTextColumnFilter",
+        cellRenderer: (params: any) => (
+          <span className="font-bold text-slate-700">{params.value}</span>
+        ),
+      },
+      {
+        field: "quantity",
+        headerName: "Sold",
+        width: 150,
+        sortable: true,
+        cellRenderer: (params: any) => (
+          <span className="font-bold text-slate-700">{params.value}</span>
+        ),
+      },
+    ],
+    [],
+  );
   return (
-    <div className="p-8 bg-gray-50 min-h-screen font-sans">
-      <div className="max-w-6xl mx-auto space-y-6">
-        {/* FILTERS & HEADER */}
-        <div className="flex flex-col md:flex-row justify-between items-center bg-white p-6 rounded-[32px] border border-gray-100 shadow-sm gap-4">
-          <div className="flex items-center gap-4">
-            <div className="p-3 bg-blue-600 text-white rounded-2xl shadow-lg shadow-blue-200">
-              <BarChart3 size={24} />
-            </div>
-            <div>
-              <h1 className="text-2xl font-black text-gray-900 uppercase italic leading-none">
-                Revenue Intelligence
-              </h1>
-              <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mt-1">
-                minizeo data analytics
-              </p>
-            </div>
-          </div>
-
-          <div className="flex items-center gap-3">
-            {isFetching && (
-              <Loader2 className="animate-spin text-blue-600" size={18} />
-            )}
-            <DateRangePicker
-              startDate={startDate}
-              endDate={endDate}
-              onStartChange={setStartDate}
-              onEndChange={setEndDate}
-              onClear={() => {
-                setStartDate(today);
-                setEndDate(today);
-              }}
-              onSubmit={() => {}} // Hook refetches automatically on date change
-              loading={isLoading}
+    <div className=" bg-[#f8fafc] p-4">
+      <div className="mx-auto space-y-4">
+        {/* COMPACT HEADER */}
+        <div className="flex flex-col md:flex-row justify-between items-center gap-4 ">
+          <SearchBar
+            placeholder="Search product..."
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+          />
+          <div className="flex items-center gap-3 justify-between">
+            <RangePicker
+              value={dateRange}
+              onChange={(values) =>
+                values && setDateRange([values[0]!, values[1]!])
+              }
+              className="rounded-xl h-12 border-slate-200"
             />
           </div>
         </div>
 
-        {isLoading ? (
-          <div className="h-96 flex flex-col items-center justify-center gap-4">
-            <div className="w-12 h-12 border-4 border-blue-600 border-t-transparent rounded-full animate-spin"></div>
-            <p className="font-black italic text-gray-400 uppercase tracking-tighter">
-              Analyzing minizeo Performance...
-            </p>
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-4">
+          {/* SQUARE KPI GRID - Left Side (4 cols) */}
+          <div className="lg:col-span-4 grid grid-cols-2 gap-3">
+            <KPICard
+              title="Revenue"
+              value={report?.totalRevenue || 0}
+              prefix="₹"
+              icon={<IndianRupee size={16} />}
+              color="indigo"
+            />
+            <KPICard
+              title="Orders"
+              value={report?.orderCount || 0}
+              icon={<Receipt size={16} />}
+              color="emerald"
+            />
+            <KPICard
+              title="Avg Ticket"
+              value={report?.avgOrderValue || 0}
+              prefix="₹"
+              precision={1}
+              icon={<TrendingUp size={16} />}
+              color="orange"
+            />
+            <div className="bg-indigo-600 rounded-2xl p-4 text-white flex flex-col justify-center shadow-lg shadow-indigo-100">
+              <p className="text-xs opacity-80">Top Item</p>
+              <p className="font-bold truncate text-sm">
+                {report?.topSellingItems?.[0]?.name || "N/A"}
+              </p>
+            </div>
           </div>
-        ) : (
-          report && (
-            <>
-              {/* KPI GRID */}
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                <ReportCard
-                  title="Total Revenue"
-                  value={`₹${report.totalRevenue}`}
-                  icon={<IndianRupee />}
-                  color="text-green-600"
-                />
-                <ReportCard
-                  title="Total Orders"
-                  value={report.orderCount}
-                  icon={<Receipt />}
-                  color="text-blue-600"
-                />
-                <ReportCard
-                  title="Avg. Ticket Size"
-                  value={`₹${(report?.avgOrderValue || 0).toFixed(2)}`}
-                  icon={<Star />}
-                  color="text-purple-600"
-                />
-              </div>
 
-              {/* PERFORMANCE TABLE */}
-              <div className="bg-white rounded-[40px] border border-gray-100 shadow-sm overflow-hidden">
-                <div className="p-8 border-b border-gray-50 flex justify-between items-center">
-                  <h3 className="font-black text-gray-900 uppercase tracking-widest text-sm italic">
-                    Product Performance
-                  </h3>
-                  <span className="text-[10px] font-black bg-gray-100 px-3 py-1 rounded-full text-gray-500">
-                    TOP {report.topSellingItems.length} ITEMS
-                  </span>
-                </div>
-
-                <table className="w-full text-left">
-                  <thead className="bg-gray-50/50">
-                    <tr className="text-[10px] font-black text-gray-400 uppercase tracking-widest">
-                      <th className="px-8 py-4">Rank</th>
-                      <th className="px-8 py-4">Dish Name</th>
-                      <th className="px-8 py-4">Qty Sold</th>
-                      <th className="px-8 py-4 text-right">Trend</th>
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y divide-gray-50">
-                    {report.topSellingItems.map((item: any, index: number) => (
-                      <tr
-                        key={index}
-                        className="hover:bg-blue-50/20 transition-all cursor-pointer group"
-                        onClick={() => setSelectedDrilldown(item)}
-                        // onClick={() =>
-                        //   toast(`Performance drilldown: ${item.name}`)
-                        // }
-                      >
-                        <td className="px-8 py-5">
-                          <span
-                            className={`w-7 h-7 flex items-center justify-center rounded-lg text-[10px] font-black ${
-                              index < 3
-                                ? "bg-amber-100 text-amber-600"
-                                : "bg-gray-100 text-gray-400"
-                            }`}
-                          >
-                            #{index + 1}
-                          </span>
-                        </td>
-                        <td className="px-8 py-5 font-black text-gray-900 uppercase text-sm tracking-tight">
-                          {item.name}
-                        </td>
-                        <td className="px-8 py-5 font-bold text-gray-500">
-                          {item.quantity}
-                        </td>
-                        <td className="px-8 py-5 text-right">
-                          <button className="text-blue-600 opacity-0 group-hover:opacity-100 transition-all">
-                            <ExternalLink size={16} />
-                          </button>
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-              {selectedDrilldown && (
-                <ItemDrilldownModal
-                  itemId={selectedDrilldown.id}
-                  itemName={selectedDrilldown.name}
-                  startDate={startDate}
-                  endDate={endDate}
-                  onClose={() => setSelectedDrilldown(null)}
+          {/* COMPACT CHART - Right Side (8 cols) */}
+          <Card
+            title={<span className="text-sm font-bold">Top 5 Items</span>}
+            className="lg:col-span-8 shadow-sm rounded-2xl border-slate-200"
+            styles={{ body: { padding: "12px" } }}
+          >
+            <ResponsiveContainer width="100%" height={180}>
+              <BarChart data={report?.topSellingItems?.slice(0, 5)}>
+                <CartesianGrid
+                  strokeDasharray="3 3"
+                  vertical={false}
+                  stroke="#f1f5f9"
                 />
-              )}
-            </>
-          )
-        )}
+                <XAxis dataKey="name" hide />
+                <YAxis
+                  axisLine={false}
+                  tickLine={false}
+                  tick={{ fill: "#94a3b8", fontSize: 10 }}
+                />
+                <Tooltip cursor={{ fill: "#f8fafc" }} />
+                <Bar
+                  dataKey="quantity"
+                  fill="#6366F1"
+                  radius={[4, 4, 0, 0]}
+                  barSize={32}
+                />
+              </BarChart>
+            </ResponsiveContainer>
+          </Card>
+        </div>
+
+        {/* AG GRID TABLE */}
+        <Card
+          styles={{ body: { padding: 0 } }}
+          className="shadow-sm rounded-2xl border-slate-200 overflow-hidden"
+        >
+          <div
+            className="ag-theme-quartz enterprise-grid"
+            style={{ height: "55vh", width: "100%" }}
+          >
+            {isLoading ? (
+              <div className="h-full flex items-center justify-center">
+                <Spin />
+              </div>
+            ) : (
+              <AgGridReact
+                rowData={report?.topSellingItems || []}
+                columnDefs={columnDefs}
+                pagination={true}
+                paginationPageSize={20}
+                defaultColDef={{ resizable: true, sortable: true }}
+              />
+            )}
+          </div>
+        </Card>
       </div>
     </div>
   );
 }
 
-function ReportCard({ title, value, icon, color }: any) {
+function KPICard({
+  title,
+  value,
+  icon,
+  prefix = "",
+  color,
+  precision = 0,
+}: any) {
+  const colorMap: any = {
+    indigo: "bg-indigo-50 text-indigo-600",
+    emerald: "bg-emerald-50 text-emerald-600",
+    orange: "bg-orange-50 text-orange-600",
+  };
+
   return (
-    <div className="bg-white p-8 rounded-[40px] border border-gray-100 shadow-sm transition-transform hover:scale-[1.02]">
-      <div className={`p-3 w-fit rounded-2xl mb-4 bg-gray-50 ${color}`}>
+    <Card
+      className="border-slate-200 rounded-[6rem] shadow-sm overflow-hidden"
+      styles={{ body: { padding: "16px" } }}
+    >
+      <div
+        className={`w-8 h-8 rounded-lg ${colorMap[color]} flex items-center justify-center mb-2`}
+      >
         {icon}
       </div>
-      <p className="text-[10px] font-black text-gray-400 uppercase tracking-[0.2em]">
+      <p className="text-[10px] uppercase tracking-wider font-semibold text-slate-400">
         {title}
       </p>
-      <h2 className={`text-4xl font-black mt-2 tracking-tighter ${color}`}>
-        {value}
-      </h2>
-    </div>
+      <Statistic
+        value={value}
+        prefix={prefix}
+        precision={precision}
+        styles={{
+          content: { fontWeight: 800, color: "#1e293b", fontSize: "1.1rem" },
+        }}
+      />
+    </Card>
   );
 }
