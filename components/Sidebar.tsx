@@ -174,14 +174,6 @@ export default function Sidebar() {
   const [isCollapsed, setIsCollapsed] = useState(true);
   const [isHovered, setIsHovered] = useState(false);
 
-<<<<<<< HEAD
-    { name: "Kitchen", href: "/dashboard/kitchen" },
-    { name: "Users", href: "/dashboard/staff" },
-    { name: "Attendance", href: "/dashboard/operations" },
-    { name: "Rooms", href: "/dashboard/rooms" },
-    { name: "Check In", href: "/dashboard/bookings" },
-    { name: "Bookings History", href: "/dashboard/history" },
-=======
   const isOpen = !isCollapsed || isHovered;
 
   // Grouped Navigation for better UX
@@ -233,7 +225,6 @@ export default function Sidebar() {
         { name: "Attendance", href: "/dashboard/operations", icon: Clock },
       ],
     },
->>>>>>> 97a99bd934e32d8f7d070a1410e2da8f161032ee
   ];
 
   return (

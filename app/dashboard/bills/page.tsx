@@ -40,15 +40,6 @@ export default function BillHistoryPage() {
     });
   };
 
-<<<<<<< HEAD
-  console.log("selectedTable", selectedTable);
-
-  // 3. Stats Calculation (now uses 'data' from Query)
-  const stats = useMemo(() => {
-    const paidBills = data.filter((b: any) => b.status === "PAID");
-    const totalRevenue = paidBills.reduce(
-      (acc, b: any) => acc + Number(b.totalAmount),
-=======
   const resetToToday = () => {
     const today = dayjs();
     setDateRange([today, today]);
@@ -69,7 +60,6 @@ export default function BillHistoryPage() {
     if (!filteredData.length) return [];
     const total = filteredData.reduce(
       (sum: number, item: any) => sum + Number(item.totalAmount || 0),
->>>>>>> 97a99bd934e32d8f7d070a1410e2da8f161032ee
       0,
     );
     return [

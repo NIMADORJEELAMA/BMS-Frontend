@@ -30,13 +30,6 @@ import { Popover, PopoverTrigger } from "@/components/ui/popover";
 import { DatePicker } from "antd";
 import dayjs from "dayjs";
 
-<<<<<<< HEAD
-export default function BookingsPage() {
-  const queryClient = useQueryClient();
-  const [isModalOpen, setIsModalOpen] = useState(false);
-  const [checkoutData, setCheckoutData] = useState<any>(null);
-  const [activeBookingId, setActiveBookingId] = useState<string | null>(null);
-=======
 export default function ReservationTimeline() {
   const [viewDate, setViewDate] = useState(startOfDay(new Date()));
   const [searchTerm, setSearchTerm] = useState("");
@@ -44,7 +37,6 @@ export default function ReservationTimeline() {
   const [isManageOpen, setIsManageOpen] = useState(false);
   const [activeBooking, setActiveBooking] = useState<any>(null);
   const [selection, setSelection] = useState<any>(null);
->>>>>>> 97a99bd934e32d8f7d070a1410e2da8f161032ee
 
   const daysToShow = 21; // Increased density for enterprise view
 
@@ -68,13 +60,6 @@ export default function ReservationTimeline() {
     },
   });
 
-<<<<<<< HEAD
-  const handleCheckOut = (booking: any) => {
-    // if (window.confirm(`Process checkout for ${booking.guestName}?`)) {
-    checkoutMutation.mutate(booking.id);
-    // }
-  };
-=======
   // Enterprise filtering logic
   const filteredRooms = useMemo(() => {
     if (!data?.rooms) return [];
@@ -87,7 +72,6 @@ export default function ReservationTimeline() {
   const handleAddBookingClick = () => {
     // Option A: Pass null to let the user choose a room inside the modal
     setSelection(null);
->>>>>>> 97a99bd934e32d8f7d070a1410e2da8f161032ee
 
     // Option B: Pre-select the first room if rooms are loaded
     if (filteredRooms.length > 0) {
@@ -112,60 +96,6 @@ export default function ReservationTimeline() {
       </div>
     );
 
-<<<<<<< HEAD
-      <div className="bg-white border border-slate-100 rounded-[32px] overflow-hidden">
-        <table className="w-full text-left">
-          <thead className="bg-slate-50/50 border-b border-slate-100">
-            <tr className="text-[10px] font-black text-slate-400 uppercase tracking-widest">
-              <th className="px-8 py-5">Guest Details</th>
-              <th className="px-8 py-5">Room</th>
-              <th className="px-8 py-5">Check-In Date</th>
-              <th className="px-8 py-5 text-right">Actions</th>
-            </tr>
-          </thead>
-          <tbody className="divide-y divide-slate-50">
-            {isLoading ? (
-              <tr>
-                <td colSpan={4} className="py-20 text-center">
-                  <Loader2 className="animate-spin mx-auto text-slate-200" />
-                </td>
-              </tr>
-            ) : (
-              bookings.map((booking: any) => (
-                <tr
-                  key={booking.id}
-                  className="hover:bg-slate-50/50 transition-all"
-                >
-                  <td className="px-8 py-5">
-                    <p className="text-sm font-black text-slate-900 uppercase italic">
-                      {booking.guestName}
-                    </p>
-                    <div className="flex items-center gap-1 text-[10px] text-slate-400 font-bold mt-1">
-                      <Phone size={10} /> {booking.guestPhone || "No Phone"}
-                    </div>
-                  </td>
-                  <td className="px-8 py-5">
-                    <span className="px-3 py-1 bg-slate-900 text-white rounded-lg text-[10px] font-black italic">
-                      ROOM {booking.room.roomNumber}
-                    </span>
-                  </td>
-                  <td className="px-8 py-5 text-xs font-bold text-slate-500">
-                    {new Date(booking.checkIn).toLocaleString("en-IN", {
-                      dateStyle: "medium",
-                      timeStyle: "short",
-                    })}
-                  </td>
-                  <td className="px-8 py-5 text-right">
-                    <button
-                      onClick={() => setActiveBookingId(booking.id)}
-                      className="bg-slate-900 text-white px-4 py-2 rounded-xl text-[10px] font-black uppercase"
-                    >
-                      View Bill & Checkout
-                    </button>
-                  </td>
-                </tr>
-              ))
-=======
   return (
     <div className="flex flex-col h-[calc(100vh-120px)] bg-white border border-slate-200 rounded-xl shadow-xl overflow-hidden">
       {/* 1. TOP ENTERPRISE TOOLBAR */}
@@ -245,7 +175,6 @@ export default function ReservationTimeline() {
             className={cn(
               "h-9 gap-2 text-xs font-medium border-slate-200 hover:bg-slate-50",
               isFetching && "text-indigo-600 border-indigo-200",
->>>>>>> 97a99bd934e32d8f7d070a1410e2da8f161032ee
             )}
             onClick={() => refetch()}
           >
@@ -411,26 +340,6 @@ export default function ReservationTimeline() {
         </div>
       </div>
 
-<<<<<<< HEAD
-      {checkoutData && (
-        <CheckOutSummary
-          data={checkoutData}
-          onClose={() => {
-            setCheckoutData(null);
-            // Optional: refresh data again on close to be safe
-            queryClient.invalidateQueries({ queryKey: ["active-bookings"] });
-          }}
-          //onClose={() => setCheckoutData(null)}
-        />
-      )}
-
-      {activeBookingId && (
-        <CheckOutSummary
-          bookingId={activeBookingId}
-          onClose={() => setActiveBookingId(null)}
-        />
-      )}
-=======
       {/* Modals remain the same */}
       <CheckInModal
         isOpen={isCheckInOpen}
@@ -444,7 +353,6 @@ export default function ReservationTimeline() {
         bookingId={activeBooking?.id}
         booking={activeBooking}
       />
->>>>>>> 97a99bd934e32d8f7d070a1410e2da8f161032ee
     </div>
   );
 }
