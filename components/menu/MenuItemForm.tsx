@@ -69,9 +69,9 @@ export default function MenuItemForm({
     }
     if (!formData.category.trim()) newErrors.category = "Category is required";
 
-    if (formData.type === "DRINKS" && !formData.inventoryItemId) {
-      newErrors.inventoryItemId = "Please link an inventory item for drinks";
-    }
+    // if (formData.type === "DRINKS" && !formData.inventoryItemId) {
+    //   newErrors.inventoryItemId = "Please link an inventory item for drinks";
+    // }
 
     if (Object.keys(newErrors).length > 0) {
       setErrors(newErrors);
@@ -270,7 +270,7 @@ export default function MenuItemForm({
             >
               <label className="text-[11px] font-bold text-slate-500 uppercase tracking-wider ml-1 flex items-center gap-2">
                 <ClipboardList size={12} />
-                Link Inventory Asset <span className="text-red-500">*</span>
+                Link Inventory Asset <span className="text-red-500"></span>
               </label>
 
               <div className="relative group overflow-auto max-h-[10vh]">

@@ -241,9 +241,24 @@ export default function RoomsPage() {
                           <h3 className="text-2xl font-black text-slate-900 tracking-tighter leading-none">
                             {room.roomNumber}
                           </h3>
-                          <p className="text-[8px] font-bold text-slate-400 uppercase tracking-[0.2em] mt-2">
-                            {room.category?.name || "Uncategorized"}
-                          </p>
+                          <div className="mt-2 flex items-center gap-1.5">
+                            {/* Colored Dot */}
+                            {/* <span
+                              className="w-2 h-2 rounded-full"
+                              style={{
+                                backgroundColor:
+                                  room.category?.color || "#cbd5e1",
+                              }}
+                            /> */}
+                            <p
+                              className="text-[9px] font-bold uppercase tracking-wider text-center"
+                              style={{
+                                color: room.category?.color || "#64748b",
+                              }}
+                            >
+                              {room.category?.name || "Uncategorized"}
+                            </p>
+                          </div>
                         </div>
                         <div
                           className={`p-2 rounded-2xl ${!room.isActive ? "bg-red-50 text-red-400" : "bg-slate-50 text-slate-400"}`}
