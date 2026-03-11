@@ -103,7 +103,6 @@ export default function StockManagementPage() {
   }, [fetchInventory]);
 
   const downloadCSVTemplate = () => {
-    // Define the headers based on what your Papaparse logic expects
     const headers = [
       "Name",
       "Quantity",
@@ -113,6 +112,7 @@ export default function StockManagementPage() {
       "SellingPrice",
       "Category",
       "IsVeg",
+      "SyncWithMenu", // NEW
     ];
     const sampleData = [
       "PEPSI 500ML",
@@ -123,11 +123,11 @@ export default function StockManagementPage() {
       "50",
       "BEVERAGES",
       "TRUE",
+      "TRUE", // NEW
     ];
-    // Combine into a CSV string
+
     const csvContent = [headers, sampleData].map((e) => e.join(",")).join("\n");
 
-    // Create a download link
     const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
     const url = URL.createObjectURL(blob);
     const link = document.createElement("a");
@@ -151,10 +151,12 @@ export default function StockManagementPage() {
           quantity: row.Quantity || 0,
           unit: row.Unit || "PCS",
           type: row.Type?.toUpperCase() === "DRINKS" ? "DRINKS" : "FOOD",
-          purchasePrice: row.PurchasePrice || 0, // Changed from price
-          sellingPrice: row.SellingPrice || 0, // NEW
-          category: row.Category || "RETAIL", // NEW
-          isVeg: row.IsVeg?.toLowerCase() === "true", // NEW
+          purchasePrice: row.PurchasePrice || 0,
+          sellingPrice: row.SellingPrice || 0,
+          category: row.Category || "RETAIL",
+          isVeg: row.IsVeg?.toLowerCase() === "true",
+          // Map the new column to a boolean
+          syncWithMenu: row.SyncWithMenu?.toLowerCase() === "true", // NEW
         }));
 
         setPreviewData(mappedData);
@@ -177,6 +179,7 @@ export default function StockManagementPage() {
         purchasePrice: parseFloat(item.purchasePrice),
         sellingPrice: parseFloat(item.sellingPrice),
         category: item.category,
+        syncWithMenu: item.syncWithMenu,
         isVeg: item.isVeg,
         reason: "Bulk Retail Import",
       }));
@@ -224,6 +227,7 @@ export default function StockManagementPage() {
         headerName: "Stock Detail",
         field: "name",
         flex: 1.5,
+        minWidth: 220,
         cellRenderer: (params: any) => (
           <div className="flex flex-col justify-center h-full leading-tight">
             <div className="flex items-center gap-2">
@@ -265,6 +269,7 @@ export default function StockManagementPage() {
         field: "currentStock",
         flex: 1,
         filter: false,
+        minWidth: 200,
         cellRenderer: (params: any) => {
           const qty = params.value;
           const status = qty < 10 ? "LOW" : qty < 30 ? "MID" : "HEALTHY";
@@ -294,6 +299,16 @@ export default function StockManagementPage() {
             </div>
           );
         },
+      },
+      {
+        headerName: "Category",
+        field: "category",
+        width: 140,
+        filter: false,
+        cellClass: "flex items-center font-medium text-slate-600",
+        cellRenderer: (p: any) => (
+          <span>{p.value?.toLocaleString() || "GENERAL"}</span>
+        ),
       },
       {
         headerName: "Last Purchase",

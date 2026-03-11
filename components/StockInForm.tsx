@@ -31,6 +31,7 @@ export default function StockInForm({
   const [showDropdown, setShowDropdown] = useState(false);
   const [syncWithMenu, setSyncWithMenu] = useState(false);
   const [sellingPrice, setSellingPrice] = useState("");
+  const [portionSize, setPortionSize] = useState("1");
   const dropdownRef = useRef<HTMLDivElement>(null);
   const [formData, setFormData] = useState({
     name: editData?.name || "",
@@ -71,15 +72,22 @@ export default function StockInForm({
 
   useEffect(() => {
     if (editData) {
-      setSearchTerm(editData.name);
+      setSearchTerm(editData.name || "");
+
+      // Determine if the item is already in the menu
+      const isAlreadyInMenu = !!editData.menuItemId;
+      setSyncWithMenu(isAlreadyInMenu);
+
       setFormData({
-        name: editData.name,
-        quantity: editData.currentStock,
-        unit: editData.unit,
-        type: editData.type,
-        purchasePrice: editData.lastPurchasePrice,
-        category: editData.category,
+        name: editData.name || "",
+        quantity: editData.currentStock || "",
+        unit: editData.unit || "pcs",
+        type: editData.type || "FOOD",
+        purchasePrice: editData.lastPurchasePrice || "",
+        category: editData.category || "GENERAL",
       });
+
+      setSellingPrice(editData.sellingPrice || "");
     }
   }, [editData]);
 
@@ -113,7 +121,8 @@ export default function StockInForm({
         quantity: Number(formData.quantity),
         purchasePrice: Number(formData.purchasePrice),
         syncWithMenu,
-        sellingPrice: syncWithMenu ? Number(sellingPrice) : undefined,
+        sellingPrice: syncWithMenu ? Number(sellingPrice) : "0",
+        portionSize: syncWithMenu ? Number(portionSize) : 1,
       };
 
       if (editData) {
@@ -230,23 +239,49 @@ export default function StockInForm({
           </div>
 
           {syncWithMenu && (
-            <div className="space-y-2 animate-in slide-in-from-top-2 duration-200">
-              <label className="text-[10px] font-bold text-indigo-700 uppercase">
-                Selling Price (on Menu)
-              </label>
-              <div className="relative">
-                <span className="absolute left-3 top-1/2 -translate-y-1/2 text-indigo-400 text-sm">
-                  ₹
-                </span>
-                <input
-                  type="number"
-                  required
-                  className="w-full pl-8 pr-4 py-2 bg-white rounded-lg border border-indigo-200 text-sm font-bold text-indigo-900 outline-none focus:ring-2 focus:ring-indigo-500/20"
-                  value={sellingPrice}
-                  onChange={(e) => setSellingPrice(e.target.value)}
-                  placeholder="0.00"
-                />
+            <div className="grid grid-cols-2 gap-4 animate-in slide-in-from-top-2 duration-200">
+              {/* Selling Price */}
+              <div className="space-y-2">
+                <label className="text-[10px] font-bold text-indigo-700 uppercase">
+                  Selling Price (Menu)
+                </label>
+                <div className="relative">
+                  <span className="absolute left-3 top-1/2 -translate-y-1/2 text-indigo-400 text-sm">
+                    ₹
+                  </span>
+                  <input
+                    type="number"
+                    required
+                    className="w-full pl-8 pr-4 py-2 bg-white rounded-lg border border-indigo-200 text-sm font-bold text-indigo-900 outline-none"
+                    value={sellingPrice}
+                    onChange={(e) => setSellingPrice(e.target.value)}
+                  />
+                </div>
               </div>
+
+              {/* Portion Size */}
+              <div className="space-y-2">
+                <label className="text-[10px] font-bold text-indigo-700 uppercase">
+                  Portion Size (Deduction)
+                </label>
+                <div className="relative">
+                  <input
+                    type="number"
+                    step="0.001"
+                    required
+                    className="w-full px-4 py-2 bg-white rounded-lg border border-indigo-200 text-sm font-bold text-indigo-900 outline-none"
+                    value={portionSize}
+                    onChange={(e) => setPortionSize(e.target.value)}
+                  />
+                  <span className="absolute right-3 top-1/2 -translate-y-1/2 text-[10px] font-bold text-indigo-400 uppercase">
+                    {formData.unit}
+                  </span>
+                </div>
+              </div>
+
+              <p className="col-span-2 text-[9px] text-indigo-500 italic">
+                * 1 Order will deduct {portionSize} {formData.unit} from stock.
+              </p>
             </div>
           )}
         </div>

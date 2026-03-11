@@ -4,7 +4,7 @@ import MenuItemForm from "@/components/menu/MenuItemForm";
 import MenuModal from "@/components/menu/MenuModal";
 import MenuTable from "@/components/menu/MenuTable";
 import { Button } from "@/components/ui/button";
-import { usedrinksinventory } from "@/hooks/useDrinksInventory";
+import { useInventoryList } from "@/hooks/useInventoryList";
 import {
   useCreateMenuItem,
   useMenu,
@@ -38,6 +38,7 @@ export default function MenuPage() {
     inventoryItemId: "",
     isVeg: false,
     isActive: true,
+    portionSize: "",
   });
   const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -45,10 +46,7 @@ export default function MenuPage() {
   const [previewData, setPreviewData] = useState<any[]>([]);
   const [isPreviewOpen, setIsPreviewOpen] = useState(false);
 
-  const { data: drinksinventory = [] } = usedrinksinventory(
-    formData.type === "DRINKS",
-  );
-
+  const { data: fullInventory = [] } = useInventoryList();
   const handleMenuModel = () => {
     setIsMenuItemFormOpen(!isMenuItemFormOpen);
     resetForm();
@@ -68,6 +66,7 @@ export default function MenuPage() {
       inventoryItemId: "",
       isVeg: false,
       isActive: true,
+      portionSize: "",
     });
     setSelectedItem(null); // Clear the selected item reference
   };
@@ -129,8 +128,8 @@ export default function MenuPage() {
         name: formData.name.toUpperCase().trim(),
         price: Number(formData.price),
         category: formData.category.toUpperCase().trim(),
-        inventoryItemId:
-          formData.type === "DRINKS" ? formData.inventoryItemId : null,
+        inventoryItemId: formData.inventoryItemId || null,
+        portionSize: parseFloat(formData.portionSize) || 1,
       },
       {
         onSuccess: () => {
@@ -218,6 +217,7 @@ export default function MenuPage() {
       isVeg: item.isVeg,
       inventoryItemId: item.inventoryItemId || "",
       isActive: item.isActive,
+      portionSize: item.portionSize,
     });
     setIsModalOpen(true);
   };
@@ -324,7 +324,7 @@ export default function MenuPage() {
         <MenuItemForm
           formData={formData}
           setFormData={setFormData}
-          drinksinventory={drinksinventory}
+          inventory={fullInventory}
           isPending={createMutation.isPending}
           onSubmit={handleCreate}
           onCancel={() => setIsMenuItemFormOpen(false)}
@@ -351,7 +351,7 @@ export default function MenuPage() {
         setFormData={setFormData}
         isPending={updateMutation.isPending || deleteMutation.isPending}
         onSubmit={handleUpdate}
-        drinksinventory={drinksinventory}
+        drinksinventory={fullInventory}
       />
 
       <DeleteItemModal

@@ -6,7 +6,14 @@ import {
   DialogFooter,
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
-import { Loader2, Table as TableIcon, Trash2, Link } from "lucide-react";
+import {
+  Loader2,
+  Table as TableIcon,
+  Trash2,
+  Link,
+  CheckCircle2,
+  XCircle,
+} from "lucide-react";
 import { useState, useEffect } from "react";
 
 export default function BulkStockModal({
@@ -52,6 +59,7 @@ export default function BulkStockModal({
             <thead className="bg-slate-50 sticky top-0 border-b z-10">
               <tr>
                 <th className="p-3 text-left font-bold w-[25%]">Item Name</th>
+                <th className="p-3 text-left font-bold w-[15%]">Category</th>
                 <th className="p-3 text-left font-bold w-[10%]">Qty</th>
                 <th className="p-3 text-left font-bold w-[12%]">Unit</th>
                 <th className="p-3 text-left font-bold w-[15%]">Type</th>
@@ -61,7 +69,9 @@ export default function BulkStockModal({
                 <th className="p-3 text-left font-bold w-[15%] text-emerald-600">
                   Sell Price
                 </th>
-                <th className="p-3 text-center font-bold w-[7%]"></th>
+                <th className="p-3 text-center font-bold w-[10%] text-blue-600">
+                  Sync Menu?
+                </th>
               </tr>
             </thead>
             <tbody className="divide-y">
@@ -80,7 +90,21 @@ export default function BulkStockModal({
                       }
                     />
                   </td>
-
+                  {/* CATEGORY */}
+                  <td className="p-2">
+                    <input
+                      placeholder="e.g. BEVERAGES"
+                      className="w-full px-2 py-1 border-transparent hover:border-slate-200 focus:border-blue-500 bg-transparent rounded outline-none text-xs uppercase"
+                      value={item.category || ""}
+                      onChange={(e) =>
+                        handleInputChange(
+                          idx,
+                          "category",
+                          e.target.value.toUpperCase(),
+                        )
+                      }
+                    />
+                  </td>
                   {/* QUANTITY */}
                   <td className="p-2">
                     <input
@@ -94,17 +118,21 @@ export default function BulkStockModal({
                   </td>
 
                   {/* UNIT */}
+
                   <td className="p-2">
-                    <input
-                      placeholder="e.g. PCS"
-                      className="w-full px-2 py-1 border-transparent hover:border-slate-200 focus:border-blue-500 bg-transparent rounded outline-none text-xs"
+                    <select
+                      className="w-full px-2 py-1 border-transparent hover:border-slate-200 focus:border-blue-500 bg-transparent rounded outline-none cursor-pointer font-medium"
                       value={item.unit}
                       onChange={(e) =>
                         handleInputChange(idx, "unit", e.target.value)
                       }
-                    />
+                    >
+                      <option value="pcs">PCS</option>
+                      <option value="kg">KG</option>
+                      <option value="ltr">L</option>
+                      <option value="ml">ML</option>
+                    </select>
                   </td>
-
                   {/* TYPE/CATEGORY */}
                   <td className="p-2">
                     <select
@@ -152,7 +180,29 @@ export default function BulkStockModal({
                       />
                     </div>
                   </td>
-
+                  <td className="p-2 text-center">
+                    <button
+                      type="button"
+                      onClick={() =>
+                        handleInputChange(
+                          idx,
+                          "syncWithMenu",
+                          !item.syncWithMenu,
+                        )
+                      }
+                      className={`p-1 rounded-md transition-colors ${
+                        item.syncWithMenu
+                          ? "text-blue-600 bg-blue-50"
+                          : "text-slate-300 bg-slate-50"
+                      }`}
+                    >
+                      {item.syncWithMenu ? (
+                        <CheckCircle2 size={20} />
+                      ) : (
+                        <XCircle size={20} />
+                      )}
+                    </button>
+                  </td>
                   {/* REMOVE ROW */}
                   <td className="p-2 text-center">
                     <button
