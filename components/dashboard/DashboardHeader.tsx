@@ -3,6 +3,7 @@ import { Search } from "lucide-react";
 import { twMerge } from "tailwind-merge";
 import { Input } from "../ui/input";
 import { SearchBar } from "../ui/SearchBar";
+import GenericDropdown from "../ui/GenericDropdown";
 
 function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs));
@@ -15,6 +16,9 @@ export default function DashboardHeader({
   setAreaType,
   statusFilter,
   setStatusFilter,
+  categories,
+  categoryFilter,
+  setCategoryFilter,
 }: any) {
   return (
     <header className="bg-white border-b border-gray-200 px-6 py-3 flex flex-wrap items-center justify-between gap-4 shadow-sm">
@@ -26,7 +30,20 @@ export default function DashboardHeader({
           onChange={(e) => setSearchQuery(e.target.value)}
         />
       </div>
-
+      <div className="flex items-center gap-2">
+        <span className="text-[10px] font-black text-gray-400 uppercase tracking-widest">
+          Category
+        </span>
+        <GenericDropdown
+          options={categories}
+          selectedValue={categoryFilter || "ALL"}
+          onSelect={setCategoryFilter}
+          placeholder="Select Category"
+          allLabel="All Categories"
+          // icon={LayoutGrid}
+          className="w-48"
+        />
+      </div>
       {/* RIGHT: Filters Group */}
       <div className="flex items-center gap-6">
         {/* Area Type Filter */}

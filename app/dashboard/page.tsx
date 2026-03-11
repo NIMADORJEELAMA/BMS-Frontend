@@ -3,7 +3,7 @@ import { useState, useEffect, useCallback, useMemo } from "react";
 import { Toaster, toast } from "react-hot-toast";
 import { useSocket } from "../../hooks/useSocket";
 import { useTableLayout } from "../../hooks/useDashboard";
-import { useQueryClient } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { io } from "socket.io-client";
 
 import DashboardHeader from "../../components/dashboard/DashboardHeader";
@@ -12,6 +12,7 @@ import LiveOrderFeed from "../../components/dashboard/LiveOrderFeed";
 import OrderModal from "../../components/OrderModal";
 import { twMerge } from "tailwind-merge";
 import { ClassValue, clsx } from "clsx";
+import api from "@/lib/axios";
 
 const SOCKET_URL =
   process.env.NEXT_PUBLIC_SOCKET_URL || "http://localhost:3000";
@@ -20,7 +21,7 @@ export default function DashboardPage() {
   const queryClient = useQueryClient();
   const [selectedTable, setSelectedTable] = useState<any>(null);
   const [searchQuery, setSearchQuery] = useState("");
-
+  const [categoryFilter, setCategoryFilter] = useState<string>("ALL");
   const [areaType, setAreaType] = useState<"all" | "rooms" | "tables">("all");
 
   const [statusFilter, setStatusFilter] = useState<string>("all");
@@ -36,7 +37,13 @@ export default function DashboardPage() {
     }
     return [];
   });
-
+  const { data: categories = [] } = useQuery({
+    queryKey: ["unified-categories"],
+    queryFn: async () => {
+      const res = await api.get("/tables/categories/unified"); // Adjust to your route
+      return res.data;
+    },
+  });
   // 2. Extract Unique Rooms from data
   const rooms = useMemo(() => {
     const allRooms = tables.map((t: any) => t.room).filter(Boolean);
@@ -46,12 +53,12 @@ export default function DashboardPage() {
 
   const filteredTables = useMemo(() => {
     return tables.filter((table: any) => {
-      // Search filter
+      // 1. Search filter
       const matchesSearch = table.name
         .toLowerCase()
         .includes(searchQuery.toLowerCase());
 
-      // Area filter
+      // 2. Area filter
       let matchesArea = true;
       if (areaType === "rooms") {
         matchesArea = table.room !== null;
@@ -59,13 +66,39 @@ export default function DashboardPage() {
         matchesArea = table.room === null;
       }
 
-      // Status filter
+      // 3. Status filter
       const matchesStatus =
         statusFilter === "all" || table.status === statusFilter;
 
-      return matchesSearch && matchesArea && matchesStatus;
+      // 4. Category Filter (Updated to match your JSON structure)
+      const matchesCategory =
+        categoryFilter === "ALL" || table.category?.id === categoryFilter;
+
+      return matchesSearch && matchesArea && matchesStatus && matchesCategory;
     });
-  }, [tables, searchQuery, areaType, statusFilter]);
+  }, [tables, searchQuery, areaType, statusFilter, categoryFilter]);
+  // const filteredTables = useMemo(() => {
+  //   return tables.filter((table: any) => {
+  //     // Search filter
+  //     const matchesSearch = table.name
+  //       .toLowerCase()
+  //       .includes(searchQuery.toLowerCase());
+
+  //     // Area filter
+  //     let matchesArea = true;
+  //     if (areaType === "rooms") {
+  //       matchesArea = table.room !== null;
+  //     } else if (areaType === "tables") {
+  //       matchesArea = table.room === null;
+  //     }
+
+  //     // Status filter
+  //     const matchesStatus =
+  //       statusFilter === "all" || table.status === statusFilter;
+
+  //     return matchesSearch && matchesArea && matchesStatus;
+  //   });
+  // }, [tables, searchQuery, areaType, statusFilter]);
   // Auto-cleanup: Remove orders older than 24 hours
   useEffect(() => {
     const cleanupOldOrders = () => {
@@ -215,6 +248,9 @@ export default function DashboardPage() {
           setAreaType={setAreaType}
           statusFilter={statusFilter}
           setStatusFilter={setStatusFilter}
+          categories={categories}
+          categoryFilter={categoryFilter}
+          setCategoryFilter={setCategoryFilter}
         />
 
         <main className="flex-1 overflow-y-auto p-6 no-scrollbar">
