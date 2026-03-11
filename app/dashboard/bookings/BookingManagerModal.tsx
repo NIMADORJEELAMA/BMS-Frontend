@@ -6,6 +6,11 @@ import { zodResolver } from "@hookform/resolvers/zod";
 // import * as z from "zod";
 import { z } from "zod";
 import { differenceInDays, format, startOfDay } from "date-fns";
+import { DatePicker } from "antd";
+import dayjs from "dayjs";
+// If you need to parse specific strings, ensure customParseFormat is extended
+import customParseFormat from "dayjs/plugin/customParseFormat";
+dayjs.extend(customParseFormat);
 import {
   ShoppingBag,
   BedDouble,
@@ -45,6 +50,7 @@ import { SimpleDateTimePicker } from "@/components/DateTimePicker";
 import { DialogDescription } from "@radix-ui/react-dialog";
 
 import PaymentSettlementModal from "@/components/rooms/PaymentSettlementModal";
+import { cn } from "@/lib/utils";
 
 export default function BookingManagerModal({
   isOpen,
@@ -182,22 +188,51 @@ export default function BookingManagerModal({
   const totalReductions =
     Number(watchedDiscount) + Number(booking?.advanceAmount);
   const grandTotal = Math.max(0, subtotal - totalReductions);
-  console.log("totalReductions", totalReductions);
+
   useEffect(() => {
     if (booking) {
+      const now = dayjs();
+
+      // Logic: If they are only RESERVED, they are checking in NOW.
+      // If they are already CHECKED_IN, show the time they actually checked in.
+      const initialCheckIn =
+        booking.status === "RESERVED"
+          ? now.toISOString()
+          : dayjs(booking.checkIn).toISOString();
+
+      // Typically, for a live check-in, we might also want to refresh the
+      // check-out date to be tomorrow at 11:00 AM, or keep the reserved one.
+      // Let's keep the reserved check-out but allow current time for check-in.
+
       form.reset({
         guestName: booking.guestName,
         phone: booking.guestPhone || "",
         documentId: booking.documentId || "",
         address: booking.address || "",
-        checkInDate: format(new Date(booking.checkIn), "yyyy-MM-dd'T'HH:mm"),
-        checkOutDate: format(new Date(booking.checkOut), "yyyy-MM-dd'T'HH:mm"),
+        checkInDate: initialCheckIn,
+        checkOutDate: dayjs(booking.checkOut).toISOString(),
         secondaryGuests: booking.secondaryGuests || [],
         miscCharges: booking.miscCharges || 0,
         discount: booking.discount || 0,
       });
     }
   }, [booking, form]);
+
+  // useEffect(() => {
+  //   if (booking) {
+  //     form.reset({
+  //       guestName: booking.guestName,
+  //       phone: booking.guestPhone || "",
+  //       documentId: booking.documentId || "",
+  //       address: booking.address || "",
+  //       checkInDate: format(new Date(booking.checkIn), "yyyy-MM-dd'T'HH:mm"),
+  //       checkOutDate: format(new Date(booking.checkOut), "yyyy-MM-dd'T'HH:mm"),
+  //       secondaryGuests: booking.secondaryGuests || [],
+  //       miscCharges: booking.miscCharges || 0,
+  //       discount: booking.discount || 0,
+  //     });
+  //   }
+  // }, [booking, form]);
 
   useEffect(() => {
     if (isOpen && bookingId) {
@@ -284,42 +319,52 @@ export default function BookingManagerModal({
               <Form {...form}>
                 <form id="booking-form" className="space-y-8">
                   <section>
-                    <div
-                      className="grid grid-cols-1 md:grid-cols-2 gap-2    
-                                     rounded-xl      "
-                    >
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      {" "}
+                      {/* Increased gap for better spacing with labels */}
                       <FormField
                         control={form.control}
                         name="checkInDate"
                         render={({ field }) => (
-                          <FormItem className="space-y-0">
+                          <FormItem className="flex flex-col space-y-1.5">
+                            <FormLabel className="text-[10px] font-bold text-slate-400 uppercase ml-1">
+                              Arrival Date & Time
+                            </FormLabel>
                             <FormControl>
-                              <SimpleDateTimePicker
-                                label="Arrival Date & Time"
-                                value={field.value}
-                                onChange={field.onChange}
-                                required
+                              <DatePicker
+                                showTime
+                                format="DD/MM/YYYY HH:mm"
+                                className="h-12 w-full rounded-xl bg-slate-50 border-none hover:bg-slate-100 focus:bg-white transition-colors"
+                                value={field.value ? dayjs(field.value) : null}
+                                onChange={(date) =>
+                                  field.onChange(date ? date.toISOString() : "")
+                                }
                               />
                             </FormControl>
-                            <FormMessage className="text-[10px] font-bold mt-1.5 ml-2" />
+                            <FormMessage className="text-[10px] font-bold" />
                           </FormItem>
                         )}
                       />
-
                       <FormField
                         control={form.control}
                         name="checkOutDate"
                         render={({ field }) => (
-                          <FormItem className="space-y-0">
+                          <FormItem className="flex flex-col space-y-1.5">
+                            <FormLabel className="text-[10px] font-bold text-slate-400 uppercase ml-1">
+                              Departure Date & Time
+                            </FormLabel>
                             <FormControl>
-                              <SimpleDateTimePicker
-                                label="Departure Date & Time"
-                                value={field.value}
-                                onChange={field.onChange}
-                                required
+                              <DatePicker
+                                showTime
+                                format="DD/MM/YYYY HH:mm"
+                                className="h-12 w-full rounded-xl bg-slate-50 border-none hover:bg-slate-100 focus:bg-white transition-colors"
+                                value={field.value ? dayjs(field.value) : null}
+                                onChange={(date) =>
+                                  field.onChange(date ? date.toISOString() : "")
+                                }
                               />
                             </FormControl>
-                            <FormMessage className="text-[10px] font-bold mt-1.5 ml-2" />
+                            <FormMessage className="text-[10px] font-bold" />
                           </FormItem>
                         )}
                       />
@@ -838,13 +883,22 @@ export default function BookingManagerModal({
                   Cancel Reservation
                 </Button>
                 <Button
-                  className="h-12 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl font-bold shadow-lg shadow-indigo-100 transition-all flex items-center justify-center gap-2"
-                  // onClick={() => checkoutMutation.mutate()}
+                  className={cn(
+                    "h-12 text-white rounded-xl font-bold shadow-lg transition-all flex items-center justify-center gap-2",
+                    booking.status === "RESERVED"
+                      ? "bg-slate-300 shadow-none cursor-not-allowed"
+                      : "bg-indigo-600 hover:bg-indigo-700 shadow-indigo-100",
+                  )}
                   onClick={() => setIsPaymentModalOpen(true)}
-                  disabled={checkoutMutation.isPending}
+                  // Disable if pending OR if the guest hasn't checked in yet
+                  disabled={
+                    checkoutMutation.isPending || booking.status === "RESERVED"
+                  }
                 >
                   <CreditCard size={18} />
-                  Checkout
+                  {booking.status === "RESERVED"
+                    ? "Checkout (Check-in first)"
+                    : "Checkout"}
                 </Button>
               </div>
             </div>

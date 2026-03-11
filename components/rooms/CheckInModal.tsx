@@ -124,23 +124,14 @@ export default function CheckInModal({ isOpen, onClose, gridData }: any) {
   useEffect(() => {
     if (isOpen && gridData) {
       setMode("SELECTION");
-      let checkIn = gridData.date ? new Date(gridData.date) : new Date();
+      let checkIn = gridData.date ? dayjs(gridData.date) : dayjs();
 
-      // 2. Get the current actual time (e.g., 1:06 PM)
-      const now = new Date();
+      // Set to current local time
+      const now = dayjs();
+      checkIn = checkIn.hour(now.hour()).minute(now.minute()).second(0);
 
-      // 3. Inject CURRENT time into the SELECTED date
-      // This keeps the date as March 3rd but sets time to Now
-      checkIn.setHours(now.getHours());
-      checkIn.setMinutes(now.getMinutes());
-      checkIn.setSeconds(0, 0);
-
-      // 4. Create Check-Out date (Next Day)
-      const checkOut = new Date(checkIn);
-      checkOut.setDate(checkOut.getDate() + 1);
-
-      // 5. Force Check-Out to exactly 11:00 AM
-      checkOut.setHours(11, 0, 0, 0);
+      // Set Check-Out to next day 11:00 AM
+      const checkOut = checkIn.add(1, "day").hour(11).minute(0).second(0);
 
       form.reset({
         roomId: gridData.roomId || "",
@@ -150,14 +141,13 @@ export default function CheckInModal({ isOpen, onClose, gridData }: any) {
         address: gridData.address || "",
         cashAmount: gridData.cashAmount || 0,
         onlineAmount: gridData.onlineAmount || 0,
-
-        checkInDate: format(checkIn, "yyyy-MM-dd'T'HH:mm"),
-        checkOutDate: format(checkOut, "yyyy-MM-dd'T'HH:mm"),
-
+        // Store as ISO strings for the form state (best for backend/validation)
+        checkInDate: checkIn.toISOString(),
+        checkOutDate: checkOut.toISOString(),
         secondaryGuests: gridData.secondaryGuests || [],
       });
     }
-  }, [isOpen, gridData, form]); // Added actionType to dependencies
+  }, [isOpen, gridData, form]);
   // useEffect(() => {
   //   if (isOpen && gridData) {
   //     const baseDate = gridData.date ? new Date(gridData.date) : new Date();
@@ -212,7 +202,7 @@ export default function CheckInModal({ isOpen, onClose, gridData }: any) {
         </DialogHeader>
 
         {/* HEADER SECTION */}
-        <div className="bg-gray-100 p-6 text-white flex justify-between items-center">
+        <div className="  p-6 text-white flex justify-between items-center">
           <div className="flex items-center gap-4">
             {mode === "FORM" && !gridData?.id && (
               <Button
@@ -289,13 +279,13 @@ export default function CheckInModal({ isOpen, onClose, gridData }: any) {
                         </FormLabel>
                         <DatePicker
                           showTime
-                          format="YYYY-MM-DD HH:mm"
+                          // This makes the UI display dd/mm/yyyy
+                          format="DD/MM/YYYY HH:mm"
                           className="h-12 rounded-lg bg-slate-50 border-slate-200"
                           value={field.value ? dayjs(field.value) : null}
                           onChange={(date) =>
-                            field.onChange(
-                              date ? date.format("YYYY-MM-DDTHH:mm") : "",
-                            )
+                            // Store in form state as ISO, but it renders locally
+                            field.onChange(date ? date.toISOString() : "")
                           }
                         />
                         <FormMessage />
@@ -312,13 +302,12 @@ export default function CheckInModal({ isOpen, onClose, gridData }: any) {
                         </FormLabel>
                         <DatePicker
                           showTime
-                          format="YYYY-MM-DD HH:mm"
+                          format="DD/MM/YYYY HH:mm"
                           className="h-12 rounded-lg bg-slate-50 border-slate-200"
                           value={field.value ? dayjs(field.value) : null}
                           onChange={(date) =>
-                            field.onChange(
-                              date ? date.format("YYYY-MM-DDTHH:mm") : "",
-                            )
+                            // Store in form state as ISO, but it renders locally
+                            field.onChange(date ? date.toISOString() : "")
                           }
                         />
                         <FormMessage />
@@ -326,46 +315,7 @@ export default function CheckInModal({ isOpen, onClose, gridData }: any) {
                     )}
                   />
                 </div>
-                {/* <div
-                  className="grid grid-cols-1 md:grid-cols-2 gap-2    
-                   rounded-xl      "
-                >
-                  <FormField
-                    control={form.control}
-                    name="checkInDate"
-                    render={({ field }) => (
-                      <FormItem className="space-y-0">
-                        <FormControl>
-                          <SimpleDateTimePicker
-                            label="Arrival Date & Time"
-                            value={field.value}
-                            onChange={field.onChange}
-                            required
-                          />
-                        </FormControl>
-                        <FormMessage className="text-[10px] font-bold mt-1.5 ml-2" />
-                      </FormItem>
-                    )}
-                  />
 
-                  <FormField
-                    control={form.control}
-                    name="checkOutDate"
-                    render={({ field }) => (
-                      <FormItem className="space-y-0">
-                        <FormControl>
-                          <SimpleDateTimePicker
-                            label="Departure Date & Time"
-                            value={field.value}
-                            onChange={field.onChange}
-                            required
-                          />
-                        </FormControl>
-                        <FormMessage className="text-[10px] font-bold mt-1.5 ml-2" />
-                      </FormItem>
-                    )}
-                  />
-                </div> */}
                 {/* SECTION 1: GUEST DETAILS */}
                 <div className="space-y-6">
                   <div className="flex items-center gap-2 text-slate-900">
