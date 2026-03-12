@@ -19,6 +19,7 @@ import {
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useState, useMemo } from "react";
+import { Button } from "../ui/button";
 
 interface MenuItemFormProps {
   formData: {
@@ -35,7 +36,7 @@ interface MenuItemFormProps {
   setFormData: (data: any) => void;
   inventory: any[];
   isPending: boolean;
-  onSubmit: (data: any) => void;
+  onSubmit: (e: React.FormEvent) => void;
   onCancel: () => void;
 }
 
@@ -75,17 +76,14 @@ export default function MenuItemForm({
     const newErrors: Record<string, string> = {};
 
     if (!formData.name.trim()) newErrors.name = "Item name is required";
-
-    // Convert strings to numbers for validation and submission
-    const numericPrice = parseFloat(formData.price);
-    const numericPortion = parseFloat(formData.portionSize.toString());
-
-    if (!formData.price || numericPrice <= 0) {
+    if (!formData.price || parseFloat(formData.price) <= 0) {
       newErrors.price = "Enter a valid price > 0";
     }
+    if (!formData.category.trim()) newErrors.category = "Category is required";
 
+    // If linked to inventory, ensure portion size is valid
     if (formData.inventoryItemId) {
-      if (!formData.portionSize || numericPortion <= 0) {
+      if (!formData.portionSize || formData.portionSize <= 0) {
         newErrors.portionSize = "Required when linked to inventory";
       }
     }
@@ -95,21 +93,16 @@ export default function MenuItemForm({
       return;
     }
 
-    // Pass the cleaned data back to the parent submit handler
-    onSubmit({
-      ...formData,
-      price: numericPrice,
-      portionSize: numericPortion,
-    });
+    onSubmit(e);
   };
 
   return (
     <form
       onSubmit={validateAndSubmit}
-      className="bg-white border border-slate-200 rounded-3xl shadow-sm overflow-hidden max-w-4xl mx-auto"
+      className="bg-white border border-slate-200 rounded-3xl shadow-sm overflow-hidden max-w-6xl  "
     >
       {/* HEADER */}
-      <div className="px-8 pt-8 pb-6 border-b border-slate-100 bg-slate-50/50">
+      <div className="px-8 pt-8   border-b border-slate-100 bg-slate-50/50">
         <h2 className="text-xl font-bold text-slate-900 tracking-tight">
           {formData.id ? "Update Menu Item" : "Create Menu Item"}
         </h2>
@@ -122,7 +115,7 @@ export default function MenuItemForm({
         {/* ROW 1: BASIC INFO */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
           <div className="space-y-1.5">
-            <label className="text-xs font-bold text-slate-600 uppercase tracking-wider ml-1">
+            <label className="text-xs font-bold text-slate-900 uppercase  ml-1">
               Item Name
             </label>
             <input
@@ -143,7 +136,7 @@ export default function MenuItemForm({
           </div>
 
           <div className="space-y-1.5">
-            <label className="text-xs font-bold text-slate-600 uppercase tracking-wider ml-1">
+            <label className="text-xs font-bold text-slate-900 uppercase  ml-1">
               Selling Price
             </label>
             <div className="relative">
@@ -169,7 +162,7 @@ export default function MenuItemForm({
           </div>
 
           <div className="space-y-1.5">
-            <label className="text-xs font-bold text-slate-600 uppercase tracking-wider ml-1">
+            <label className="text-xs font-bold text-slate-900 uppercase  ml-1">
               Category
             </label>
             <div className="relative">
@@ -197,7 +190,7 @@ export default function MenuItemForm({
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
           {/* Type */}
           <div className="space-y-2">
-            <label className="text-xs font-bold text-slate-600 uppercase tracking-wider ml-1">
+            <label className="text-xs font-bold text-slate-900 uppercase  ml-1">
               Menu Type
             </label>
             <div className="flex bg-slate-100 p-1 rounded-2xl h-11">
@@ -221,7 +214,7 @@ export default function MenuItemForm({
 
           {/* Dietary */}
           <div className="space-y-2">
-            <label className="text-xs font-bold text-slate-600 uppercase tracking-wider ml-1">
+            <label className="text-xs font-bold text-slate-900 uppercase  ml-1">
               Dietary
             </label>
             <div className="flex bg-slate-100 p-1 rounded-2xl h-11">
@@ -235,7 +228,7 @@ export default function MenuItemForm({
                   onClick={() => updateField("isVeg", d.val)}
                   className={`flex-1 rounded-xl text-xs font-bold flex items-center justify-center gap-2 transition-all ${
                     formData.isVeg === d.val
-                      ? "bg-white shadow-sm text-emerald-600"
+                      ? "bg-white shadow-sm text-slate-700"
                       : "text-slate-500"
                   }`}
                 >
@@ -247,7 +240,7 @@ export default function MenuItemForm({
 
           {/* Status */}
           <div className="space-y-2">
-            <label className="text-xs font-bold text-slate-600 uppercase tracking-wider ml-1">
+            <label className="text-xs font-bold text-slate-900 uppercase  ml-1">
               Visibility
             </label>
             <div className="flex bg-slate-100 p-1 rounded-2xl h-11">
@@ -284,7 +277,7 @@ export default function MenuItemForm({
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             {/* Link Selector */}
             <div className="space-y-2">
-              <label className="text-[11px] font-bold text-slate-500 uppercase tracking-wider ml-1 flex items-center gap-2">
+              <label className="text-[11px] font-bold text-slate-500 uppercase  ml-1 flex items-center gap-2">
                 <ClipboardList size={12} />
                 Link Raw Ingredient
               </label>
@@ -322,7 +315,7 @@ export default function MenuItemForm({
                   exit={{ opacity: 0, x: 20 }}
                   className="space-y-2"
                 >
-                  <label className="text-[11px] font-bold text-slate-500 uppercase tracking-wider ml-1 flex items-center gap-2">
+                  <label className="text-[11px] font-bold text-slate-500 uppercase  ml-1 flex items-center gap-2">
                     <Scale size={12} />
                     Portion per Order
                   </label>
@@ -355,14 +348,14 @@ export default function MenuItemForm({
             </AnimatePresence>
           </div>
 
-          <div className="bg-white/60 rounded-2xl p-4 border border-indigo-100/50">
+          {/* <div className="bg-white/60 rounded-2xl p-4 border border-indigo-100/50">
             <p className="text-[10px] text-slate-500 leading-relaxed">
               <span className="font-bold text-indigo-600 mr-1">PRO TIP:</span>
               {formData.inventoryItemId
                 ? `Selling 1 unit of "${formData.name || "this item"}" will automatically deduct ${formData.portionSize || "0"} ${selectedUnit} from your inventory.`
                 : "This item is not linked to inventory. You will need to manage its stock levels manually."}
             </p>
-          </div>
+          </div> */}
         </div>
       </div>
 
@@ -371,21 +364,23 @@ export default function MenuItemForm({
         <button
           type="button"
           onClick={onCancel}
-          className="flex-1 h-12 rounded-2xl bg-white border border-slate-200 text-slate-600 font-bold text-xs uppercase tracking-widest hover:bg-slate-100 transition-all"
+          className="flex-1 h-12 rounded-2xl bg-white border border-slate-200 text-slate-900 font-bold text-xs uppercase tracking-widest hover:bg-slate-100 transition-all"
         >
           Cancel
         </button>
-        <button
+        <Button
           disabled={isPending}
           type="submit"
-          className="flex-[2] h-12 rounded-2xl bg-indigo-600 text-white font-bold text-xs uppercase tracking-widest hover:bg-indigo-700 transition-all disabled:opacity-60 flex items-center justify-center gap-2 shadow-lg shadow-indigo-200"
+          variant={"default"}
+          className="flex-[2]"
+          // className="flex-[2] h-12 rounded-2xl bg-slate-600 text-white font-bold text-xs uppercase tracking-widest hover:bg-slate-700 transition-all disabled:opacity-60 flex items-center justify-center gap-2 shadow-lg shadow-indigo-200"
         >
           {isPending ? (
             <Loader2 className="animate-spin w-4 h-4" />
           ) : (
             "Save Menu Item"
           )}
-        </button>
+        </Button>
       </div>
     </form>
   );

@@ -50,6 +50,8 @@ export default function MenuPage() {
 
   const { data: fullInventory = [] } = useInventoryList();
   const handleMenuModel = () => {
+    queryClient.invalidateQueries({ queryKey: ["all-inventory"] });
+
     setIsMenuItemFormOpen(!isMenuItemFormOpen);
     resetForm();
   };
@@ -159,6 +161,7 @@ export default function MenuPage() {
       price: Number(formData.price),
       category: formData.category.toUpperCase().trim(),
       isActive: formData.isActive,
+      portionSize: formData.portionSize ? Number(formData.portionSize) : 1,
     };
 
     updateMutation.mutate(
