@@ -466,10 +466,14 @@ export default function StockManagementPage() {
                   Total Equity
                 </span>
               }
-              value={items.reduce(
-                (acc, curr: any) =>
-                  acc + curr.currentStock * curr.lastPurchasePrice,
-                0,
+              value={Number(
+                items
+                  .reduce(
+                    (acc, curr: any) =>
+                      acc + curr.currentStock * curr.lastPurchasePrice,
+                    0,
+                  )
+                  .toFixed(2), // Fixes the trailing decimals to 2 places
               )}
               prefix={<IndianRupee size={14} />}
             />

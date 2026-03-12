@@ -87,6 +87,7 @@ export default function StockInForm({
         category: editData.category || "GENERAL",
       });
 
+      setPortionSize(editData?.portionSize || "");
       setSellingPrice(editData.sellingPrice || "");
     }
   }, [editData]);
@@ -187,7 +188,7 @@ export default function StockInForm({
       <form onSubmit={handleSubmit} className="p-8 space-y-6">
         {/* Item Selection */}
         <div className="space-y-2 relative" ref={dropdownRef}>
-          <label className="flex items-center gap-2 text-[11px] font-bold text-slate-700 uppercase tracking-wider">
+          <label className="flex items-center gap-2 text-[11px] font-bold text-slate-900   uppercase ">
             <Search size={12} className="text-slate-400" />
             Search or Create Item
           </label>
@@ -211,7 +212,7 @@ export default function StockInForm({
                   onClick={() => handleSelect(item)}
                   className="w-full p-3 hover:bg-slate-50 flex justify-between items-center text-left transition-colors border-b border-slate-50 last:border-0"
                 >
-                  <span className="text-sm font-semibold text-slate-700 uppercase">
+                  <span className="text-sm font-semibold text-slate-900  uppercase">
                     {item.name}
                   </span>
                   <span className="text-[9px] bg-slate-100 text-slate-500 px-2 py-0.5 rounded font-bold uppercase">
@@ -266,7 +267,7 @@ export default function StockInForm({
                 </label>
                 <div className="relative">
                   <input
-                    type="number"
+                    type="text"
                     step="0.001"
                     required
                     className="w-full px-4 py-2 bg-white rounded-lg border border-indigo-200 text-sm font-bold text-indigo-900 outline-none"
@@ -288,7 +289,7 @@ export default function StockInForm({
         {/* Quantities Group */}
         <div className="grid grid-cols-2 gap-4">
           <div className="space-y-2">
-            <label className="flex items-center gap-2 text-[11px] font-bold text-slate-700 uppercase tracking-wider">
+            <label className="flex items-center gap-2 text-[11px] font-bold text-slate-900   uppercase ">
               <Scale size={12} className="text-slate-400" />
               Quantity
             </label>
@@ -303,7 +304,7 @@ export default function StockInForm({
             />
           </div>
           <div className="space-y-2">
-            <label className="flex items-center gap-2 text-[11px] font-bold text-slate-700 uppercase tracking-wider">
+            <label className="flex items-center gap-2 text-[11px] font-bold text-slate-900   uppercase ">
               Unit
             </label>
             <select
@@ -320,48 +321,48 @@ export default function StockInForm({
             </select>
           </div>
         </div>
-
-        {/* //category */}
-        <div className="space-y-2">
-          <label className="flex items-center gap-2 text-[11px] font-bold text-slate-700 uppercase tracking-wider">
-            <ClipboardList size={12} className="text-slate-400" />
-            Category
-          </label>
-          <input
-            placeholder="e.g. BEVERAGES, VEGETABLES..."
-            className="w-full px-4 py-3 bg-white rounded-xl border border-slate-200 font-medium text-sm focus:border-indigo-500 outline-none uppercase"
-            value={formData.category}
-            onChange={(e) =>
-              setFormData({
-                ...formData,
-                category: e.target.value.toUpperCase(),
-              })
-            }
-          />
+        <div className="grid grid-cols-2 gap-4">
+          {/* //category */}
+          <div className="space-y-2">
+            <label className="flex items-center gap-2 text-[11px] font-bold text-slate-900   uppercase ">
+              <ClipboardList size={12} className="text-slate-400" />
+              Category
+            </label>
+            <input
+              placeholder="e.g. BEVERAGES, VEGETABLES..."
+              className="w-full px-4 py-3 bg-white rounded-xl border border-slate-200 font-medium text-sm focus:border-indigo-500 outline-none uppercase"
+              value={formData.category}
+              onChange={(e) =>
+                setFormData({
+                  ...formData,
+                  category: e.target.value.toUpperCase(),
+                })
+              }
+            />
+          </div>
+          {/* Pricing */}
+          <div className="space-y-2">
+            <label className="flex items-center gap-2 text-[11px] font-bold text-slate-900   uppercase ">
+              <IndianRupee size={12} className="text-slate-400" />
+              Purchase Price per "{formData.unit}"
+            </label>
+            <input
+              type="number"
+              placeholder="0.00"
+              className="w-full px-4 py-3 bg-white rounded-xl border border-slate-200 font-medium text-sm focus:border-indigo-500 outline-none"
+              value={formData.purchasePrice}
+              onChange={(e) =>
+                setFormData({ ...formData, purchasePrice: e.target.value })
+              }
+            />
+            <p className="text-[10px] text-slate-400 font-medium  ">
+              * This value will be used for inventory valuation.
+            </p>
+          </div>
         </div>
-        {/* Pricing */}
-        <div className="space-y-2">
-          <label className="flex items-center gap-2 text-[11px] font-bold text-slate-700 uppercase tracking-wider">
-            <IndianRupee size={12} className="text-slate-400" />
-            Total Purchase Price
-          </label>
-          <input
-            type="number"
-            placeholder="0.00"
-            className="w-full px-4 py-3 bg-white rounded-xl border border-slate-200 font-medium text-sm focus:border-indigo-500 outline-none"
-            value={formData.purchasePrice}
-            onChange={(e) =>
-              setFormData({ ...formData, purchasePrice: e.target.value })
-            }
-          />
-          <p className="text-[10px] text-slate-400 font-medium  ">
-            * This value will be used for inventory valuation.
-          </p>
-        </div>
-
-        {/* Category Selector */}
+        {/* food or drinks Selector */}
         <div className="space-y-3">
-          <label className="flex items-center gap-2 text-[11px] font-bold text-slate-700 uppercase tracking-wider">
+          <label className="flex items-center gap-2 text-[11px] font-bold text-slate-900   uppercase ">
             <Tags size={12} className="text-slate-400" />
             Classification
           </label>
@@ -374,7 +375,7 @@ export default function StockInForm({
                 className={`flex-1 py-2.5 rounded-xl text-[10px] font-bold transition-all ${
                   formData.type === t
                     ? "bg-white text-slate-900 shadow-sm border border-slate-200/50"
-                    : "text-slate-500 hover:text-slate-700"
+                    : "text-slate-500 hover:text-slate-900  "
                 }`}
               >
                 {t}
