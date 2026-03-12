@@ -35,7 +35,7 @@ interface MenuItemFormProps {
   setFormData: (data: any) => void;
   inventory: any[];
   isPending: boolean;
-  onSubmit: (e: React.FormEvent) => void;
+  onSubmit: (data: any) => void;
   onCancel: () => void;
 }
 
@@ -75,14 +75,17 @@ export default function MenuItemForm({
     const newErrors: Record<string, string> = {};
 
     if (!formData.name.trim()) newErrors.name = "Item name is required";
-    if (!formData.price || parseFloat(formData.price) <= 0) {
+
+    // Convert strings to numbers for validation and submission
+    const numericPrice = parseFloat(formData.price);
+    const numericPortion = parseFloat(formData.portionSize.toString());
+
+    if (!formData.price || numericPrice <= 0) {
       newErrors.price = "Enter a valid price > 0";
     }
-    if (!formData.category.trim()) newErrors.category = "Category is required";
 
-    // If linked to inventory, ensure portion size is valid
     if (formData.inventoryItemId) {
-      if (!formData.portionSize || formData.portionSize <= 0) {
+      if (!formData.portionSize || numericPortion <= 0) {
         newErrors.portionSize = "Required when linked to inventory";
       }
     }
@@ -92,7 +95,12 @@ export default function MenuItemForm({
       return;
     }
 
-    onSubmit(e);
+    // Pass the cleaned data back to the parent submit handler
+    onSubmit({
+      ...formData,
+      price: numericPrice,
+      portionSize: numericPortion,
+    });
   };
 
   return (
