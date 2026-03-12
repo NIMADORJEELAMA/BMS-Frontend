@@ -11,7 +11,7 @@ interface MenuModalProps {
   setFormData: (data: any) => void;
   isPending: boolean;
   onSubmit: (e: React.FormEvent) => void;
-  drinksinventory: any[];
+  inventory: any[];
   isActive?: boolean;
 }
 
@@ -23,7 +23,7 @@ export default function MenuModal({
   setFormData,
   isPending,
   onSubmit,
-  drinksinventory,
+  inventory,
 }: MenuModalProps) {
   if (!isOpen) return null;
 
@@ -61,7 +61,7 @@ export default function MenuModal({
               setFormData={setFormData}
               onSubmit={onSubmit}
               isPending={isPending}
-              drinksinventory={drinksinventory}
+              inventory={inventory}
               onCancel={onClose}
             />
           </div>

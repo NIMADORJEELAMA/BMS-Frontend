@@ -19,6 +19,7 @@ interface MenuItem {
   isVeg: boolean;
   isActive: boolean;
   createdAt: string;
+  portionSize: number;
 }
 
 interface Props {

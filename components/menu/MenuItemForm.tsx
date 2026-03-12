@@ -29,7 +29,7 @@ interface MenuItemFormProps {
     type: "FOOD" | "DRINKS";
     isVeg: boolean;
     inventoryItemId: string;
-    portionSize: string;
+    portionSize: number;
     isActive: boolean;
   };
   setFormData: (data: any) => void;
@@ -42,18 +42,21 @@ interface MenuItemFormProps {
 export default function MenuItemForm({
   formData,
   setFormData,
-  inventory,
+  inventory = [],
   isPending,
   onSubmit,
   onCancel,
 }: MenuItemFormProps) {
   const [errors, setErrors] = useState<Record<string, string>>({});
-
+  console.log("formData", formData);
+  console.log("inventory", inventory);
   // Helper to find selected inventory unit for the suffix
   const selectedUnit = useMemo(() => {
-    return (
-      inventory?.find((i) => i.id === formData.inventoryItemId)?.unit || "unit"
-    );
+    if (!inventory.length) return "unit";
+
+    const item = inventory.find((i) => i.id === formData.inventoryItemId);
+
+    return item?.unit || "unit";
   }, [formData.inventoryItemId, inventory]);
 
   const updateField = (field: string, value: any) => {
@@ -79,7 +82,7 @@ export default function MenuItemForm({
 
     // If linked to inventory, ensure portion size is valid
     if (formData.inventoryItemId) {
-      if (!formData.portionSize || parseFloat(formData.portionSize) <= 0) {
+      if (!formData.portionSize || formData.portionSize <= 0) {
         newErrors.portionSize = "Required when linked to inventory";
       }
     }

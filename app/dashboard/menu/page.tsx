@@ -17,6 +17,7 @@ import { useState, useRef } from "react";
 import toast from "react-hot-toast";
 import { MenuItem } from "@/app/types/menu";
 import Papa from "papaparse";
+import { useQueryClient } from "@tanstack/react-query";
 
 import BulkPreviewModal from "./BulkPreviewModal";
 export default function MenuPage() {
@@ -38,10 +39,11 @@ export default function MenuPage() {
     inventoryItemId: "",
     isVeg: false,
     isActive: true,
-    portionSize: "",
+    portionSize: 0,
   });
   const fileInputRef = useRef<HTMLInputElement>(null);
 
+  const queryClient = useQueryClient();
   const [isMenuItemFormOpen, setIsMenuItemFormOpen] = useState<boolean>(false); // Toggle for create form
   const [previewData, setPreviewData] = useState<any[]>([]);
   const [isPreviewOpen, setIsPreviewOpen] = useState(false);
@@ -66,7 +68,7 @@ export default function MenuPage() {
       inventoryItemId: "",
       isVeg: false,
       isActive: true,
-      portionSize: "",
+      portionSize: 0,
     });
     setSelectedItem(null); // Clear the selected item reference
   };
@@ -129,7 +131,7 @@ export default function MenuPage() {
         price: Number(formData.price),
         category: formData.category.toUpperCase().trim(),
         inventoryItemId: formData.inventoryItemId || null,
-        portionSize: parseFloat(formData.portionSize) || 1,
+        portionSize: formData.portionSize || 1,
       },
       {
         onSuccess: () => {
@@ -206,6 +208,7 @@ export default function MenuPage() {
     });
   };
   const handleEditClick = (item: MenuItem) => {
+    queryClient.invalidateQueries({ queryKey: ["all-inventory"] });
     setSelectedItem(item);
     setIsMenuItemFormOpen(false);
     setFormData({
@@ -324,7 +327,7 @@ export default function MenuPage() {
         <MenuItemForm
           formData={formData}
           setFormData={setFormData}
-          inventory={fullInventory}
+          inventory={fullInventory ?? []}
           isPending={createMutation.isPending}
           onSubmit={handleCreate}
           onCancel={() => setIsMenuItemFormOpen(false)}
@@ -351,7 +354,7 @@ export default function MenuPage() {
         setFormData={setFormData}
         isPending={updateMutation.isPending || deleteMutation.isPending}
         onSubmit={handleUpdate}
-        drinksinventory={fullInventory}
+        inventory={fullInventory}
       />
 
       <DeleteItemModal

@@ -7,5 +7,5 @@ export interface MenuItem {
   inventoryItemId?: string | null;
   isVeg: boolean;
   isActive: boolean;
-  portionSize: string;
+  portionSize: number;
 }

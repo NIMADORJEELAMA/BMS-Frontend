@@ -27,6 +27,7 @@ interface MenuItem {
   isActive: boolean;
   createdAt: string;
   inventoryItemId: string | null;
+  portionSize: number;
 }
 
 interface MenuTableProps {

@@ -10,6 +10,7 @@ interface MenuItem {
   category: string;
   type: "FOOD" | "DRINKS";
   inventoryItemId?: string | null;
+  portionSize: number;
 }
 
 interface InventoryStock {
