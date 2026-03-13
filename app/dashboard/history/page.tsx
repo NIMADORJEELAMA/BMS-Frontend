@@ -26,7 +26,16 @@ import {
   BarChart,
   Bar,
 } from "recharts";
-import { IndianRupee, Users, TrendingUp, Loader2 } from "lucide-react";
+import {
+  IndianRupee,
+  Users,
+  TrendingUp,
+  Loader2,
+  Eye,
+  Printer,
+} from "lucide-react";
+import GenericDropdown from "@/components/ui/GenericDropdown";
+import BookingManagerModal from "../bookings/BookingManagerModal";
 
 const COLORS = ["#10b981", "#ef4444"];
 
@@ -46,7 +55,8 @@ export default function BookingHistoryPage() {
   const [endDate, setEndDate] = useState(dayjs().format("YYYY-MM-DD"));
   const [debouncedSearch, setDebouncedSearch] = useState("");
   const [selectedBooking, setSelectedBooking] = useState<any>(null);
-
+  const [status, setStatus] = useState("ALL");
+  const [managerBookingId, setManagerBookingId] = useState<string | null>(null);
   const gridRef = useRef<AgGridReactType>(null);
   useEffect(() => {
     const handler = setTimeout(() => {
@@ -55,16 +65,26 @@ export default function BookingHistoryPage() {
 
     return () => clearTimeout(handler); // Cleanup if the user types again
   }, [searchTerm]);
-  const { data, isLoading } = useQuery({
-    // 3. Use 'debouncedSearch' in the queryKey instead of 'searchTerm'
-    queryKey: ["booking-history", debouncedSearch, startDate, endDate],
-    queryFn: async () => {
-      const params = new URLSearchParams();
-      if (debouncedSearch) params.append("search", debouncedSearch);
-      if (startDate) params.append("startDate", startDate);
-      if (endDate) params.append("endDate", endDate);
 
-      return (await api.get(`/rooms/history?${params.toString()}`)).data;
+  const STATUS_OPTIONS = [
+    { id: "RESERVED", name: "Reserved" },
+    { id: "CHECKED_IN", name: "Checked In" },
+    { id: "CHECKED_OUT", name: "Checked Out" },
+    { id: "CANCELLED", name: "Cancelled" },
+  ];
+  const { data, isLoading } = useQuery({
+    queryKey: ["booking-history", debouncedSearch, startDate, endDate, status],
+    queryFn: async () => {
+      // This ensures 'status' is sent as a query parameter string
+      const response = await api.get("/rooms/history", {
+        params: {
+          search: debouncedSearch,
+          startDate,
+          endDate,
+          status: status, // "ALL", "CANCELLED", etc.
+        },
+      });
+      return response.data;
     },
   });
   const history = data?.history || [];
@@ -154,6 +174,34 @@ export default function BookingHistoryPage() {
             ? new Date(params.value).toLocaleDateString("en-IN")
             : "",
       },
+      // Inside your useMemo(() => [ ... ], [])
+      {
+        headerName: "Status",
+        field: "status",
+        width: 140,
+
+        // For AG Grid Community, use 'agTextColumnFilter' or a custom floating filter
+        cellRenderer: (params: any) => {
+          if (params.node.isRowPinned()) return "";
+
+          const status = params.value;
+          const styles: any = {
+            CHECKED_OUT: "  text-emerald-700 ",
+            CANCELLED: " text-red-700  ",
+            BOOKED: " text-blue-700  ",
+          };
+
+          return (
+            <div className="flex items-center h-full">
+              <span
+                className={`px-2 py-1   text-[10px] font-bold   ${styles[status]}`}
+              >
+                {status?.replace("_", " ")}
+              </span>
+            </div>
+          );
+        },
+      },
       {
         headerName: "Discount",
         field: "discount",
@@ -206,6 +254,47 @@ export default function BookingHistoryPage() {
         valueFormatter: (params) =>
           params.value ? `₹${params.value.toLocaleString()}` : "",
       },
+      {
+        headerName: "Actions",
+        field: "id",
+        flex: 0.8,
+        colId: "actions",
+        cellClass: "actions-cell",
+        sortable: false,
+        filter: false,
+        pinned: "right",
+        cellRenderer: (params: any) => {
+          if (params.node.isRowPinned()) return null;
+
+          return (
+            <div className="flex items-center text-center gap-2 ">
+              {/* EYE ICON: Opens Manager Modal */}
+              <button
+                onClick={(e) => {
+                  e.stopPropagation(); // CRITICAL: Prevents onRowClicked from firing
+                  setManagerBookingId(params.value);
+                }}
+                className="p-2   rounded-full text-blue-600 hover:bg-blue-300 text-blue-800 transition-colors cursor-pointer"
+                title="Open Manager"
+              >
+                <Eye size={18} />
+              </button>
+
+              {/* PRINTER ICON: Opens Booking Details (Same as Row Click) */}
+              <button
+                onClick={(e) => {
+                  e.stopPropagation(); // Stop bubbling to prevent double-firing
+                  setSelectedBooking(params.data); // Manually trigger the details modal
+                }}
+                className="p-2 hover:bg-slate-100 rounded-full text-slate-600 hover:bg-slate-500 text-slate-800 transition-colors cursor-pointer"
+                title="Print/View Details"
+              >
+                <Printer size={18} />
+              </button>
+            </div>
+          );
+        },
+      },
     ],
     [],
   );
@@ -253,9 +342,24 @@ export default function BookingHistoryPage() {
     ];
   }, [history, totalNetRevenue]);
   return (
-    <div className="space-y-8 p-4">
+    <div className="space-y-8 p-4 gap-2">
+      <BookingManagerModal
+        isOpen={!!managerBookingId}
+        bookingId={managerBookingId}
+        onClose={() => setManagerBookingId(null)}
+      />
       {/* FILTER BAR */}
       <div className="   flex justify-end">
+        <div className="mr-2">
+          <GenericDropdown
+            options={STATUS_OPTIONS}
+            selectedValue={status}
+            onSelect={setStatus}
+            allLabel="All Status"
+            placeholder="Filter by Status"
+            className="w-48" // Narrower width for the status filter
+          />
+        </div>
         <RangePicker
           size="large"
           format="DD/MM/YYYY"
@@ -376,7 +480,7 @@ export default function BookingHistoryPage() {
               animateRows
               rowSelection="single"
               pinnedBottomRowData={pinnedBottomRowData}
-              onRowClicked={(event) => setSelectedBooking(event.data)}
+              // onRowClicked={(event) => setSelectedBooking(event.data)}
             />
           </div>
         )}
