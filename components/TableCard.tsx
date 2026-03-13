@@ -23,6 +23,7 @@ interface TableProps {
   status: "FREE" | "OCCUPIED" | "BILLED";
   activeOrder?: ActiveOrder | null;
   room?: Room | null;
+  onSwapClick?: any;
 }
 
 export default function TableCard({
@@ -30,6 +31,7 @@ export default function TableCard({
   status,
   activeOrder,
   room,
+  onSwapClick,
 }: TableProps) {
   const isRoom = !!room;
 
@@ -78,6 +80,24 @@ export default function TableCard({
         >
           {status}
         </span>
+        {status === "OCCUPIED" && (
+          <button
+            onClick={onSwapClick}
+            className="absolute -top-10 -right-7 p-2 bg-white shadow-md border rounded-full hover:bg-gray-200 text-gray-500 z-20"
+            title="Move Table"
+          >
+            <svg
+              width="14"
+              height="14"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="2"
+            >
+              <path d="M7 10L12 5L17 10M7 14L12 19L17 14" />
+            </svg>
+          </button>
+        )}
       </div>
 
       {/* Body */}

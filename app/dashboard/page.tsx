@@ -139,6 +139,10 @@ export default function DashboardPage() {
       queryClient.invalidateQueries({ queryKey: ["table-layout"] });
     });
 
+    socket.on("tableSwapped", (data) => {
+      // 1. Force a refresh of the table data
+      queryClient.invalidateQueries({ queryKey: ["table-layout"] });
+    });
     socket.on("itemStatusUpdated", (data) => {
       if (data.status === "READY") {
         const table = tables.find(
@@ -158,35 +162,7 @@ export default function DashboardPage() {
       socket.disconnect(); // important
     };
   }, [tables, queryClient]);
-  // useEffect(() => {
-  //   const socket = io(SOCKET_URL);
 
-  //   socket.on("tableUpdated", () => {
-  //     // Instead of manual fetch, we tell TanStack to refresh
-  //     queryClient.invalidateQueries({ queryKey: ["table-layout"] });
-  //   });
-
-  //   socket.on("itemStatusUpdated", (data) => {
-  //     if (data.status === "READY") {
-  //       const table = tables.find(
-  //         (t: any) => t?.activeOrder?.id === data.orderId,
-  //       );
-  //       console.log("table", table);
-  //       toast(`${table?.name || ""}: Food is READY!`, {
-  //         icon: "🍴",
-  //         style: { background: "#10b981", color: "#fff" },
-  //       });
-  //       queryClient.invalidateQueries({ queryKey: ["table-layout"] });
-  //     }
-  //   });
-
-  //   return () => {
-  //     socket.off("tableUpdated");
-  //     socket.off("itemStatusUpdated");
-  //   };
-  // }, [tables, queryClient]);
-
-  // Socket for New Orders
   useSocket(
     useCallback(
       (orderData: any) => {
@@ -210,24 +186,15 @@ export default function DashboardPage() {
       [queryClient],
     ),
   );
-  // useSocket(
-  //   useCallback(
-  //     (orderData: any) => {
-  //       const orderWithTimestamp = {
-  //         ...orderData,
-  //         receivedAt: new Date().toISOString(),
-  //       };
-
-  //       setLiveOrders((prev) => [...prev, orderWithTimestamp].slice(-50));
-  //       toast.success(`New Order: Table ${orderData.table?.number}`, {
-  //         icon: "🔔",
-  //       });
-
-  //       queryClient.invalidateQueries({ queryKey: ["table-layout"] });
-  //     },
-  //     [queryClient],
-  //   ),
-  // );
+  const handleSwapRequest = async (orderId: string, newTableId: string) => {
+    try {
+      await api.patch(`/orders/${orderId}/swap-table`, { newTableId });
+      toast.success("Table swapped successfully!");
+      // Refresh your data here or let Socket.io handle it
+    } catch (error) {
+      toast.error("Failed to swap table");
+    }
+  };
 
   const handleViewTableFromFeed = (tableId: string) => {
     const table = tables.find((t: any) => t.id === tableId);
@@ -267,6 +234,7 @@ export default function DashboardPage() {
           <TableGrid
             tables={filteredTables}
             searchQuery={searchQuery}
+            onSwapTables={handleSwapRequest}
             onTableClick={(table: any) => setSelectedTable(table)}
           />
         </main>

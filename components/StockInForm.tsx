@@ -261,24 +261,26 @@ export default function StockInForm({
               </div>
 
               {/* Portion Size */}
-              <div className="space-y-2">
-                <label className="text-[10px] font-bold text-indigo-700 uppercase">
-                  Portion Size (Deduction)
-                </label>
-                <div className="relative">
-                  <input
-                    type="text"
-                    step="0.001"
-                    required
-                    className="w-full px-4 py-2 bg-white rounded-lg border border-indigo-200 text-sm font-bold text-indigo-900 outline-none"
-                    value={portionSize}
-                    onChange={(e) => setPortionSize(e.target.value)}
-                  />
-                  <span className="absolute right-3 top-1/2 -translate-y-1/2 text-[10px] font-bold text-indigo-400 uppercase">
-                    {formData.unit}
-                  </span>
+              {!editData && (
+                <div className="space-y-2">
+                  <label className="text-[10px] font-bold text-indigo-700 uppercase">
+                    Portion Size (Deduction)
+                  </label>
+                  <div className="relative">
+                    <input
+                      type="text"
+                      step="0.001"
+                      required
+                      className="w-full px-4 py-2 bg-white rounded-lg border border-indigo-200 text-sm font-bold text-indigo-900 outline-none"
+                      value={portionSize}
+                      onChange={(e) => setPortionSize(e.target.value)}
+                    />
+                    <span className="absolute right-3 top-1/2 -translate-y-1/2 text-[10px] font-bold text-indigo-400 uppercase">
+                      {formData.unit}
+                    </span>
+                  </div>
                 </div>
-              </div>
+              )}
 
               <p className="col-span-2 text-[9px] text-indigo-500 italic">
                 * 1 Order will deduct {portionSize} {formData.unit} from stock.
