@@ -122,7 +122,7 @@ export default function BulkStockModal({
                   <td className="p-2">
                     <select
                       className="w-full px-2 py-1 border-transparent hover:border-slate-200 focus:border-blue-500 bg-transparent rounded outline-none cursor-pointer font-medium"
-                      value={item.unit}
+                      value={item?.unit?.toUpperCase()}
                       onChange={(e) =>
                         handleInputChange(idx, "unit", e.target.value)
                       }
@@ -137,7 +137,7 @@ export default function BulkStockModal({
                   <td className="p-2">
                     <select
                       className="w-full px-2 py-1 border-transparent hover:border-slate-200 focus:border-blue-500 bg-transparent rounded outline-none cursor-pointer font-medium"
-                      value={item.type}
+                      value={item.type?.toUpperCase()}
                       onChange={(e) =>
                         handleInputChange(idx, "type", e.target.value)
                       }

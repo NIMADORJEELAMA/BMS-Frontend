@@ -99,7 +99,8 @@ export default function BulkPreviewModal({
                   <td className="p-2">
                     <select
                       className="w-full px-2 py-1 border-transparent hover:border-slate-200 focus:border-blue-500 bg-transparent rounded outline-none cursor-pointer"
-                      value={item.type}
+                      // Force the value to uppercase to match the option values
+                      value={item.type?.toUpperCase()}
                       onChange={(e) =>
                         handleInputChange(idx, "type", e.target.value)
                       }

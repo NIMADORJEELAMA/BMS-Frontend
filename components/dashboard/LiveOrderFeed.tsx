@@ -1,36 +1,27 @@
+// "use client";
 // import { useEffect, useRef } from "react";
 // import { Bell, Trash2, ChefHat, Clock } from "lucide-react";
 
 // export default function LiveOrderFeed({ orders, onClear, onSelectOrder }: any) {
 //   const scrollRef = useRef<HTMLDivElement>(null);
 
-//   useEffect(() => {
-//     const handleVisibilityChange = () => {
-//       if (document.visibilityState === "visible") {
-//         console.log("Tab active: Re-syncing orders...");
-//         // Trigger a manual refetch or signal your socket to catch up
-//         // queryClient.invalidateQueries(['orders'])
-//       }
-//     };
-
-//     document.addEventListener("visibilitychange", handleVisibilityChange);
-//     return () =>
-//       document.removeEventListener("visibilitychange", handleVisibilityChange);
-//   }, []);
-
+//   // Auto-scroll to bottom only when new orders arrive
 //   useEffect(() => {
 //     if (scrollRef.current) {
-//       scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
+//       scrollRef.current.scrollTo({
+//         top: scrollRef.current.scrollHeight,
+//         behavior: "smooth",
+//       });
 //     }
 //   }, [orders]);
 
 //   return (
-//     <aside className="w-80 bg-white/70 backdrop-blur-xl border-l border-gray-200 flex flex-col shadow-2xl">
+//     <aside className="w-80 mb-16 bg-white/70 backdrop-blur-xl border-l border-gray-200 flex flex-col shadow-2xl min-h-screen sticky top-0">
 //       {/* Header */}
-//       <div className="p-5 border-b border-gray-200 bg-white/60 backdrop-blur-xl flex justify-between items-center">
+//       <div className="p-5 border-b border-gray-200 bg-white/80 backdrop-blur-md flex justify-between items-center z-10">
 //         <div className="flex items-center gap-3">
 //           <div className="w-10 h-10 rounded-xl bg-blue-600/10 flex items-center justify-center">
-//             <Bell className="text-blue-600" size={18} />
+//             <Bell className="text-blue-600 animate-tada" size={18} />
 //           </div>
 //           <div>
 //             <h3 className="text-lg font-black text-gray-800 tracking-tight">
@@ -44,116 +35,27 @@
 
 //         <button
 //           onClick={onClear}
-//           className="p-2 rounded-xl text-gray-400 hover:text-red-500 hover:bg-red-50 transition-all"
+//           className="p-2 rounded-xl text-gray-400 hover:text-red-500 hover:bg-red-50 transition-all active:scale-95"
 //         >
 //           <Trash2 size={18} />
 //         </button>
 //       </div>
 
-//       {/* Feed */}
+//       {/* Feed Container */}
 //       <div
 //         ref={scrollRef}
-//         // Changed min-2xl to max-w-2xl or min-h-[500px]
-//         className="flex-1 overflow-y-auto p-4 space-y-4 bg-gradient-to-b from-gray-50/60 to-white/30 min-w-[320px]"
+//         className="flex-1 overflow-y-auto p-4 space-y-4 bg-gray-50/30 scroll-smooth mb-16"
 //       >
-//         {orders.map((order: any, idx: number) => (
-//           <div
-//             key={`${order.id}-${order.receivedAt || idx}`}
-//             className={`relative group p-4 rounded-2xl border transition-all duration-300 shadow-sm hover:shadow-xl hover:-translate-y-[1px] ${
-//               order.isAddOn
-//                 ? "bg-gradient-to-br from-amber-50 to-white border-amber-200"
-//                 : "bg-gradient-to-br from-white to-gray-50 border-gray-200"
-//             }`}
-//           >
-//             {/* Glow */}
-//             <div
-//               className={`absolute inset-0 rounded-2xl opacity-0 group-hover:opacity-100 blur-xl transition ${
-//                 order.isAddOn ? "bg-amber-200/40" : "bg-blue-200/30"
-//               }`}
+//         {orders.length === 0 ? (
+//           <EmptyState />
+//         ) : (
+//           orders.map((order: any, idx: number) => (
+//             <OrderCard
+//               key={`${order.id}-${idx}`}
+//               order={order}
+//               onSelect={onSelectOrder}
 //             />
-
-//             {/* Header */}
-//             <div className="relative flex justify-between items-center mb-3">
-//               <div className="flex items-center gap-2">
-//                 <span
-//                   className={`text-[10px] text-white px-3 py-1 rounded-full font-black tracking-wider ${
-//                     order.isAddOn ? "bg-amber-600" : "bg-blue-600"
-//                   }`}
-//                 >
-//                   {order.table?.number}
-//                 </span>
-
-//                 {order.isAddOn && (
-//                   <span className="text-[9px] font-black text-amber-700 uppercase animate-pulse">
-//                     Add-on
-//                   </span>
-//                 )}
-//               </div>
-
-//               <div className="flex items-center gap-1 text-[10px] text-gray-500 font-mono bg-white/60 px-2 py-1 rounded-full">
-//                 <Clock size={10} />
-//                 {new Date(order.receivedAt).toLocaleTimeString([], {
-//                   hour: "2-digit",
-//                   minute: "2-digit",
-//                 })}
-//               </div>
-//             </div>
-
-//             {/* Items */}
-//             <div className="relative mb-4 space-y-2">
-//               <p className="flex items-center gap-2 text-[10px] font-bold text-gray-400 uppercase tracking-widest">
-//                 <ChefHat size={12} /> Preparation Queue
-//               </p>
-
-//               <div className="space-y-2">
-//                 {order.displayItems?.map((item: any, i: number) => (
-//                   <div
-//                     key={i}
-//                     className="flex justify-between items-center text-sm bg-white/70 backdrop-blur border border-gray-100 p-1 px-2 rounded-xl"
-//                   >
-//                     <span className="font-bold text-gray-800 flex items-center gap-2">
-//                       <span className="text-blue-600 font-black">
-//                         {item.quantity}×
-//                       </span>
-//                       {item.menuItem?.name || item.name}
-//                     </span>
-//                   </div>
-//                 ))}
-//               </div>
-//             </div>
-
-//             {/* Footer */}
-//             <div className="relative flex justify-between items-center pt-3 border-t border-gray-100">
-//               <div>
-//                 <p className="text-[11px] font-bold text-gray-700">
-//                   {order.waiter?.name || "Staff"}
-//                 </p>
-//                 <p className="text-[9px] text-gray-400 uppercase tracking-wider">
-//                   Order Handler
-//                 </p>
-//               </div>
-
-//               <button
-//                 onClick={() => onSelectOrder(order.tableId)}
-//                 className="text-[10px] font-black text-blue-600 hover:text-blue-800 uppercase tracking-widest transition cursor-pointer tracking-wider"
-//               >
-//                 View Bill →
-//               </button>
-//             </div>
-//           </div>
-//         ))}
-
-//         {/* Empty State */}
-//         {orders.length === 0 && (
-//           <div className="h-full flex flex-col items-center justify-center opacity-30 grayscale">
-//             <div className="w-20 h-20 rounded-full bg-gray-100 flex items-center justify-center mb-4">
-//               <Bell size={28} className="text-gray-400" />
-//             </div>
-//             <p className="text-sm font-black uppercase tracking-widest text-gray-400">
-//               No Live Orders
-//             </p>
-//             <p className="text-xs text-gray-400 mt-1">Waiting for activity…</p>
-//           </div>
+//           ))
 //         )}
 //       </div>
 //     </aside>
@@ -162,10 +64,35 @@
 
 "use client";
 import { useEffect, useRef } from "react";
-import { Bell, Trash2, ChefHat, Clock } from "lucide-react";
+import { Bell, Trash2, Clock } from "lucide-react";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
+import api from "@/lib/axios";
+import { io } from "socket.io-client";
 
-export default function LiveOrderFeed({ orders, onClear, onSelectOrder }: any) {
+const SOCKET_URL =
+  process.env.NEXT_PUBLIC_SOCKET_URL || "http://localhost:3000";
+
+export default function LiveOrderFeed({ onSelectOrder }: any) {
   const scrollRef = useRef<HTMLDivElement>(null);
+  const queryClient = useQueryClient();
+
+  // 1. Fetch orders directly from API
+  const { data: orders = [], isLoading } = useQuery({
+    queryKey: ["live-orders"],
+    queryFn: async () => {
+      try {
+        const res = await api.get("/orders/live-feed");
+        // Ensure we return the array specifically (adjust based on your API response shape)
+        return res.data || [];
+      } catch (error) {
+        console.error("Failed to fetch live feed:", error);
+        return [];
+      }
+    }, // Corrected the brace here
+    refetchInterval: 60000,
+    // Optional: Only refetch if the window is focused to save resources
+    refetchOnWindowFocus: true,
+  });
 
   // Auto-scroll to bottom only when new orders arrive
   useEffect(() => {
@@ -176,116 +103,201 @@ export default function LiveOrderFeed({ orders, onClear, onSelectOrder }: any) {
       });
     }
   }, [orders]);
+  // 2. Setup Socket listener inside the feed
+  // Inside LiveOrderFeed.tsx
+  useEffect(() => {
+    const socket = io(SOCKET_URL, { transports: ["websocket"] });
+
+    socket.on("newOrder", () => {
+      // 1. Refetch from the API to get the "Source of Truth"
+      queryClient.invalidateQueries({ queryKey: ["live-orders"] });
+
+      // 2. Optional: If you want to be extra safe against DB lag
+      setTimeout(() => {
+        queryClient.invalidateQueries({ queryKey: ["live-orders"] });
+      }, 500);
+    });
+
+    return () => {
+      socket.disconnect();
+    };
+  }, [queryClient]);
+
+  // Auto-scroll logic...
+  useEffect(() => {
+    if (scrollRef.current) {
+      scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
+    }
+  }, [orders]);
+  const clearFeed = async () => {
+    await api.delete("/orders/live-feed/clear");
+    queryClient.invalidateQueries({ queryKey: ["live-orders"] });
+  };
 
   return (
-    <aside className="w-80 mb-16 bg-white/70 backdrop-blur-xl border-l border-gray-200 flex flex-col shadow-2xl min-h-screen sticky top-0">
-      {/* Header */}
-      <div className="p-5 border-b border-gray-200 bg-white/80 backdrop-blur-md flex justify-between items-center z-10">
+    <aside className="w-80   bg-white/70 backdrop-blur-xl border-l border-gray-200 flex flex-col shadow-2xl min-h-screen sticky top-0">
+      <div className="p-5 border-b border-gray-200 bg-white/80 flex justify-between items-center">
         <div className="flex items-center gap-3">
-          <div className="w-10 h-10 rounded-xl bg-blue-600/10 flex items-center justify-center">
-            <Bell className="text-blue-600 animate-tada" size={18} />
-          </div>
-          <div>
-            <h3 className="text-lg font-black text-gray-800 tracking-tight">
-              Live Activity
-            </h3>
-            <p className="text-[10px] text-gray-400 font-bold uppercase tracking-widest">
-              Kitchen & Bar Feed
-            </p>
-          </div>
+          <Bell className="text-blue-600" size={18} />
+          <h3 className="text-lg font-black text-gray-800">Live Activity</h3>
         </div>
-
         <button
-          onClick={onClear}
-          className="p-2 rounded-xl text-gray-400 hover:text-red-500 hover:bg-red-50 transition-all active:scale-95"
+          onClick={clearFeed}
+          className="text-xs font-bold text-red-500 hover:underline hover:bg-red-200 p-2 rounded-full cursor-pointer"
         >
           <Trash2 size={18} />
         </button>
       </div>
 
-      {/* Feed Container */}
       <div
         ref={scrollRef}
-        className="flex-1 overflow-y-auto p-4 space-y-4 bg-gray-50/30 scroll-smooth mb-16"
+        className="flex-1 overflow-y-auto p-4 space-y-4 bg-gray-50/30 pb-24"
       >
-        {orders.length === 0 ? (
+        {isLoading ? (
+          <div className="flex flex-col items-center justify-center p-10 space-y-3">
+            <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-blue-600"></div>
+            <p className="text-xs font-bold text-gray-400 uppercase tracking-widest">
+              Updating Feed...
+            </p>
+          </div>
+        ) : orders.length === 0 ? (
           <EmptyState />
         ) : (
-          orders.map((order: any, idx: number) => (
-            <OrderCard
-              key={`${order.id}-${idx}`}
-              order={order}
-              onSelect={onSelectOrder}
-            />
+          /* Use the unique batch ID we created in the backend (orderId + timestamp) */
+          orders.map((batch: any) => (
+            <OrderCard key={batch.id} batch={batch} onSelect={onSelectOrder} />
           ))
         )}
       </div>
     </aside>
   );
 }
-
 // Sub-component for cleaner code
-function OrderCard({ order, onSelect }: any) {
+function OrderCard({ batch, onSelect }: any) {
   return (
     <div
-      className={`relative group p-4 rounded-2xl border transition-all duration-300 shadow-sm hover:shadow-md ${
-        order.isAddOn
-          ? "bg-gradient-to-br from-amber-50 to-white border-amber-200"
-          : "bg-white border-gray-200"
+      className={`p-4 rounded-2xl border transition-all shadow-sm ${
+        batch?.isAddOn
+          ? "bg-amber-50/40 border-amber-100" // Subtle amber for add-ons
+          : "bg-white border-gray-200" // Clean white for new orders
       }`}
     >
-      <div className="flex justify-between items-center mb-3">
-        <div className="flex items-center gap-2">
+      <div className="flex justify-between items-start mb-3">
+        <div className="flex flex-col gap-1">
           <span
-            className={`text-[10px] text-white px-3 py-1 rounded-full font-black ${
-              order.isAddOn ? "bg-amber-600" : "bg-blue-600"
+            className={`text-[10px] text-white px-2 py-0.5 rounded-md font-black w-fit ${
+              batch?.isAddOn ? "bg-amber-600" : "bg-blue-600"
             }`}
           >
-            T-{order.table?.number || "N/A"}
+            T-{batch?.tableNumber}
           </span>
-          {order.isAddOn && (
-            <span className="text-[9px] font-black text-amber-700 uppercase animate-pulse">
-              Add-on
-            </span>
-          )}
+          <span
+            className={`text-[9px] font-bold uppercase tracking-wider ${
+              batch?.isAddOn ? "text-amber-700" : "text-blue-700"
+            }`}
+          >
+            {batch?.isAddOn ? "• Add-on Request" : "• New Order"}
+          </span>
         </div>
-        <div className="flex items-center gap-1 text-[10px] text-gray-500 font-mono">
-          <Clock size={10} />
-          {new Date(order.receivedAt || Date.now()).toLocaleTimeString([], {
+
+        <div className="text-[10px] text-gray-400 font-mono bg-gray-100 px-2 py-0.5 rounded">
+          {new Date(batch?.receivedAt).toLocaleTimeString([], {
             hour: "2-digit",
             minute: "2-digit",
+            second: "2-digit",
           })}
         </div>
       </div>
 
-      <div className="space-y-2 mb-4">
-        {order.displayItems?.map((item: any, i: number) => (
+      <div className="space-y-1 mb-4">
+        {batch?.items.map((item: any, i: number) => (
           <div
             key={i}
-            className="flex justify-between items-center text-sm bg-gray-50 p-2 rounded-lg border border-gray-100"
+            className="flex justify-between items-center text-sm p-1.5 rounded-lg border border-transparent hover:bg-white/50"
           >
             <span className="font-bold text-gray-800">
               <span className="text-blue-600 mr-2">{item.quantity}×</span>
-              {item.menuItem?.name || item.name}
+              {item.name}
             </span>
           </div>
         ))}
       </div>
 
-      <div className="flex justify-between items-center pt-3 border-t border-gray-100">
-        <span className="text-[11px] font-bold text-gray-600 truncate max-w-[120px]">
-          {order.waiter?.name || "Staff"}
+      <div className="flex justify-between items-center pt-2 border-t border-gray-100">
+        <span className="text-[10px] text-gray-400">
+          By <span className="font-bold">{batch?.waiterName}</span>
         </span>
         <button
-          onClick={() => onSelect(order.tableId)}
-          className="text-[10px] font-black text-blue-600 hover:underline uppercase"
+          onClick={() => onSelect(batch?.tableId)}
+          className="text-[10px] font-black text-blue-600 hover:underline"
         >
-          View Bill →
+          VIEW BILL →
         </button>
       </div>
     </div>
   );
 }
+// function OrderCard({ order, onSelect }: any) {
+//   return (
+//     <div
+//       className={`relative group p-4 rounded-2xl border transition-all duration-300 shadow-sm hover:shadow-md ${
+//         order?.isAddOn
+//           ? "bg-gradient-to-br from-amber-50 to-white border-amber-200"
+//           : "bg-white border-gray-200"
+//       }`}
+//     >
+//       <div className="flex justify-between items-center mb-3">
+//         <div className="flex items-center gap-2">
+//           <span
+//             className={`text-[10px] text-white px-3 py-1 rounded-full font-black ${
+//               order?.isAddOn ? "bg-amber-600" : "bg-blue-600"
+//             }`}
+//           >
+//             T-{order.table?.number || "N/A"}
+//           </span>
+//           {order?.isAddOn && (
+//             <span className="text-[9px] font-black text-amber-700 uppercase animate-pulse">
+//               Add-on
+//             </span>
+//           )}
+//         </div>
+//         <div className="flex items-center gap-1 text-[10px] text-gray-500 font-mono">
+//           <Clock size={10} />
+//           {new Date(order?.receivedAt || Date.now()).toLocaleTimeString([], {
+//             hour: "2-digit",
+//             minute: "2-digit",
+//           })}
+//         </div>
+//       </div>
+
+//       <div className="space-y-2 mb-4">
+//         {order.displayItems?.map((item: any, i: number) => (
+//           <div
+//             key={i}
+//             className="flex justify-between items-center text-sm bg-gray-50 p-2 rounded-lg border border-gray-100"
+//           >
+//             <span className="font-bold text-gray-800">
+//               <span className="text-blue-600 mr-2">{item.quantity}×</span>
+//               {item.menuItem?.name || item.name}
+//             </span>
+//           </div>
+//         ))}
+//       </div>
+
+//       <div className="flex justify-between items-center pt-3 border-t border-gray-100">
+//         <span className="text-[11px] font-bold text-gray-600 truncate max-w-[120px]">
+//           {order.waiter?.name || "Staff"}
+//         </span>
+//         <button
+//           onClick={() => onSelect(order.tableId)}
+//           className="text-[10px] font-black text-blue-600 hover:underline uppercase"
+//         >
+//           View Bill →
+//         </button>
+//       </div>
+//     </div>
+//   );
+// }
 
 function EmptyState() {
   return (

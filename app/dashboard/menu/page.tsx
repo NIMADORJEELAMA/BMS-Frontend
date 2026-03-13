@@ -4,6 +4,8 @@ import MenuItemForm from "@/components/menu/MenuItemForm";
 import MenuModal from "@/components/menu/MenuModal";
 import MenuTable from "@/components/menu/MenuTable";
 import { Button } from "@/components/ui/button";
+import * as XLSX from "xlsx";
+
 import { useInventoryList } from "@/hooks/useInventoryList";
 import {
   useCreateMenuItem,
@@ -113,24 +115,27 @@ export default function MenuPage() {
       },
     });
   };
-  const downloadCsvTemplate = () => {
-    // Define the headers based on your NestJS Service requirements
-    const headers = ["name", "price", "category", "type", "isVeg"];
-    const sampleRow = ["Margherita Pizza", "12.99", "PIZZA", "FOOD", "true"];
+  const downloadMenuTemplate = () => {
+    const data = [
+      ["Name", "Price", "Category", "Type (FOOD|DRINKS)", "IsVeg (TRUE|FALSE)"],
+      ["Margherita Pizza", "12.99", "PIZZA", "FOOD", "TRUE"],
+    ];
 
-    const csvContent = [headers, sampleRow].map((e) => e.join(",")).join("\n");
+    const worksheet = XLSX.utils.aoa_to_sheet(data);
 
-    const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
-    const url = URL.createObjectURL(blob);
-    const link = document.createElement("a");
+    // Column widths
+    worksheet["!cols"] = [
+      { wch: 30 }, // Name
+      { wch: 12 }, // Price
+      { wch: 20 }, // Category
+      { wch: 20 }, // Type
+      { wch: 18 }, // IsVeg
+    ];
 
-    link.setAttribute("href", url);
-    link.setAttribute("download", "menu_template.csv");
-    link.style.visibility = "hidden";
+    const workbook = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(workbook, worksheet, "Menu Template");
 
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
+    XLSX.writeFile(workbook, "menu_template.xlsx");
   };
   const handleCreate = (e: React.FormEvent) => {
     e.preventDefault();
@@ -235,38 +240,52 @@ export default function MenuPage() {
     });
     setIsModalOpen(true);
   };
-
   const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
 
-    // Basic validation before parsing
-    if (file.type !== "text/csv" && !file.name.endsWith(".csv")) {
-      toast.error("Please upload a valid CSV file");
+    // 1. Updated validation to allow both CSV and XLSX
+    const isExcel = file.name.endsWith(".xlsx") || file.name.endsWith(".xls");
+    const isCsv = file.name.endsWith(".csv") || file.type === "text/csv";
+
+    if (!isExcel && !isCsv) {
+      toast.error("Please upload a valid Excel or CSV file");
       return;
     }
 
-    Papa.parse(file, {
-      header: true,
-      skipEmptyLines: true,
-      complete: (results) => {
-        // Logic to sanitize data (optional but recommended)
-        const sanitizedData = results.data.map((item: any) => ({
+    const reader = new FileReader();
+    reader.onload = (evt) => {
+      try {
+        const bstr = evt.target?.result;
+        // 2. Use XLSX to read the file
+        const wb = XLSX.read(bstr, { type: "binary" });
+        const wsname = wb.SheetNames[0];
+        const ws = wb.Sheets[wsname];
+
+        // 3. Convert sheet to JSON
+        const rawData = XLSX.utils.sheet_to_json(ws);
+
+        // 4. Sanitize data (mapping Excel headers to your expected format)
+        const sanitizedData = rawData.map((item: any) => ({
           ...item,
-          price: parseFloat(item.price) || 0,
-          isVeg: String(item.isVeg).toLowerCase() === "true",
+          // Match the exact header names from your downloadMenuTemplate function
+          name: item["Name"],
+          price: parseFloat(item["Price"]) || 0,
+          category: item["Category"],
+          type: item["Type (FOOD|DRINKS)"] || "FOOD",
+          isVeg: String(item["IsVeg (TRUE|FALSE)"]).toUpperCase() === "TRUE",
         }));
 
         setPreviewData(sanitizedData);
         setIsPreviewOpen(true);
 
-        // Reset input so the same file can be uploaded again if needed
         if (fileInputRef.current) fileInputRef.current.value = "";
-      },
-      error: (error) => {
-        toast.error("Error parsing CSV: " + error.message);
-      },
-    });
+      } catch (error) {
+        toast.error("Error reading file: " + (error as Error).message);
+      }
+    };
+
+    reader.readAsBinaryString(file);
   };
 
   return (
@@ -277,7 +296,7 @@ export default function MenuPage() {
           type="file"
           ref={fileInputRef}
           onChange={handleFileSelect}
-          accept=".csv"
+          accept=".csv, .xlsx, .xls"
           className="hidden"
         />
 
@@ -301,7 +320,7 @@ export default function MenuPage() {
           <div className="flex flex-wrap items-center gap-2">
             <Button
               variant="terminalGhost"
-              onClick={downloadCsvTemplate}
+              onClick={downloadMenuTemplate}
               className="whitespace-nowrap"
             >
               <FileDown className="mr-2" size={16} />

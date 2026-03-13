@@ -234,27 +234,45 @@ export default function MenuItemForm({
 
           {/* Dietary */}
           <div className="space-y-2">
-            <label className="text-xs font-bold text-slate-900 uppercase  ml-1">
+            <label className="text-xs font-bold text-slate-900 uppercase ml-1">
               Dietary
             </label>
             <div className="flex bg-slate-100 p-1 rounded-2xl h-11">
               {[
                 { label: "Veg", val: true, icon: Leaf },
                 { label: "Non-Veg", val: false, icon: Flame },
-              ].map((d) => (
-                <button
-                  key={d.label}
-                  type="button"
-                  onClick={() => updateField("isVeg", d.val)}
-                  className={`flex-1 rounded-xl text-xs font-bold flex items-center justify-center gap-2 transition-all ${
-                    formData.isVeg === d.val
-                      ? "bg-white shadow-sm text-slate-700"
-                      : "text-slate-500"
-                  }`}
-                >
-                  <d.icon size={14} /> {d.label}
-                </button>
-              ))}
+              ].map((d) => {
+                // Determine if this specific button is active
+                const isActive = formData.isVeg === d.val;
+
+                return (
+                  <button
+                    key={d.label}
+                    type="button"
+                    onClick={() => updateField("isVeg", d.val)}
+                    className={`flex-1 rounded-xl text-xs font-bold flex items-center justify-center gap-2 transition-all ${
+                      isActive
+                        ? d.val
+                          ? "bg-white shadow-sm text-green-600" // Veg Active: Green text
+                          : "bg-white shadow-sm text-red-600" // Non-Veg Active: Red text
+                        : "text-slate-500 hover:text-slate-700" // Inactive state
+                    }`}
+                  >
+                    {/* You can also color the icon specifically */}
+                    <d.icon
+                      size={14}
+                      className={
+                        isActive
+                          ? d.val
+                            ? "text-green-600"
+                            : "text-red-600"
+                          : ""
+                      }
+                    />
+                    {d.label}
+                  </button>
+                );
+              })}
             </div>
           </div>
 

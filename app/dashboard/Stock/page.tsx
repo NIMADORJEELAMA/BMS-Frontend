@@ -5,7 +5,7 @@ import api from "@/lib/axios";
 import toast from "react-hot-toast";
 import dayjs from "dayjs";
 import Papa from "papaparse";
-
+import * as XLSX from "xlsx";
 // UI Components
 import { DatePicker, Card, Statistic, Tag, Spin, Space } from "antd";
 import { Button } from "@/components/ui/button";
@@ -102,70 +102,99 @@ export default function StockManagementPage() {
     fetchInventory();
   }, [fetchInventory]);
 
-  const downloadCSVTemplate = () => {
-    const headers = [
-      "Name",
-      "Quantity",
-      "Unit",
-      "Type",
-      "PurchasePrice",
-      "SellingPrice",
-      "Category",
-      "IsVeg",
-      "SyncWithMenu", // NEW
-    ];
-    const sampleData = [
-      "PEPSI 500ML",
-      "24",
-      "pcs",
-      "DRINKS",
-      "35",
-      "50",
-      "BEVERAGES",
-      "TRUE",
-      "TRUE", // NEW
+  const downloadExcelTemplate = () => {
+    const data = [
+      [
+        "Name",
+        "Quantity",
+        "Unit (pcs|kg|ltr|ml)",
+        "Type (FOOD|DRINKS)",
+        "PurchasePrice per unit",
+        "SellingPrice per unit",
+        "Category",
+        "IsVeg (TRUE|FALSE)",
+        "SyncWithMenu (TRUE|FALSE)",
+      ],
+      [
+        "PEPSI 500ML",
+        "24",
+        "pcs",
+        "DRINKS",
+        "35",
+        "50",
+        "BEVERAGES",
+        "TRUE",
+        "TRUE",
+      ],
     ];
 
-    const csvContent = [headers, sampleData].map((e) => e.join(",")).join("\n");
+    const worksheet = XLSX.utils.aoa_to_sheet(data);
 
-    const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
-    const url = URL.createObjectURL(blob);
-    const link = document.createElement("a");
-    link.setAttribute("href", url);
-    link.setAttribute("download", "inventory_template.csv");
-    link.style.visibility = "hidden";
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
+    // Column widths (wch = width in characters)
+    worksheet["!cols"] = [
+      { wch: 35 }, // Name
+      { wch: 12 }, // Quantity
+      { wch: 20 }, // Unit
+      { wch: 20 }, // Type
+      { wch: 16 }, // PurchasePrice
+      { wch: 16 }, // SellingPrice
+      { wch: 25 }, // Category
+      { wch: 18 }, // IsVeg
+      { wch: 25 }, // SyncWithMenu
+    ];
+
+    const workbook = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(workbook, worksheet, "Inventory Template");
+
+    XLSX.writeFile(workbook, "inventory_template.xlsx");
   };
   const handleCSVUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
 
-    Papa.parse(file, {
-      header: true,
-      skipEmptyLines: true,
-      complete: (results) => {
-        const mappedData = results.data.map((row: any) => ({
-          name: row.Name || "",
-          quantity: row.Quantity || 0,
-          unit: row.Unit || "PCS",
-          type: row.Type?.toUpperCase() === "DRINKS" ? "DRINKS" : "FOOD",
-          purchasePrice: row.PurchasePrice || 0,
-          sellingPrice: row.SellingPrice || 0,
-          category: row.Category || "RETAIL",
-          isVeg: row.IsVeg?.toLowerCase() === "true",
-          // Map the new column to a boolean
-          syncWithMenu: row.SyncWithMenu?.toLowerCase() === "true", // NEW
+    const reader = new FileReader();
+
+    reader.onload = (evt) => {
+      try {
+        const bstr = evt.target?.result;
+        // XLSX can read both .csv and .xlsx
+        const wb = XLSX.read(bstr, { type: "binary" });
+        const wsname = wb.SheetNames[0];
+        const ws = wb.Sheets[wsname];
+
+        // Convert to JSON
+        const rawData = XLSX.utils.sheet_to_json(ws);
+
+        // Map headers to your internal state keys
+        const mappedData = rawData.map((row: any) => ({
+          name: row["Name"] || "",
+          quantity: row["Quantity"] || 0,
+          unit: row["Unit (pcs|kg|ltr|ml)"] || "pcs",
+          type:
+            row["Type (FOOD|DRINKS)"]?.toUpperCase() === "DRINKS"
+              ? "DRINKS"
+              : "FOOD",
+          purchasePrice: row["PurchasePrice"] || 0,
+          sellingPrice: row["SellingPrice"] || 0,
+          category: row["Category"] || "GENERAL",
+          isVeg: String(row["IsVeg (TRUE|FALSE)"]).toLowerCase() === "true",
+          syncWithMenu:
+            String(row["SyncWithMenu (TRUE|FALSE)"]).toLowerCase() === "true",
         }));
 
         setPreviewData(mappedData);
         setIsPreviewOpen(true);
-        e.target.value = "";
-      },
-    });
-  };
+        e.target.value = ""; // Reset input
+      } catch (err) {
+        toast.error(
+          "Error reading file. Please ensure it is a valid Excel or CSV.",
+        );
+        console.error(err);
+      }
+    };
 
+    reader.readAsBinaryString(file);
+  };
   const handleConfirmUpload = async (finalData: any[]) => {
     try {
       setIsUploading(true);
@@ -429,7 +458,7 @@ export default function StockManagementPage() {
           <input
             type="file"
             id="csv-upload"
-            accept=".csv"
+            accept=".csv, .xlsx, .xls"
             className="hidden"
             onChange={handleCSVUpload}
           />
@@ -437,7 +466,7 @@ export default function StockManagementPage() {
           {/* Download Template Button */}
           <Button
             variant="terminalGhost"
-            onClick={downloadCSVTemplate}
+            onClick={downloadExcelTemplate}
             className=" mr-4"
           >
             <div className="flex items-center gap-2">
