@@ -2,6 +2,7 @@
 import { X, Trash2, AlertTriangle, Loader2 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import MenuItemForm from "./MenuItemForm"; // Your existing form
+import { string } from "zod";
 
 interface MenuModalProps {
   isOpen: boolean;
@@ -13,6 +14,7 @@ interface MenuModalProps {
   onSubmit: (e: React.FormEvent) => void;
   inventory: any[];
   isActive?: boolean;
+  categories: string[];
 }
 
 export default function MenuModal({
@@ -24,6 +26,7 @@ export default function MenuModal({
   isPending,
   onSubmit,
   inventory,
+  categories = [],
 }: MenuModalProps) {
   if (!isOpen) return null;
 
@@ -57,6 +60,7 @@ export default function MenuModal({
           <div className="overflow-y-auto">
             {/* REUSING YOUR FORM COMPONENT */}
             <MenuItemForm
+              categories={categories}
               formData={formData}
               setFormData={setFormData}
               onSubmit={onSubmit}

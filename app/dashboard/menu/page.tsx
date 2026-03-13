@@ -13,7 +13,7 @@ import {
   useUploadMenuCsv,
 } from "@/hooks/useMenu";
 import { FileDown, Loader2, Plus, Tag, Upload, X } from "lucide-react";
-import { useState, useRef } from "react";
+import { useState, useRef, useMemo } from "react";
 import toast from "react-hot-toast";
 import { MenuItem } from "@/app/types/menu";
 import Papa from "papaparse";
@@ -55,7 +55,15 @@ export default function MenuPage() {
     setIsMenuItemFormOpen(!isMenuItemFormOpen);
     resetForm();
   };
-
+  // Inside MenuPage.tsx
+  // Inside MenuPage.tsx
+  const uniqueCategories = useMemo(() => {
+    // Add a type cast to ensure categories is treated as string[]
+    const categories = menuItems.map((i: any) =>
+      String(i.category),
+    ) as string[];
+    return Array.from(new Set(categories)).sort();
+  }, [menuItems]);
   const openDelete = (item: any) => {
     setActiveItem(item);
     setIsDeleteOpen(true);
@@ -329,6 +337,7 @@ export default function MenuPage() {
       {isMenuItemFormOpen && (
         <MenuItemForm
           formData={formData}
+          categories={uniqueCategories}
           setFormData={setFormData}
           inventory={fullInventory ?? []}
           isPending={createMutation.isPending}
@@ -353,6 +362,7 @@ export default function MenuPage() {
         isOpen={isModalOpen}
         onClose={() => setIsModalOpen(false)}
         // onDelete={handleDelete}
+        categories={uniqueCategories}
         formData={formData}
         setFormData={setFormData}
         isPending={updateMutation.isPending || deleteMutation.isPending}

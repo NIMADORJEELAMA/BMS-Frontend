@@ -20,6 +20,7 @@ import {
 import { motion, AnimatePresence } from "framer-motion";
 import { useState, useMemo } from "react";
 import { Button } from "../ui/button";
+import CategoryCombobox from "../CategoryCombobox";
 
 interface MenuItemFormProps {
   formData: {
@@ -35,6 +36,7 @@ interface MenuItemFormProps {
   };
   setFormData: (data: any) => void;
   inventory: any[];
+  categories: string[];
   isPending: boolean;
   onSubmit: (e: React.FormEvent) => void;
   onCancel: () => void;
@@ -47,6 +49,7 @@ export default function MenuItemForm({
   isPending,
   onSubmit,
   onCancel,
+  categories = [],
 }: MenuItemFormProps) {
   const [errors, setErrors] = useState<Record<string, string>>({});
   console.log("formData", formData);
@@ -161,7 +164,7 @@ export default function MenuItemForm({
             )}
           </div>
 
-          <div className="space-y-1.5">
+          {/* <div className="space-y-1.5">
             <label className="text-xs font-bold text-slate-900 uppercase  ml-1">
               Category
             </label>
@@ -178,6 +181,23 @@ export default function MenuItemForm({
                 }`}
               />
             </div>
+            {errors.category && (
+              <p className="text-[10px] text-red-500 font-bold ml-1 uppercase">
+                {errors.category}
+              </p>
+            )}
+          </div> */}
+
+          <div className="space-y-1.5">
+            <label className="text-xs font-bold text-slate-900 uppercase ml-1">
+              Category
+            </label>
+            <CategoryCombobox
+              options={categories}
+              value={formData.category}
+              onChange={(val) => updateField("category", val)}
+              error={errors.category}
+            />
             {errors.category && (
               <p className="text-[10px] text-red-500 font-bold ml-1 uppercase">
                 {errors.category}
