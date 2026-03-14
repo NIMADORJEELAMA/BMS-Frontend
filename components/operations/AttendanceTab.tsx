@@ -1,3 +1,162 @@
+// "use client";
+// import { useState, useMemo } from "react";
+// import { useUsers } from "@/hooks/useUsers";
+// import { useMonthlyAttendance, useMarkAttendance } from "@/hooks/useOperations";
+// import {
+//   ChevronLeft,
+//   ChevronRight,
+//   Loader2,
+//   CheckCircle2,
+//   Circle,
+// } from "lucide-react";
+// import toast from "react-hot-toast";
+
+// export default function AttendanceTab() {
+//   const [currentDate, setCurrentDate] = useState(new Date());
+//   const year = currentDate.getFullYear();
+//   const month = currentDate.getMonth() + 1;
+
+//   const { data: users = [] } = useUsers();
+//   const { data: attendanceLogs = [], isLoading } = useMonthlyAttendance(
+//     year,
+//     month,
+//   );
+//   const markAttendance = useMarkAttendance();
+
+//   // Generate array of days in the month (e.g. [1, 2, 3...31])
+//   const daysInMonth = useMemo(() => {
+//     const date = new Date(year, month, 0);
+//     return Array.from({ length: date.getDate() }, (_, i) => i + 1);
+//   }, [year, month]);
+
+//   const handleToggle = (userId: string, day: number) => {
+//     const dateStr = `${year}-${String(month).padStart(2, "0")}-${String(day).padStart(2, "0")}`;
+
+//     // Logic: If already present, don't do anything (or delete if you want a true toggle)
+//     markAttendance.mutate(
+//       {
+//         userId,
+//         date: dateStr,
+//       },
+//       {
+//         onSuccess: () => toast.success("Marked Present"),
+//       },
+//     );
+//   };
+
+//   if (isLoading)
+//     return (
+//       <div className="p-20 flex justify-center">
+//         <Loader2 className="animate-spin text-slate-200" size={40} />
+//       </div>
+//     );
+
+//   return (
+//     <div className="p-6 space-y-4">
+//       {/* MATRIX CONTROLS */}
+//       <div className="flex justify-between items-center mb-6 bg-slate-900 p-4 rounded-2xl text-white">
+//         <div className="flex items-center gap-4">
+//           <button
+//             onClick={() => setCurrentDate(new Date(year, month - 2))}
+//             className="p-2 hover:bg-white/10 rounded-full"
+//           >
+//             <ChevronLeft size={18} />
+//           </button>
+//           <h3 className="text-sm font-black uppercase tracking-widest  ">
+//             {currentDate.toLocaleString("default", { month: "long" })} {year}
+//           </h3>
+//           <button
+//             onClick={() => setCurrentDate(new Date(year, month))}
+//             className="p-2 hover:bg-white/10 rounded-full"
+//           >
+//             <ChevronRight size={18} />
+//           </button>
+//         </div>
+//         <div className="text-[10px] font-bold opacity-50 uppercase tracking-widest">
+//           Click a cell to mark presence
+//         </div>
+//       </div>
+
+//       {/* THE GRID */}
+//       <div className="overflow-x-auto border border-slate-200 rounded-2xl shadow-sm">
+//         <table className="w-full text-left border-collapse">
+//           <thead>
+//             <tr className="bg-slate-50 border-b border-slate-200">
+//               <th className="sticky left-0 bg-slate-50 px-6 py-4 text-[10px] font-black text-slate-400 uppercase border-r z-10 w-48">
+//                 Staff Member
+//               </th>
+//               {daysInMonth.map((day) => (
+//                 <th
+//                   key={day}
+//                   className="px-2 py-4 text-[9px] font-black text-slate-400 text-center border-r min-w-[35px]"
+//                 >
+//                   {day}
+//                 </th>
+//               ))}
+//               {/* SUMMARY COLUMN HEADER */}
+//               <th className="px-6 py-4 text-[10px] font-black text-blue-600 uppercase text-center bg-blue-50/50">
+//                 Total
+//               </th>
+//             </tr>
+//           </thead>
+//           <tbody className="divide-y divide-slate-100">
+//             {users.map((user: any) => {
+//               // Access summary from query data (data.summary[userId])
+//               const totalPresent = attendanceLogs?.summary?.[user.id] || 0;
+
+//               return (
+//                 <tr
+//                   key={user.id}
+//                   className="hover:bg-slate-50/50 transition-colors"
+//                 >
+//                   <td className="sticky left-0 bg-white px-6 py-4 font-bold text-slate-900 text-xs border-r z-10 uppercase tracking-tighter">
+//                     {user.name}
+//                   </td>
+//                   {daysInMonth.map((day) => {
+//                     const dateStr = `${year}-${String(month).padStart(2, "0")}-${String(day).padStart(2, "0")}`;
+//                     const isPresent = attendanceLogs?.logs?.some(
+//                       (l: any) => l.userId === user.id && l.date === dateStr,
+//                     );
+
+//                     return (
+//                       <td
+//                         key={day}
+//                         onClick={() =>
+//                           markAttendance.mutate({
+//                             userId: user.id,
+//                             date: dateStr,
+//                           })
+//                         }
+//                         className={`px-2 py-4 text-center border-r border-slate-100 cursor-pointer transition-all ${isPresent ? "bg-emerald-50/30" : "hover:bg-slate-100"}`}
+//                       >
+//                         {isPresent ? (
+//                           <CheckCircle2
+//                             size={16}
+//                             className="text-emerald-500 mx-auto"
+//                           />
+//                         ) : (
+//                           <Circle
+//                             size={16}
+//                             className="text-slate-200 mx-auto"
+//                           />
+//                         )}
+//                       </td>
+//                     );
+//                   })}
+//                   {/* SUMMARY CELL */}
+//                   <td className="px-6 py-4 text-center font-black text-blue-700 bg-blue-50/30 text-sm  ">
+//                     {totalPresent}
+//                   </td>
+//                 </tr>
+//               );
+//             })}
+//           </tbody>
+//         </table>
+//       </div>
+//     </div>
+//   );
+// }
+
 "use client";
 import { useState, useMemo } from "react";
 import { useUsers } from "@/hooks/useUsers";
@@ -8,202 +167,263 @@ import {
   Loader2,
   CheckCircle2,
   Circle,
+  Calendar as CalendarIcon,
+  Users,
+  ArrowRight,
 } from "lucide-react";
 import toast from "react-hot-toast";
+import {
+  format,
+  startOfMonth,
+  endOfMonth,
+  eachDayOfInterval,
+  isWeekend,
+  isSameDay,
+} from "date-fns";
+
+import { DatePicker, ConfigProvider } from "antd";
+import dayjs from "dayjs"; // Ant Design 5 uses dayjs
 
 export default function AttendanceTab() {
   const [currentDate, setCurrentDate] = useState(new Date());
-  const year = currentDate.getFullYear();
-  const month = currentDate.getMonth() + 1;
-
-  const { data: users = [] } = useUsers();
-  const { data: attendanceLogs = [], isLoading } = useMonthlyAttendance(
-    year,
-    month,
+  const [isCalendarOpen, setIsCalendarOpen] = useState(false);
+  // Data Fetching
+  const { data: users = [], isLoading: usersLoading } = useUsers();
+  const { data: attendanceData, isLoading: logsLoading } = useMonthlyAttendance(
+    currentDate.getFullYear(),
+    currentDate.getMonth() + 1,
   );
   const markAttendance = useMarkAttendance();
 
-  // Generate array of days in the month (e.g. [1, 2, 3...31])
-  const daysInMonth = useMemo(() => {
-    const date = new Date(year, month, 0);
-    return Array.from({ length: date.getDate() }, (_, i) => i + 1);
-  }, [year, month]);
+  // 1. Memoized Date Calculations
+  const calendarDays = useMemo(() => {
+    const start = startOfMonth(currentDate);
+    const end = endOfMonth(currentDate);
+    return eachDayOfInterval({ start, end });
+  }, [currentDate]);
 
-  const handleToggle = (userId: string, day: number) => {
-    const dateStr = `${year}-${String(month).padStart(2, "0")}-${String(day).padStart(2, "0")}`;
+  // 2. High-Performance Lookup Map (The "Enterprise" way)
+  const attendanceMap = useMemo(() => {
+    const map = new Set<string>();
+    attendanceData?.logs?.forEach((log: any) => {
+      map.add(`${log.userId}-${log.date}`);
+    });
+    return map;
+  }, [attendanceData]);
 
-    // Logic: If already present, don't do anything (or delete if you want a true toggle)
+  const handleToggle = (userId: string, date: Date) => {
+    const dateStr = format(date, "yyyy-MM-dd");
+
     markAttendance.mutate(
+      { userId, date: dateStr },
       {
-        userId,
-        date: dateStr,
-      },
-      {
-        onSuccess: () => toast.success("Marked Present"),
+        onSuccess: () => toast.success(`Updated attendance for ${dateStr}`),
+        onError: () => toast.error("Failed to update attendance"),
       },
     );
   };
 
-  if (isLoading)
+  if (usersLoading || logsLoading) {
     return (
-      <div className="p-20 flex justify-center">
-        <Loader2 className="animate-spin text-slate-200" size={40} />
+      <div className="h-96 flex flex-col items-center justify-center gap-4 text-slate-400">
+        <Loader2 className="animate-spin" size={32} />
+        <p className="text-sm font-medium animate-pulse">
+          Synchronizing records...
+        </p>
       </div>
     );
+  }
 
+  const handleDateChange = (date: any) => {
+    if (date) {
+      setCurrentDate(date.toDate());
+    }
+  };
+
+  const nextMonth = () => {
+    setCurrentDate(dayjs(currentDate).add(1, "month").toDate());
+  };
+
+  const prevMonth = () => {
+    setCurrentDate(dayjs(currentDate).subtract(1, "month").toDate());
+  };
+  const goToToday = () => {
+    setCurrentDate(new Date());
+  };
   return (
-    <div className="p-6 space-y-4">
-      {/* MATRIX CONTROLS */}
-      <div className="flex justify-between items-center mb-6 bg-slate-900 p-4 rounded-2xl text-white">
-        <div className="flex items-center gap-4">
-          <button
-            onClick={() => setCurrentDate(new Date(year, month - 2))}
-            className="p-2 hover:bg-white/10 rounded-full"
-          >
-            <ChevronLeft size={18} />
-          </button>
-          <h3 className="text-sm font-black uppercase tracking-widest  ">
-            {currentDate.toLocaleString("default", { month: "long" })} {year}
-          </h3>
-          <button
-            onClick={() => setCurrentDate(new Date(year, month))}
-            className="p-2 hover:bg-white/10 rounded-full"
-          >
-            <ChevronRight size={18} />
-          </button>
-        </div>
-        <div className="text-[10px] font-bold opacity-50 uppercase tracking-widest">
-          Click a cell to mark presence
+    <div className="p-6   mx-auto space-y-6">
+      {/* HEADER SECTION */}
+
+      <div className="flex items-center gap-2 bg-slate-50 p-2 rounded-2xl border border-slate-200 justify-center">
+        {/* Quick Nav: Previous */}
+        <button
+          onClick={prevMonth}
+          className="p-1 hover:bg-white hover:shadow-sm rounded-xl transition-all text-slate-600 cursor-pointer"
+        >
+          <ChevronLeft size={18} />
+        </button>
+
+        <ConfigProvider
+          theme={{
+            token: {
+              borderRadius: 12,
+              colorPrimary: "#2563eb",
+            },
+          }}
+        >
+          <div className="flex flex-col items-center">
+            <DatePicker
+              picker="month"
+              value={dayjs(currentDate)}
+              onChange={handleDateChange}
+              allowClear={false}
+              suffixIcon={<CalendarIcon size={14} className="text-blue-600" />}
+              className="h-9 font-bold text-slate-700 border-none shadow-none bg-transparent hover:bg-white transition-all cursor-pointer"
+              format="MMMM YYYY"
+              /* This adds the 'Today' button inside the dropdown */
+              renderExtraFooter={() => (
+                <div className="py-2 text-center border-t border-slate-100">
+                  <button
+                    onClick={() => {
+                      goToToday();
+                      // To close the dropdown, you might need to manage open state manually
+                    }}
+                    className="text-xs font-bold text-blue-600 hover:text-blue-700 transition-colors"
+                  >
+                    Current Month
+                  </button>
+                </div>
+              )}
+            />
+
+            {/* MINIMAL TODAY INDICATOR BELOW */}
+            {!dayjs(currentDate).isSame(dayjs(), "month") && (
+              <button
+                onClick={goToToday}
+                className="text-[9px] font-black uppercase tracking-tighter text-blue-500 hover:text-blue-700 transition-all opacity-80 hover:opacity-100"
+              >
+                Today
+              </button>
+            )}
+          </div>
+        </ConfigProvider>
+
+        {/* Quick Nav: Next */}
+        <button
+          onClick={nextMonth}
+          className="p-1 hover:bg-white hover:shadow-sm rounded-xl transition-all text-slate-600 cursor-pointer"
+        >
+          <ChevronRight size={18} />
+        </button>
+      </div>
+
+      {/* MATRIX TABLE */}
+      <div className="relative overflow-hidden bg-white border border-slate-200 rounded-3xl shadow-sm">
+        <div className="overflow-x-auto">
+          <table className="w-full text-left border-collapse">
+            <thead>
+              <tr className="bg-slate-50/50">
+                <th className="sticky left-0 z-20 bg-slate-50 px-6 py-5 text-xs font-bold text-slate-500 uppercase tracking-wider border-r border-slate-200 w-64 shadow-[2px_0_5px_rgba(0,0,0,0.05)]">
+                  Staff Member
+                </th>
+                {calendarDays.map((day) => (
+                  <th
+                    key={day.toString()}
+                    className={`px-3 py-5 text-[10px] font-bold text-center border-r border-slate-200 min-w-[45px] ${
+                      isWeekend(day)
+                        ? "bg-slate-200/50 text-slate-400"
+                        : "text-slate-500"
+                    }`}
+                  >
+                    <div className="flex flex-col items-center">
+                      <span>{format(day, "eee").toUpperCase()}</span>
+                      <span className="text-sm mt-1">{format(day, "dd")}</span>
+                    </div>
+                  </th>
+                ))}
+                <th className="px-6 py-5 text-xs font-bold text-blue-600 uppercase text-center bg-blue-50/50 sticky right-0 z-10 backdrop-blur-sm shadow-[-2px_0_5px_rgba(0,0,0,0.05)]">
+                  Total
+                </th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-slate-100">
+              {users.map((user: any) => {
+                const totalPresent = attendanceData?.summary?.[user.id] || 0;
+
+                return (
+                  <tr
+                    key={user.id}
+                    className="group hover:bg-blue-50/30 transition-colors"
+                  >
+                    <td className="sticky left-0 z-10 bg-white group-hover:bg-blue-50/30 px-6 py-4 border-r border-slate-200 shadow-[2px_0_5px_rgba(0,0,0,0.05)] transition-colors">
+                      <div className="flex items-center gap-3">
+                        <span className="text-sm font-semibold text-slate-800">
+                          {user.name}
+                        </span>
+                      </div>
+                    </td>
+
+                    {calendarDays.map((day) => {
+                      const dateKey = `${user.id}-${format(day, "yyyy-MM-dd")}`;
+                      const isPresent = attendanceMap.has(dateKey);
+                      const weekend = isWeekend(day);
+
+                      return (
+                        <td
+                          key={day.toString()}
+                          onClick={() => handleToggle(user.id, day)}
+                          className={`p-0 text-center border-r border-slate-100 cursor-pointer relative group/cell ${
+                            weekend ? "bg-slate-200/30" : ""
+                          }`}
+                        >
+                          <div
+                            className={`h-full w-full py-4 flex items-center justify-center transition-all ${
+                              isPresent
+                                ? "bg-emerald-50/50"
+                                : "hover:bg-slate-100"
+                            }`}
+                          >
+                            {isPresent ? (
+                              <CheckCircle2
+                                size={18}
+                                className="text-emerald-500 drop-shadow-sm"
+                              />
+                            ) : (
+                              <Circle
+                                size={18}
+                                className="text-slate-200 group-hover/cell:text-slate-300 transition-colors"
+                              />
+                            )}
+                          </div>
+                        </td>
+                      );
+                    })}
+
+                    <td className="px-6 py-4 text-center font-bold text-blue-700 bg-blue-50/30 text-sm sticky right-0 z-10 backdrop-blur-sm shadow-[-2px_0_5px_rgba(0,0,0,0.05)] transition-colors">
+                      {totalPresent}
+                    </td>
+                  </tr>
+                );
+              })}
+            </tbody>
+          </table>
         </div>
       </div>
 
-      {/* THE GRID */}
-      <div className="overflow-x-auto border border-slate-200 rounded-2xl shadow-sm">
-        <table className="w-full text-left border-collapse">
-          <thead>
-            <tr className="bg-slate-50 border-b border-slate-200">
-              <th className="sticky left-0 bg-slate-50 px-6 py-4 text-[10px] font-black text-slate-400 uppercase border-r z-10 w-48">
-                Staff Member
-              </th>
-              {daysInMonth.map((day) => (
-                <th
-                  key={day}
-                  className="px-2 py-4 text-[9px] font-black text-slate-400 text-center border-r min-w-[35px]"
-                >
-                  {day}
-                </th>
-              ))}
-              {/* SUMMARY COLUMN HEADER */}
-              <th className="px-6 py-4 text-[10px] font-black text-blue-600 uppercase text-center bg-blue-50/50">
-                Total
-              </th>
-            </tr>
-          </thead>
-          <tbody className="divide-y divide-slate-100">
-            {users.map((user: any) => {
-              // Access summary from query data (data.summary[userId])
-              const totalPresent = attendanceLogs?.summary?.[user.id] || 0;
-
-              return (
-                <tr
-                  key={user.id}
-                  className="hover:bg-slate-50/50 transition-colors"
-                >
-                  <td className="sticky left-0 bg-white px-6 py-4 font-bold text-slate-900 text-xs border-r z-10 uppercase tracking-tighter">
-                    {user.name}
-                  </td>
-                  {daysInMonth.map((day) => {
-                    const dateStr = `${year}-${String(month).padStart(2, "0")}-${String(day).padStart(2, "0")}`;
-                    const isPresent = attendanceLogs?.logs?.some(
-                      (l: any) => l.userId === user.id && l.date === dateStr,
-                    );
-
-                    return (
-                      <td
-                        key={day}
-                        onClick={() =>
-                          markAttendance.mutate({
-                            userId: user.id,
-                            date: dateStr,
-                          })
-                        }
-                        className={`px-2 py-4 text-center border-r border-slate-100 cursor-pointer transition-all ${isPresent ? "bg-emerald-50/30" : "hover:bg-slate-100"}`}
-                      >
-                        {isPresent ? (
-                          <CheckCircle2
-                            size={16}
-                            className="text-emerald-500 mx-auto"
-                          />
-                        ) : (
-                          <Circle
-                            size={16}
-                            className="text-slate-200 mx-auto"
-                          />
-                        )}
-                      </td>
-                    );
-                  })}
-                  {/* SUMMARY CELL */}
-                  <td className="px-6 py-4 text-center font-black text-blue-700 bg-blue-50/30 text-sm  ">
-                    {totalPresent}
-                  </td>
-                </tr>
-              );
-            })}
-          </tbody>
-        </table>
-        {/* <table className="w-full text-left border-collapse">
-          <thead>
-            <tr className="bg-slate-50 border-b border-slate-200">
-              <th className="sticky left-0 bg-slate-50 px-6 py-4 text-[10px] font-black text-slate-400 uppercase tracking-widest border-r border-slate-200 z-10 w-48">
-                Staff Member
-              </th>
-              {daysInMonth.map((day) => (
-                <th
-                  key={day}
-                  className="px-3 py-4 text-[9px] font-black text-slate-400 text-center border-r border-slate-100 min-w-[40px]"
-                >
-                  {day}
-                </th>
-              ))}
-            </tr>
-          </thead>
-          <tbody className="divide-y divide-slate-100">
-            {users.map((user: any) => (
-              <tr
-                key={user.id}
-                className="hover:bg-slate-50/50 transition-colors"
-              >
-                <td className="sticky left-0 bg-white px-6 py-4 font-bold text-slate-900 text-xs border-r border-slate-200 z-10 uppercase tracking-tighter">
-                  {user.name}
-                </td>
-                {daysInMonth.map((day) => {
-                  const dateStr = `${year}-${String(month).padStart(2, "0")}-${String(day).padStart(2, "0")}`;
-                  const isPresent = attendanceLogs.some(
-                    (l: any) => l.userId === user.id && l.date === dateStr,
-                  );
-
-                  return (
-                    <td
-                      key={day}
-                      onClick={() => !isPresent && handleToggle(user.id, day)}
-                      className={`px-3 py-4 text-center border-r border-slate-100 cursor-pointer transition-all ${isPresent ? "bg-emerald-50/30" : "hover:bg-slate-100"}`}
-                    >
-                      {isPresent ? (
-                        <CheckCircle2
-                          size={16}
-                          className="text-emerald-500 mx-auto"
-                        />
-                      ) : (
-                        <Circle size={16} className="text-slate-200 mx-auto" />
-                      )}
-                    </td>
-                  );
-                })}
-              </tr>
-            ))}
-          </tbody>
-        </table> */}
+      {/* FOOTER LEGEND */}
+      <div className="flex items-center gap-6 text-[11px] font-bold text-slate-400 uppercase tracking-widest px-2">
+        <div className="flex items-center gap-2">
+          <div className="w-3 h-3 rounded-full bg-emerald-100 border border-emerald-500" />
+          Present
+        </div>
+        <div className="flex items-center gap-2">
+          <div className="w-3 h-3 rounded-full bg-slate-100 border border-slate-300" />
+          Absent / Pending
+        </div>
+        <div className="flex items-center gap-2">
+          <div className="w-3 h-3 rounded bg-slate-100" />
+          Weekend
+        </div>
       </div>
     </div>
   );
