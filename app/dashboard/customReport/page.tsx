@@ -2,7 +2,7 @@
 
 import { useState, useMemo, useEffect } from "react";
 import { usePerformanceReport } from "@/hooks/useReports";
-import { BarChart3, Receipt, IndianRupee, TrendingUp } from "lucide-react";
+import { Receipt, IndianRupee, TrendingUp, Clock, Crown } from "lucide-react";
 import {
   ResponsiveContainer,
   Tooltip,
@@ -15,9 +15,10 @@ import {
 
 // UI Components
 import { DatePicker, Card, Statistic, Spin } from "antd";
-import { SearchBar } from "@/components/ui/SearchBar"; // Assuming path
+import { SearchBar } from "@/components/ui/SearchBar";
 import { AgGridReact } from "ag-grid-react";
 import "@/lib/agGrid";
+import { cn } from "@/lib/utils";
 
 import dayjs from "dayjs";
 import { ColDef } from "ag-grid-community";
@@ -47,137 +48,202 @@ export default function EnterprisePerformanceReport() {
     const timer = setTimeout(() => setDebouncedSearch(search), 500);
     return () => clearTimeout(timer);
   }, [search]);
+
   const columnDefs = useMemo<ColDef[]>(
     () => [
       {
-        headerName: "No",
-        // In AG Grid 31.x+, 'node.rowIndex' is common,
-        // but ensure params are used for best practice
+        headerName: "#",
         valueGetter: (params) => (params.node?.rowIndex ?? 0) + 1,
-        width: 70,
+        width: 60,
         pinned: "left",
-        suppressMovable: true, // Recommended for a rank column
-        cellRenderer: (params: any) => (
-          <span className="font-bold text-slate-700">{params.value}</span>
-        ),
       },
       {
         field: "name",
-        headerName: "Product",
-        flex: 1,
-        filter: "agTextColumnFilter",
+        headerName: "Product Name",
+        flex: 2,
+        minWidth: 200,
         cellRenderer: (params: any) => (
           <span className="font-bold text-slate-700">{params.value}</span>
         ),
       },
       {
         field: "quantity",
-        headerName: "Sold",
-        width: 150,
-        sortable: true,
+        headerName: "Qty Sold",
+        flex: 1,
+        sort: "desc" as const,
         cellRenderer: (params: any) => (
-          <span className="font-bold text-slate-700">{params.value}</span>
+          <div className="flex items-center gap-2">
+            <span className="font-mono font-bold text-indigo-600">
+              {params.value}
+            </span>
+            <div className="h-1.5 bg-indigo-100 rounded-full flex-1 max-w-[60px] hidden md:block">
+              <div
+                className="h-full bg-indigo-500 rounded-full"
+                style={{
+                  width: `${Math.min((params.value / (report?.summary?.totalItemsSold || 100)) * 100, 100)}%`,
+                }}
+              />
+            </div>
+          </div>
         ),
       },
+      {
+        field: "revenue",
+        headerName: "Revenue",
+        flex: 1,
+        valueFormatter: (params) => `₹${params.value?.toLocaleString()}`,
+        cellClass: "font-mono font-bold text-emerald-600",
+      },
     ],
-    [],
+    [report],
   );
+
   return (
-    <div className=" bg-[#f8fafc] p-4">
-      <div className="mx-auto space-y-4">
-        {/* COMPACT HEADER */}
-        <div className="flex flex-col md:flex-row justify-between items-center gap-4 ">
+    <div className="bg-[#f8fafc] p-6 min-h-screen">
+      <div className="mx-auto space-y-6">
+        {/* HEADER SECTION */}
+        <div className="flex flex-col md:flex-row justify-between items-center gap-4">
           <SearchBar
-            placeholder="Search product..."
+            placeholder="Filter by product name..."
             value={search}
             onChange={(e) => setSearch(e.target.value)}
           />
-          <div className="flex items-center gap-3 justify-between">
-            <RangePicker
-              value={dateRange}
-              onChange={(values) =>
-                values && setDateRange([values[0]!, values[1]!])
-              }
-              className="rounded-xl h-12 border-slate-200"
-            />
-          </div>
+          <RangePicker
+            value={dateRange}
+            format="DD/MM/YYYY"
+            onChange={(values) =>
+              values && setDateRange([values[0]!, values[1]!])
+            }
+            className="rounded-xl h-11 border-slate-200 shadow-sm"
+          />
         </div>
 
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-4">
-          {/* SQUARE KPI GRID - Left Side (4 cols) */}
-          <div className="lg:col-span-4 grid grid-cols-2 gap-3">
+        {/* TOP ANALYTICS GRID */}
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
+          {/* KPI CARDS (4 cols) */}
+          <div className="lg:col-span-4 grid grid-cols-2 gap-4">
             <KPICard
-              title="Revenue"
-              value={report?.totalRevenue || 0}
+              title="Total Revenue"
+              value={report?.summary?.totalRevenue || 0}
               prefix="₹"
-              icon={<IndianRupee size={16} />}
+              icon={<IndianRupee size={18} />}
               color="indigo"
             />
             <KPICard
-              title="Orders"
-              value={report?.orderCount || 0}
-              icon={<Receipt size={16} />}
+              title="Total Orders"
+              value={report?.summary?.orderCount || 0}
+              icon={<Receipt size={18} />}
               color="emerald"
             />
-            <KPICard
-              title="Avg Ticket"
-              value={report?.avgOrderValue || 0}
-              prefix="₹"
-              precision={1}
-              icon={<TrendingUp size={16} />}
-              color="orange"
-            />
-            <div className="bg-indigo-600 rounded-2xl p-4 text-white flex flex-col justify-center shadow-lg shadow-indigo-100">
-              <p className="text-xs opacity-80">Top Item</p>
-              <p className="font-bold truncate text-sm">
-                {report?.topSellingItems?.[0]?.name || "N/A"}
-              </p>
+
+            {/* Top Product Display */}
+            <div className="bg-white border border-slate-200 rounded-2xl p-5 shadow-sm flex flex-col justify-between">
+              <div className="flex justify-between items-start">
+                <p className="text-[10px] uppercase tracking-widest font-black text-slate-400">
+                  Top Product
+                </p>
+                <div className="w-8 h-8 rounded-lg bg-amber-50 text-amber-500 flex items-center justify-center">
+                  <Crown size={16} />
+                </div>
+              </div>
+              <div className="mt-2">
+                <p className="font-black text-slate-800 truncate text-sm">
+                  {report?.topSellingItems?.[0]?.name || "N/A"}
+                </p>
+                <p className="text-[10px] text-slate-500 font-bold">
+                  {report?.topSellingItems?.[0]?.quantity || 0} units sold
+                </p>
+              </div>
+            </div>
+
+            {/* Peak Hour Visualizer */}
+            <div className="bg-indigo-600 rounded-2xl p-5 text-white flex flex-col justify-between shadow-lg shadow-indigo-100">
+              <div className="flex justify-between items-start">
+                <div>
+                  <p className="text-[10px] uppercase opacity-70 font-bold tracking-widest">
+                    Peak Rush
+                  </p>
+                  <p className="text-xl font-black mt-1">
+                    {report?.peakHours
+                      ? `${report.peakHours.indexOf(Math.max(...report.peakHours))}:00`
+                      : "00:00"}
+                  </p>
+                </div>
+                <Clock size={16} className="opacity-50" />
+              </div>
+              <div className="flex items-end gap-0.5 h-10 mt-2">
+                {report?.peakHours?.map((val: number, i: number) => (
+                  <div
+                    key={i}
+                    className="bg-white/30 rounded-t-sm w-full"
+                    style={{
+                      height: `${(val / (Math.max(...report.peakHours) || 1)) * 100}%`,
+                    }}
+                  />
+                ))}
+              </div>
             </div>
           </div>
 
-          {/* COMPACT CHART - Right Side (8 cols) */}
+          {/* MAIN CHART (8 cols) */}
           <Card
-            title={<span className="text-sm font-bold">Top 5 Items</span>}
+            title={
+              <span className="text-xs font-black uppercase tracking-widest text-slate-400">
+                Top 5 Performance
+              </span>
+            }
             className="lg:col-span-8 shadow-sm rounded-2xl border-slate-200"
-            styles={{ body: { padding: "12px" } }}
+            styles={{ body: { padding: "20px" } }}
           >
-            <ResponsiveContainer width="100%" height={180}>
+            <ResponsiveContainer width="100%" height={160}>
               <BarChart data={report?.topSellingItems?.slice(0, 5)}>
                 <CartesianGrid
                   strokeDasharray="3 3"
                   vertical={false}
                   stroke="#f1f5f9"
                 />
-                <XAxis dataKey="name" hide />
+                <XAxis
+                  dataKey="name"
+                  axisLine={false}
+                  tickLine={false}
+                  tick={{ fill: "#94a3b8", fontSize: 10 }}
+                />
                 <YAxis
                   axisLine={false}
                   tickLine={false}
                   tick={{ fill: "#94a3b8", fontSize: 10 }}
                 />
-                <Tooltip cursor={{ fill: "#f8fafc" }} />
+                <Tooltip
+                  cursor={{ fill: "#f8fafc" }}
+                  contentStyle={{
+                    borderRadius: "12px",
+                    border: "none",
+                    boxShadow: "0 10px 15px -3px rgb(0 0 0 / 0.1)",
+                  }}
+                />
                 <Bar
                   dataKey="quantity"
                   fill="#6366F1"
-                  radius={[4, 4, 0, 0]}
-                  barSize={32}
+                  radius={[6, 6, 0, 0]}
+                  barSize={40}
                 />
               </BarChart>
             </ResponsiveContainer>
           </Card>
         </div>
 
-        {/* AG GRID TABLE */}
+        {/* DATA TABLE */}
         <Card
           styles={{ body: { padding: 0 } }}
           className="shadow-sm rounded-2xl border-slate-200 overflow-hidden"
         >
           <div
             className="ag-theme-quartz enterprise-grid"
-            style={{ height: "55vh", width: "100%" }}
+            style={{ height: "500px", width: "100%" }}
           >
             {isLoading ? (
-              <div className="h-full flex items-center justify-center">
-                <Spin />
+              <div className="h-full flex items-center justify-center bg-white/50 backdrop-blur-sm">
+                <Spin size="large" />
               </div>
             ) : (
               <AgGridReact
@@ -185,7 +251,12 @@ export default function EnterprisePerformanceReport() {
                 columnDefs={columnDefs}
                 pagination={true}
                 paginationPageSize={20}
-                defaultColDef={{ resizable: true, sortable: true }}
+                defaultColDef={{
+                  resizable: true,
+                  sortable: true,
+                  filter: true,
+                }}
+                rowHeight={52}
               />
             )}
           </div>
@@ -211,25 +282,35 @@ function KPICard({
 
   return (
     <Card
-      className="border-slate-200 rounded-[6rem] shadow-sm overflow-hidden"
-      styles={{ body: { padding: "16px" } }}
+      className="border-slate-200 rounded-2xl shadow-sm hover:border-indigo-200 transition-colors"
+      styles={{ body: { padding: "20px" } }}
     >
-      <div
-        className={`w-8 h-8 rounded-lg ${colorMap[color]} flex items-center justify-center mb-2`}
-      >
-        {icon}
+      <div className="flex justify-between items-start">
+        <div className="space-y-1">
+          <p className="text-[10px] uppercase tracking-widest font-black text-slate-400">
+            {title}
+          </p>
+          <Statistic
+            value={value}
+            prefix={prefix}
+            precision={precision}
+            style={{
+              fontWeight: 900,
+              color: "#0f172a",
+              fontSize: "1.4rem",
+              letterSpacing: "-0.04em",
+            }}
+          />
+        </div>
+        <div
+          className={cn(
+            "w-10 h-10 rounded-xl flex items-center justify-center",
+            colorMap[color],
+          )}
+        >
+          {icon}
+        </div>
       </div>
-      <p className="text-[10px] uppercase tracking-wider font-semibold text-slate-400">
-        {title}
-      </p>
-      <Statistic
-        value={value}
-        prefix={prefix}
-        precision={precision}
-        styles={{
-          content: { fontWeight: 800, color: "#1e293b", fontSize: "1.1rem" },
-        }}
-      />
     </Card>
   );
 }

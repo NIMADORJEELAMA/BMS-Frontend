@@ -35,7 +35,8 @@ import {
   Printer,
 } from "lucide-react";
 import GenericDropdown from "@/components/ui/GenericDropdown";
-import BookingManagerModal from "../bookings/BookingManagerModal";
+
+import BookingHistoryModal from "../bookings/BookingHistoryModal";
 
 const COLORS = ["#10b981", "#ef4444"];
 
@@ -257,7 +258,7 @@ export default function BookingHistoryPage() {
       {
         headerName: "Actions",
         field: "id",
-        flex: 0.8,
+        width: 160,
         colId: "actions",
         cellClass: "actions-cell",
         sortable: false,
@@ -343,7 +344,7 @@ export default function BookingHistoryPage() {
   }, [history, totalNetRevenue]);
   return (
     <div className="space-y-8 p-4 gap-2">
-      <BookingManagerModal
+      <BookingHistoryModal
         isOpen={!!managerBookingId}
         bookingId={managerBookingId}
         onClose={() => setManagerBookingId(null)}

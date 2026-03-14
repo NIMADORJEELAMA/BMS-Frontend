@@ -30,25 +30,26 @@ export default function DashboardHeader({
           onChange={(e) => setSearchQuery(e.target.value)}
         />
       </div>
-      <div className="flex items-center gap-2">
-        <span className="text-[10px] font-black text-gray-400 uppercase tracking-widest">
-          Category
-        </span>
-        <GenericDropdown
-          options={categories}
-          selectedValue={categoryFilter || "ALL"}
-          onSelect={setCategoryFilter}
-          placeholder="Select Category"
-          allLabel="All Categories"
-          // icon={LayoutGrid}
-          className="w-48"
-        />
-      </div>
+
       {/* RIGHT: Filters Group */}
       <div className="flex items-center gap-6">
+        <div className="flex items-center gap-2">
+          {/* <span className="text-[10px] font-black text-gray-400 uppercase tracking-widest">
+            Category
+          </span> */}
+          <GenericDropdown
+            options={categories}
+            selectedValue={categoryFilter || "ALL"}
+            onSelect={setCategoryFilter}
+            placeholder="Select Category"
+            allLabel="All Categories"
+            // icon={LayoutGrid}
+            className="w-48"
+          />
+        </div>
         {/* Area Type Filter */}
         <div className="flex items-center gap-2">
-          <span className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">
+          <span className="text-[12px] font-bold text-gray-400 uppercase tracking-widest">
             Type
           </span>
           <div className="flex bg-gray-100 p-1 rounded-lg">
@@ -57,7 +58,7 @@ export default function DashboardHeader({
                 key={type}
                 onClick={() => setAreaType(type)}
                 className={cn(
-                  "px-4 py-1.5 text-xs rounded-md transition capitalize",
+                  "px-3 py-2 text-xs rounded-md transition capitalize",
                   areaType === type
                     ? "bg-white shadow-sm text-blue-600 font-bold"
                     : "text-gray-500 hover:text-gray-700",
@@ -73,7 +74,7 @@ export default function DashboardHeader({
 
         {/* Status Filter */}
         <div className="flex items-center gap-2">
-          <span className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">
+          <span className="text-[12px] font-bold text-gray-400 uppercase tracking-widest">
             Status
           </span>
           <div className="flex bg-gray-100 p-1 rounded-lg">
@@ -82,7 +83,7 @@ export default function DashboardHeader({
                 key={status}
                 onClick={() => setStatusFilter(status)}
                 className={cn(
-                  "px-3 py-1.5 text-xs rounded-md transition capitalize",
+                  "px-3 py-2 text-xs rounded-md transition capitalize",
                   statusFilter === status
                     ? "bg-white shadow-sm text-blue-600 font-bold"
                     : "text-gray-500 hover:text-gray-700",

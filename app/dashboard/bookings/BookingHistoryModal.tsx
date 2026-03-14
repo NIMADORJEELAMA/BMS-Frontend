@@ -52,7 +52,7 @@ import { DialogDescription } from "@radix-ui/react-dialog";
 import PaymentSettlementModal from "@/components/rooms/PaymentSettlementModal";
 import { cn } from "@/lib/utils";
 
-export default function BookingManagerModal({
+export default function BookingHistoryModal({
   isOpen,
   onClose,
   bookingId,
@@ -284,9 +284,20 @@ export default function BookingManagerModal({
                 <DialogTitle className="text-lg font-bold tracking-tight text-slate-900">
                   Booking Management
                 </DialogTitle>
-
-                <span className="inline-flex items-center px-2.5 py-0.5 rounded-2xl text-xs font-bold bg-indigo-50 text-indigo-700 ring-1 ring-inset ring-indigo-700/10">
-                  {booking.room?.roomNumber || "N/A"}
+                <span
+                  className={cn(
+                    "inline-flex items-center px-2.5 py-0.5 rounded-2xl text-xs font-bold ring-1 ring-inset",
+                    booking.status === "RESERVED" &&
+                      "bg-blue-50 text-blue-700 ring-blue-700/10",
+                    booking.status === "CHECKED_IN" &&
+                      "bg-emerald-50 text-emerald-700 ring-emerald-700/10",
+                    booking.status === "CHECKED_OUT" &&
+                      "bg-slate-50 text-slate-700 ring-slate-700/10",
+                    booking.status === "CANCELLED" &&
+                      "bg-red-50 text-red-700 ring-red-700/10",
+                  )}
+                >
+                  {booking.status.replace("_", " ")}
                 </span>
               </div>
             </div>
@@ -579,12 +590,52 @@ export default function BookingManagerModal({
                 </Dialog>
               </section>
             </div>
-            {booking?.id && (
+            <div className="p-6 bg-slate-50 border-t border-slate-200/60">
+              <div className="flex gap-3 w-full">
+                {/* Show Update button only if NOT cancelled or checked out */}
+                {(booking.status === "RESERVED" ||
+                  booking.status === "CHECKED_IN") && (
+                  <Button
+                    variant="terminalGhost"
+                    className="flex-1"
+                    onClick={() => updateMutation.mutate(form.getValues())}
+                    disabled={updateMutation.isPending}
+                  >
+                    <Save size={18} className="mr-2" /> Update Details
+                  </Button>
+                )}
+
+                {/* RESERVED -> CHECKED_IN */}
+                {booking.status === "RESERVED" && (
+                  <Button
+                    className="flex-[1.2] h-12 bg-emerald-600 hover:bg-emerald-700 text-white font-black rounded-xl"
+                    onClick={() => confirmCheckInMutation.mutate(booking.id)}
+                    disabled={confirmCheckInMutation.isPending}
+                  >
+                    <CheckCircle2 size={18} className="mr-2" /> Confirm Check-In
+                  </Button>
+                )}
+
+                {/* Visual feedback for terminal states */}
+                {booking.status === "CHECKED_OUT" && (
+                  <div className="flex-1 h-12 flex items-center justify-center bg-slate-100 rounded-xl text-slate-500 font-bold uppercase text-[10px] tracking-widest border border-slate-200">
+                    Stay Completed
+                  </div>
+                )}
+
+                {booking.status === "CANCELLED" && (
+                  <div className="flex-1 h-12 flex items-center justify-center bg-red-50 rounded-xl text-red-600 font-bold uppercase text-[10px] tracking-widest border border-red-100">
+                    Booking Cancelled
+                  </div>
+                )}
+              </div>
+            </div>
+            {/* {booking?.id && (
               <div className="p-6 bg-slate-50 border-t border-slate-200/60 shadow-[0_-4px_20px_rgba(0,0,0,0.03)]">
                 <div className="flex flex-col gap-4">
-                  {/* Top Row: Primary & Secondary Actions */}
+                 
                   <div className="flex gap-3 w-full">
-                    {/* UPDATE ACTION - Secondary */}
+                    
                     <Button
                       variant="terminalGhost"
                       className="flex-1  "
@@ -599,7 +650,7 @@ export default function BookingManagerModal({
                       Update Details
                     </Button>
 
-                    {/* CHECK-IN ACTION - Primary */}
+                   
                     <div className="flex-[1.2]">
                       {booking.status === "RESERVED" ? (
                         <Button
@@ -629,7 +680,7 @@ export default function BookingManagerModal({
                   </div>
                 </div>
               </div>
-            )}
+            )} */}
           </div>
 
           <PaymentSettlementModal
@@ -650,7 +701,6 @@ export default function BookingManagerModal({
             isPending={checkoutMutation.isPending}
             onConfirm={(payload: any) => checkoutMutation.mutate(payload)}
           />
-          {/* RIGHT COLUMN: RESTAURANT & BILLING */}
 
           <div className="col-span-5 bg-slate-50/80 p-0 flex flex-col border-l border-slate-200">
             {/* Scrollable Content */}
@@ -796,7 +846,91 @@ export default function BookingManagerModal({
               </div>
             </div>
             {/* Financial Footer */}
-            <div className="p-6 bg-white border-t border-slate-200 shadow-[0_-4px_20px_rgba(0,0,0,0.03)]">
+
+            {/* Replace the Financial Footer content with this conditional logic */}
+            <div className="p-6 bg-white border-t border-slate-200">
+              {booking.status === "CANCELLED" ? (
+                <div className="bg-red-50 p-4 rounded-xl border border-red-100">
+                  <p className="text-[10px] font-black text-red-400 uppercase mb-1">
+                    Cancellation Reason
+                  </p>
+                  <p className="text-sm font-medium text-red-700">
+                    {booking.cancelReason || "No reason provided"}
+                  </p>
+                </div>
+              ) : (
+                <div className="space-y-4">
+                  {/* Existing Subtotal/Advance/Misc/Discount rows here... */}
+
+                  <div className="flex justify-between items-end pt-2 border-t border-slate-50">
+                    <span className="text-xs font-black text-slate-900 uppercase">
+                      {booking.paymentStatus === "PAID"
+                        ? "Total Amount Paid"
+                        : "Total Balance Due"}
+                    </span>
+                    <div className="text-right">
+                      <p
+                        className={cn(
+                          "text-3xl font-black tracking-tight",
+                          booking.paymentStatus === "PAID"
+                            ? "text-emerald-600"
+                            : "text-slate-900",
+                        )}
+                      >
+                        ₹
+                        {(booking.paymentStatus === "PAID"
+                          ? booking.totalBill
+                          : grandTotal
+                        ).toLocaleString()}
+                      </p>
+                      {booking.paymentStatus === "PAID" && (
+                        <span className="text-[10px] font-bold text-emerald-500 uppercase">
+                          Paid via{" "}
+                          {booking.onlineAmount > 0 ? "Online/Split" : "Cash"}
+                        </span>
+                      )}
+                    </div>
+                  </div>
+
+                  {/* FOOTER BUTTONS: Only show if not PAID and not CANCELLED */}
+                  {booking.status !== "CHECKED_OUT" &&
+                    booking.status !== "CANCELLED" && (
+                      <div className="grid grid-cols-2 gap-3 pt-4">
+                        <Button
+                          variant="destructive"
+                          onClick={() => setIsCancelModalOpen(true)}
+                        >
+                          <Trash2 size={14} className="mr-2" /> Cancel
+                        </Button>
+                        <Button
+                          className={cn(
+                            "h-12 text-white rounded-xl font-bold shadow-lg",
+                            booking.status === "RESERVED"
+                              ? "bg-slate-300 cursor-not-allowed"
+                              : "bg-indigo-600",
+                          )}
+                          onClick={() => setIsPaymentModalOpen(true)}
+                          disabled={booking.status === "RESERVED"}
+                        >
+                          <CreditCard size={18} className="mr-2" /> Checkout
+                        </Button>
+                      </div>
+                    )}
+
+                  {/* Optional: Print Bill button for past stays */}
+                  {/* {booking.status === "CHECKED_OUT" && (
+                    <Button
+                      variant="outline"
+                      className="w-full h-12 rounded-xl border-slate-200 hover:bg-slate-50 font-bold"
+ 
+                    >
+                      Print Invoice
+                    </Button>
+                  )} */}
+                </div>
+              )}
+            </div>
+            {/* <div className="p-6 bg-white border-t border-slate-200 shadow-[0_-4px_20px_rgba(0,0,0,0.03)]">
               <div className="space-y-2 mb-6">
                 <div className="flex justify-between text-xs font-medium text-slate-500">
                   <span>Subtotal</span>
@@ -868,7 +1002,7 @@ export default function BookingManagerModal({
                     : "Checkout"}
                 </Button>
               </div>
-            </div>
+            </div> */}
           </div>
         </div>
       </DialogContent>

@@ -40,7 +40,7 @@ const usePerformanceReport = (start: string, end: string) => {
     queryKey: ["sales-report", start, end],
     queryFn: async () => {
       const res = await api.get(
-        `/orders/reports/sales?startDate=${start}&endDate=${end}`,
+        `/orders/reports/admin?startDate=${start}&endDate=${end}`,
       );
       return res.data;
     },
@@ -74,47 +74,31 @@ export default function SalesReport() {
 
   /* ---------------- Average Ticket ---------------- */
 
-  const avgTicket = useMemo(() => {
-    const total = report?.revenue?.totalCombined || 0;
-
-    const transactions =
-      (report?.stats?.totalBills || 0) + (report?.stats?.totalBookings || 0);
-
-    return transactions > 0 ? total / transactions : 0;
-  }, [report]);
-
+  const avgTicket = report?.operationalStats?.avgTicket || 0;
   /* ---------------- Chart Data ---------------- */
 
   const chartData = useMemo(() => {
-    if (report?.topSellingItems?.length) {
-      return report.topSellingItems.slice(0, 5);
+    const items = report?.salesInsights?.topSellingItems;
+
+    if (items?.length) {
+      return items.slice(0, 5);
     }
 
-    if (report?.stats?.totalBookings) {
+    if (report?.operationalStats?.totalBookings) {
       return [
         {
           name: "Room Booking",
-          quantity: report.stats.totalBookings,
+          quantity: report.operationalStats.totalBookings,
         },
       ];
     }
 
     return [];
   }, [report]);
-
   /* ---------------- Table Data ---------------- */
-
   const tableData = useMemo(() => {
-    if (report?.topSellingItems?.length) {
-      return report.topSellingItems;
-    }
-
-    return [
-      {
-        name: "Room Booking",
-        quantity: report?.stats?.totalBookings || 0,
-      },
-    ];
+    // Fix: Added .operationalStats
+    return report?.salesInsights?.topSellingItems || [];
   }, [report]);
 
   const filteredItems = useMemo(() => {
@@ -132,15 +116,13 @@ export default function SalesReport() {
         valueGetter: (params) => (params.node?.rowIndex ?? 0) + 1,
         width: 70,
       },
+      { field: "name", headerName: "Item", flex: 1 },
+      { field: "quantity", headerName: "Qty Sold", width: 120 },
       {
-        field: "name",
-        headerName: "Item",
-        flex: 1,
-      },
-      {
-        field: "quantity",
-        headerName: "Quantity Sold",
+        field: "revenue",
+        headerName: "Revenue",
         width: 150,
+        valueFormatter: (p) => `₹${p.value}`,
       },
     ];
   }, []);
@@ -171,9 +153,14 @@ export default function SalesReport() {
         <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-8 gap-3">
           <KPICard
             title="Total Revenue"
-            value={report?.revenue?.totalCombined || 0}
+            value={report?.revenue?.totalRevenue || 0}
             prefix="₹"
             icon={<IndianRupee size={16} />}
+          />
+          <KPICard
+            title="Occupancy"
+            value={report?.operationalStats?.occupancyRate || "0%"}
+            icon={<Hotel size={16} />}
           />
 
           <KPICard
@@ -192,35 +179,54 @@ export default function SalesReport() {
 
           <KPICard
             title="Net Profit"
-            value={report?.revenue?.netAfterExpenses || 0}
+            value={report?.profitability?.netProfit || 0}
             prefix="₹"
+            icon={<TrendingUp size={16} />}
+          />
+          <KPICard
+            title="Avg Ticket"
+            value={report?.operationalStats?.avgTicket || 0}
+            prefix="₹"
+            icon={<Receipt size={16} />}
+          />
+          <KPICard
+            title="Profit Margin"
+            value={report?.profitability?.profitMargin || 0}
+            suffix="%"
             icon={<TrendingUp size={16} />}
           />
 
           <KPICard
+            title="Expenses"
+            value={report?.expenses?.pettyCash || 0}
+            prefix="₹"
+            icon={<Wallet size={16} />}
+          />
+
+          <KPICard
             title="Cash"
-            value={report?.paymentSplits?.totalCash || 0}
+            value={report?.payments?.cash || 0}
             prefix="₹"
             icon={<Wallet size={16} />}
           />
 
           <KPICard
             title="Online"
-            value={report?.paymentSplits?.totalOnline || 0}
+            value={report?.payments?.online || 0}
             prefix="₹"
             icon={<CreditCard size={16} />}
           />
 
           <KPICard
             title="Advance"
-            value={report?.paymentSplits?.advanceCollected || 0}
+            value={report?.payments?.advance || 0}
             prefix="₹"
             icon={<IndianRupee size={16} />}
           />
 
           <KPICard
             title="GST"
-            value={report?.tax?.totalGst || 0}
+            value={report?.tax?.totalGST || 0}
             prefix="₹"
             icon={<IndianRupee size={16} />}
           />

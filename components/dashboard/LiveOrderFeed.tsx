@@ -237,67 +237,6 @@ function OrderCard({ batch, onSelect }: any) {
     </div>
   );
 }
-// function OrderCard({ order, onSelect }: any) {
-//   return (
-//     <div
-//       className={`relative group p-4 rounded-2xl border transition-all duration-300 shadow-sm hover:shadow-md ${
-//         order?.isAddOn
-//           ? "bg-gradient-to-br from-amber-50 to-white border-amber-200"
-//           : "bg-white border-gray-200"
-//       }`}
-//     >
-//       <div className="flex justify-between items-center mb-3">
-//         <div className="flex items-center gap-2">
-//           <span
-//             className={`text-[10px] text-white px-3 py-1 rounded-full font-black ${
-//               order?.isAddOn ? "bg-amber-600" : "bg-blue-600"
-//             }`}
-//           >
-//             T-{order.table?.number || "N/A"}
-//           </span>
-//           {order?.isAddOn && (
-//             <span className="text-[9px] font-black text-amber-700 uppercase animate-pulse">
-//               Add-on
-//             </span>
-//           )}
-//         </div>
-//         <div className="flex items-center gap-1 text-[10px] text-gray-500 font-mono">
-//           <Clock size={10} />
-//           {new Date(order?.receivedAt || Date.now()).toLocaleTimeString([], {
-//             hour: "2-digit",
-//             minute: "2-digit",
-//           })}
-//         </div>
-//       </div>
-
-//       <div className="space-y-2 mb-4">
-//         {order.displayItems?.map((item: any, i: number) => (
-//           <div
-//             key={i}
-//             className="flex justify-between items-center text-sm bg-gray-50 p-2 rounded-lg border border-gray-100"
-//           >
-//             <span className="font-bold text-gray-800">
-//               <span className="text-blue-600 mr-2">{item.quantity}×</span>
-//               {item.menuItem?.name || item.name}
-//             </span>
-//           </div>
-//         ))}
-//       </div>
-
-//       <div className="flex justify-between items-center pt-3 border-t border-gray-100">
-//         <span className="text-[11px] font-bold text-gray-600 truncate max-w-[120px]">
-//           {order.waiter?.name || "Staff"}
-//         </span>
-//         <button
-//           onClick={() => onSelect(order.tableId)}
-//           className="text-[10px] font-black text-blue-600 hover:underline uppercase"
-//         >
-//           View Bill →
-//         </button>
-//       </div>
-//     </div>
-//   );
-// }
 
 function EmptyState() {
   return (

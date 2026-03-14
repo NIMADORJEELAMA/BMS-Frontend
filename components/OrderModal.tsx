@@ -134,14 +134,39 @@ export default function OrderModal({
 
     try {
       const res = await api.patch(`/orders/${order.id}/generate-bill`);
-      setOrder(res.data);
+
+      // FIX: Keep the existing items but update the order metadata
+      setOrder({
+        ...order, // Keep existing items/waiter info
+        ...res.data, // Overwrite with new status and totalAmount from API
+      });
+
       setIsBilled(true);
-      toast.success("Bill Finalized (Pending items cancelled)");
-      // onRefresh();
+      toast.success("Bill Finalized");
     } catch (err) {
       toast.error("Failed to generate bill");
     }
   };
+
+  // const handleSettle = async () => {
+  //   if (!order) return;
+
+  //   if (hasPending && !isConfirmOpen) {
+  //     setIsConfirmOpen(true);
+  //     return;
+  //   }
+
+  //   try {
+  //     const res = await api.patch(`/orders/${order.id}/generate-bill`);
+
+  //     setOrder(res.data);
+  //     setIsBilled(true);
+  //     toast.success("Bill Finalized (Pending items cancelled)");
+  //     // onRefresh();
+  //   } catch (err) {
+  //     toast.error("Failed to generate bill");
+  //   }
+  // };
 
   const handleServeItem = async (itemId: string) => {
     try {
@@ -180,7 +205,9 @@ export default function OrderModal({
         i.status === "READY",
     ) || [];
   const servedItems =
-    order?.items?.filter((i: any) => i.status === "SERVED") || [];
+    order?.items?.filter(
+      (i: any) => i.status === "SERVED" || order.status === "BILLED",
+    ) || [];
   const hasPending = pendingItems?.length > 0;
 
   const handlePayment = async (type: "FULL_CASH" | "FULL_UPI" | "SPLIT") => {
@@ -345,29 +372,60 @@ GRAND TOTAL            ${padLeft(String(order.totalAmount || calculateTotal()), 
           ) : isBilled ? (
             /* --- PROPER BILL VIEW --- */
             <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-500">
-              <div className="space-y-4">
-                {servedItems.map((item: any) => (
-                  <div
-                    key={item.id}
-                    className="flex justify-between items-center"
-                  >
-                    <span className="text-sm text-gray-700">
-                      <span className="font-bold text-gray-900">
-                        {item.quantity}x
-                      </span>{" "}
-                      {item.menuItem.name}
-                    </span>
-                    {/* <TypeBadge type={item.menuItem.type} /> */}
-                    <span className="font-mono text-sm font-bold text-gray-800">
-                      ₹{item.priceAtOrder * item.quantity}
-                    </span>
-                  </div>
-                ))}
+              <div className="space-y-3 bg-white p-2 rounded-xl border border-slate-100 shadow-sm">
+                {/* Header Row - Optional but recommended for clarity */}
+                <div className="flex justify-between items-center pb-0 border-b border-slate-100 text-[10px] uppercase tracking-wider font-bold text-slate-400">
+                  <span className="w-1/2">Item Description</span>
+                  <span className="w-1/6 text-center">Qty</span>
+                  <span className="w-1/6 text-right">Rate</span>
+                  <span className="w-1/6 text-right">Total</span>
+                </div>
+
+                <div className="divide-y divide-slate-50">
+                  {servedItems.map((item: any) => (
+                    <div
+                      key={item.id}
+                      className="flex justify-between items-center py-0 transition-colors hover:bg-slate-100/50"
+                    >
+                      {/* Item Name */}
+                      <div className="w-1/2">
+                        <p className="text-sm font-medium text-slate-800 leading-tight">
+                          {item.menuItem.name}
+                        </p>
+                        {/* Subtext if you ever want to add categories or types */}
+                        {/* <span className="text-[10px] text-slate-400 uppercase">
+                          {item.menuItem.type || "Food"}
+                        </span> */}
+                      </div>
+
+                      {/* Quantity */}
+                      <div className="w-1/6 text-center">
+                        <span className="inline-flex items-center justify-center    text-indigo-700 text-xs font-bold">
+                          {item.quantity}
+                        </span>
+                      </div>
+
+                      {/* Rate (Price per unit) */}
+                      <div className="w-1/6 text-right">
+                        <span className="text-xs text-slate-500">
+                          ₹{item.priceAtOrder}
+                        </span>
+                      </div>
+
+                      {/* Total Price */}
+                      <div className="w-1/6 text-right">
+                        <span className="font-mono text-sm font-bold text-slate-900">
+                          ₹{item.priceAtOrder * item.quantity}
+                        </span>
+                      </div>
+                    </div>
+                  ))}
+                </div>
               </div>
 
               <div className="pt-6 border-t border-gray-100">
                 <div className="flex justify-between items-end">
-                  <span className="text-sm font-black text-gray-400 uppercase">
+                  <span className="text-sm font-black text-gray-900 uppercase">
                     Grand Total
                   </span>
                   <span className="text-4xl font-black text-blue-600 tracking-tighter">
@@ -381,7 +439,7 @@ GRAND TOTAL            ${padLeft(String(order.totalAmount || calculateTotal()), 
               {/* --- PAYMENT SECTION --- */}
               <div className="space-y-4 mt-8 pt-6 border-t border-gray-100">
                 <div className="flex justify-between items-center">
-                  <h4 className="text-[10px] font-black text-gray-400 uppercase tracking-widest">
+                  <h4 className="text-[10px] font-black text-gray-900 uppercase  ">
                     Settlement Method
                   </h4>
                   <button
@@ -606,22 +664,56 @@ GRAND TOTAL            ${padLeft(String(order.totalAmount || calculateTotal()), 
                     )}
                   </div>
 
-                  <div className="space-y-1">
-                    <h4 className="text-[10px] font-black text-gray-400 uppercase tracking-widest px-1">
-                      Served & On-Table
-                    </h4>
-                    <div className="space-y-2">
+                  <div className="space-y-3">
+                    {/* Header Row */}
+                    <div>
+                      <p className="text-[10px] font-black text-gray-400 uppercase">
+                        Served & On table
+                      </p>
+                    </div>
+                    <div className="grid grid-cols-12 gap-2 px-3 text-[10px] font-black text-slate-400 uppercase tracking-widest">
+                      <div className="col-span-6">Item</div>
+                      <div className="col-span-1 text-center">Qty</div>
+                      <div className="col-span-2 text-right">Rate</div>
+                      <div className="col-span-3 text-right">Total</div>
+                    </div>
+
+                    <div className="space-y-1">
                       {servedItems.map((item: any) => (
                         <div
                           key={item.id}
-                          className="flex justify-between items-center p-1 bg-gray-50 border border-gray-100 rounded-xl opacity-80"
+                          className="grid grid-cols-12 gap-2 items-center p-3 bg-slate-50/50 border border-slate-100 rounded-xl hover:bg-white hover:border-indigo-100 transition-all group"
                         >
-                          <span className="text-sm font-medium text-gray-700">
-                            {item.quantity}x {item.menuItem.name}
-                          </span>
-                          <span className="font-mono text-xs font-bold text-gray-500 pr-2">
-                            ₹{item.priceAtOrder * item.quantity}
-                          </span>
+                          {/* Item Name */}
+                          <div className="col-span-6">
+                            <span className="text-xs font-bold text-slate-700 truncate block">
+                              {item.menuItem.name}
+                            </span>
+                          </div>
+
+                          {/* Quantity */}
+                          <div className="col-span-1 text-center">
+                            <span className="text-xs font-medium text-slate-500 bg-slate-100 px-1.5 py-0.5 rounded">
+                              {item.quantity}
+                            </span>
+                          </div>
+
+                          {/* Rate */}
+                          <div className="col-span-2 text-right">
+                            <span className="text-[11px] font-medium text-slate-400">
+                              ₹{item.priceAtOrder}
+                            </span>
+                          </div>
+
+                          {/* Total */}
+                          <div className="col-span-3 text-right">
+                            <span className="font-mono text-xs font-black text-slate-800">
+                              ₹
+                              {(
+                                item.priceAtOrder * item.quantity
+                              ).toLocaleString()}
+                            </span>
+                          </div>
                         </div>
                       ))}
                     </div>

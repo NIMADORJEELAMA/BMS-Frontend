@@ -50,10 +50,10 @@ export function BookingHoverCard({
           }}
           style={{ left: `${left}%`, width: `${width}%` }}
           className={cn(
-            "absolute top-2 h-12 z-20 rounded-xl border-l-4 p-2 shadow-sm cursor-pointer transition-all hover:brightness-95 select-none",
+            "absolute top-2 h-14 z-20 rounded-xl border-l-4 p-2 shadow-sm cursor-pointer transition-all hover:brightness-95 select-none",
             isCheckedIn
-              ? "bg-indigo-50 border-indigo-500 text-indigo-700"
-              : "bg-amber-50 border-amber-500 text-amber-700",
+              ? "bg-indigo-100 border-indigo-500 text-indigo-700"
+              : "bg-amber-100 border-amber-500 text-amber-700",
           )}
         >
           <p className="text-[10px] font-black uppercase truncate leading-tight">

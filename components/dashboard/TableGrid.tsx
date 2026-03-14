@@ -96,14 +96,28 @@ export default function TableGrid({
   return (
     <div className="relative">
       {sourceTable && (
-        <div className="mb-4 p-3 bg-blue-600 text-white rounded-xl flex justify-between items-center animate-bounce">
-          <span>
-            Moving <b>{sourceTable.name}</b>. Select a FREE table to complete
-            swap...
-          </span>
+        <div className="mb-6 p-1.5 bg-indigo-600 rounded-2xl flex justify-between items-center shadow-lg shadow-indigo-200 ring-1 ring-indigo-700/50">
+          {/* Left: Icon and Status Text */}
+          <div className="flex items-center gap-3 pl-3">
+            <div className="relative flex h-3 w-3">
+              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-white opacity-75"></span>
+              <span className="relative inline-flex rounded-full h-3 w-3 bg-white"></span>
+            </div>
+            <span className="text-xs font-medium text-indigo-50 leading-none">
+              Moving{" "}
+              <b className="text-white font-black px-1.5 py-0.5 bg-indigo-700 rounded-md mx-1">
+                {sourceTable.name}
+              </b>
+              <span className="opacity-80 ml-1">
+                Select a destination table...
+              </span>
+            </span>
+          </div>
+
+          {/* Right: Cancel Button */}
           <button
             onClick={() => setSourceTable(null)}
-            className="underline text-sm"
+            className="px-4 py-1 bg-red-500  hover:bg-white/20 text-white text-[11px] font-black uppercase tracking-wider rounded-xl transition-all active:scale-95 border border-white/10"
           >
             Cancel
           </button>
