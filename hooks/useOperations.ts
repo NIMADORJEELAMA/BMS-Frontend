@@ -27,21 +27,19 @@ export const useMarkAttendance = () => {
   });
 };
 
-export const usePettyCash = (startDate: string, endDate: string) => {
+export const usePettyCash = (
+  startDate: string,
+  endDate: string,
+  userId?: string,
+) => {
   return useQuery({
-    queryKey: ["petty-cash", startDate, endDate],
+    queryKey: ["petty-cash", startDate, endDate, userId],
     queryFn: async () => {
       const { data } = await api.get("/operations/petty-cash", {
-        params: { startDate, endDate },
+        params: { startDate, endDate, userId: userId || undefined },
       });
 
-      // Calculate total spent in this range
-      const totalAmount = data.reduce(
-        (sum: number, log: any) => sum + log.amount,
-        0,
-      );
-
-      return { logs: data, totalAmount };
+      return data; // { logs, totalAmount }
     },
   });
 };

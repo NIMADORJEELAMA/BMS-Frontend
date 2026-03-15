@@ -24,12 +24,12 @@ export default function OperationsPage() {
       {/* ENTERPRISE HEADER */}
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-bold text-slate-900 tracking-tight">
+          {/* <h1 className="text-2xl font-bold text-slate-900 tracking-tight">
             Staff Operations
           </h1>
           <p className="text-slate-500 text-sm">
             Monitor attendance, mid-day cash, and monthly payroll.
-          </p>
+          </p> */}
         </div>
 
         {/* TAB NAVIGATION */}
@@ -69,7 +69,7 @@ function TabButton({ active, onClick, icon, label }: any) {
   return (
     <button
       onClick={onClick}
-      className={`flex items-center gap-2 px-4 py-1.5 rounded-md text-xs font-semibold transition-all ${
+      className={`flex items-center gap-2 px-4 py-1.5 rounded-md text-xs font-semibold transition-all cursor-pointer ${
         active
           ? "bg-white text-slate-900 shadow-sm"
           : "text-slate-500 hover:text-slate-700"

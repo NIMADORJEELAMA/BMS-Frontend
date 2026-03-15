@@ -4,6 +4,7 @@ import { useMutation, useQueryClient } from "@tanstack/react-query";
 import api from "@/lib/axios";
 import { X, Loader2, Banknote } from "lucide-react";
 import toast from "react-hot-toast";
+import { Button } from "../ui/button";
 
 export default function PettyCashModal({ isOpen, onClose, users }: any) {
   const queryClient = useQueryClient();
@@ -46,7 +47,7 @@ export default function PettyCashModal({ isOpen, onClose, users }: any) {
           className="p-6 space-y-4"
         >
           <div className="space-y-1">
-            <label className="text-[10px] font-bold text-slate-400 uppercase">
+            <label className="text-[10px] font-bold text-slate-800  uppercase">
               Staff Member
             </label>
             <select
@@ -65,7 +66,7 @@ export default function PettyCashModal({ isOpen, onClose, users }: any) {
           </div>
 
           <div className="space-y-1">
-            <label className="text-[10px] font-bold text-slate-400 uppercase">
+            <label className="text-[10px] font-bold text-slate-800  uppercase">
               Amount (₹)
             </label>
             <input
@@ -79,7 +80,7 @@ export default function PettyCashModal({ isOpen, onClose, users }: any) {
           </div>
 
           <div className="space-y-1">
-            <label className="text-[10px] font-bold text-slate-400 uppercase">
+            <label className="text-[10px] font-bold text-slate-800  uppercase">
               Purpose / Reason
             </label>
             <textarea
@@ -91,10 +92,12 @@ export default function PettyCashModal({ isOpen, onClose, users }: any) {
             />
           </div>
 
-          <button
+          <Button
             type="submit"
+            variant={"default"}
             disabled={mutation.isPending}
-            className="w-full bg-slate-900 text-white py-4 rounded-xl font-bold text-xs uppercase tracking-widest hover:bg-blue-600 transition-all flex items-center justify-center gap-2"
+            className="w-full"
+            // className="w-full bg-slate-900 text-white py-4 rounded-xl font-bold text-xs uppercase tracking-widest hover:bg-blue-600 transition-all flex items-center justify-center gap-2"
           >
             {mutation.isPending ? (
               <Loader2 className="animate-spin" size={16} />
@@ -103,7 +106,7 @@ export default function PettyCashModal({ isOpen, onClose, users }: any) {
                 <Banknote size={16} /> Record Transaction
               </>
             )}
-          </button>
+          </Button>
         </form>
       </div>
     </div>
