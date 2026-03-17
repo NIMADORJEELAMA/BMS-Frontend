@@ -238,7 +238,21 @@ export default function OrderModal({
       toast.error("Payment confirmation failed");
     }
   };
+  // Inside OrderModal component
+  const handleCancelItem = async (orderItemId: string) => {
+    try {
+      // You'll need to create this endpoint or use the one corresponding to your service
+      await api.delete(`/orders/item/${orderItemId}`);
+      toast.success("Item cancelled");
 
+      // Refresh the local state
+      fetchActiveOrder();
+      onRefresh();
+    } catch (err: any) {
+      const errorMsg = err.response?.data?.message || "Failed to cancel item";
+      toast.error(errorMsg);
+    }
+  };
   const TypeBadge = ({ type }: { type: "FOOD" | "DRINKS" }) => {
     const isAlcohol = type === "DRINKS";
 
@@ -265,78 +279,159 @@ export default function OrderModal({
     );
   };
   /* ================= PRINT LOGIC (Thermal Monospace) ================= */
+
   const handlePrintReceipt = () => {
     if (!order) return;
 
     const win = window.open("", "", "width=1200,height=800");
     if (!win) return;
-    console.log("order==", order);
+
     const shortId = order.id.slice(-5).toUpperCase();
     const tableName = order.table?.number || "N/A";
-    const categoryName = order.table?.category?.name;
-    const isSplit = order.paymentMode === "SPLIT";
-    const dineInfo = `${tableName} (${categoryName})`;
-    // Helper functions for character-width alignment (STRICT 32 chars total)
-    const padRight = (text: string, len: number) =>
+    const categoryName = order?.table?.category?.name || "";
+    const dineInfo = `${tableName} ${categoryName}`;
+
+    // Helper functions for character-width alignment (STRICT 48 chars total)
+    const padRight = (text: string | any[], len: number) =>
       text.length >= len
         ? text.slice(0, len)
         : text + " ".repeat(len - text.length);
 
-    const padLeft = (text: string, len: number) =>
+    const padLeft = (text: string | any[], len: number) =>
       text.length >= len
         ? text.slice(0, len)
         : " ".repeat(len - text.length) + text;
 
-    // 1. FILTER & MAP ITEMS (Only served items for the bill)
+    // 1. FILTER & MAP ITEMS
     const itemsText = (order.items || [])
-      .filter((item: any) => item.status === "SERVED")
-      .map((item: any) => {
-        // COLUMN BUDGET: Name(12) + Qty(4) + Rate(7) + Amt(9) = 32
-        const name = padRight(String(item.menuItem.name).toUpperCase(), 12);
-        const qty = padLeft(String(item.quantity), 4);
-        const rate = padLeft(String(item.priceAtOrder), 7);
-        const amt = padLeft(String(item.priceAtOrder * item.quantity), 9);
-        return `${name}${qty}${rate}${amt}`;
-      })
+      .filter((item: { status: string }) => item.status === "SERVED")
+      .map(
+        (item: {
+          menuItem: { name: any };
+          quantity: number;
+          priceAtOrder: number;
+        }) => {
+          /** * COLUMN BUDGET (48 Total):
+           * Name(26) + Qty(5) + Rate(8) + Amt(9) = 48
+           */
+          const name = padRight(String(item.menuItem.name).toUpperCase(), 26);
+          const qty = padLeft(String(item.quantity), 5);
+          const rate = padLeft(String(item.priceAtOrder), 8);
+          const amt = padLeft(String(item.priceAtOrder * item.quantity), 9);
+          return `${name}${qty}${rate}${amt}`;
+        },
+      )
       .join("\n");
 
     const receiptString = `
-  GAIRIGAON HILL ECO TOURISM
-      Jaigaon, West Bengal
-          +91-7547957222
---------------------------------
+        GAIRIGAON HILL ECO TOURISM
+             Jaigaon, West Bengal
+                +91-7547957222
+------------------------------------------------
 BILL NO : #${shortId}
-DINE IN :${dineInfo}
+DINE IN : ${dineInfo}
 WAITER  : ${order.waiter?.name || "N/A"}
-DATE    : ${dayjs().format("DD/MM/YYYY  hh:mm A")}
---------------------------------
-ITEM         QTY   RATE      AMT
---------------------------------
+DATE    : ${dayjs().format("DD/MM/YYYY hh:mm A")}
+------------------------------------------------
+ITEM                        QTY    RATE      AMT
+------------------------------------------------
 ${itemsText}
---------------------------------
-GRAND TOTAL            ${padLeft(String(order.totalAmount || calculateTotal()), 8)}
---------------------------------
-          THANK YOU!
-      PLEASE VISIT AGAIN
-
-              
+------------------------------------------------
+GRAND TOTAL                         ${padLeft("₹" + (order.totalAmount || calculateTotal()), 11)}
+------------------------------------------------
+            THANK YOU FOR VISITING!
+              PLEASE VISIT AGAIN
 `;
 
     win.document.write(`
     <html><head><style>
+      @page { margin: 0; }
       body { 
         font-family: 'Courier New', Courier, monospace; 
-        font-size: 12px; 
+        font-size: 15px; /* Slightly larger font for better readability */
+        font-weight: 600;
+        line-height: 1.4;
         white-space: pre; 
         margin: 0; 
-        padding: 5mm; 
-        width: 32ch;
+        padding: 6mm; /* Adjusted padding */
+        width: 48ch; /* Increased to 48 characters */
       }
     </style></head>
     <body onload="window.print(); window.close();">${receiptString}</body></html>
   `);
     win.document.close();
   };
+  //   const handlePrintReceipt = () => {
+  //     if (!order) return;
+
+  //     const win = window.open("", "", "width=1200,height=800");
+  //     if (!win) return;
+  //     console.log("order==", order);
+  //     const shortId = order.id.slice(-5).toUpperCase();
+  //     const tableName = order.table?.number || "N/A";
+  //     const categoryName = order.table?.category?.name;
+  //     const isSplit = order.paymentMode === "SPLIT";
+  //     const dineInfo = `${tableName} (${categoryName})`;
+  //     // Helper functions for character-width alignment (STRICT 32 chars total)
+  //     const padRight = (text: string, len: number) =>
+  //       text.length >= len
+  //         ? text.slice(0, len)
+  //         : text + " ".repeat(len - text.length);
+
+  //     const padLeft = (text: string, len: number) =>
+  //       text.length >= len
+  //         ? text.slice(0, len)
+  //         : " ".repeat(len - text.length) + text;
+
+  //     // 1. FILTER & MAP ITEMS (Only served items for the bill)
+  //     const itemsText = (order.items || [])
+  //       .filter((item: any) => item.status === "SERVED")
+  //       .map((item: any) => {
+  //         // COLUMN BUDGET: Name(12) + Qty(4) + Rate(7) + Amt(9) = 32
+  //         const name = padRight(String(item.menuItem.name).toUpperCase(), 12);
+  //         const qty = padLeft(String(item.quantity), 4);
+  //         const rate = padLeft(String(item.priceAtOrder), 7);
+  //         const amt = padLeft(String(item.priceAtOrder * item.quantity), 9);
+  //         return `${name}${qty}${rate}${amt}`;
+  //       })
+  //       .join("\n");
+
+  //     const receiptString = `
+  //   GAIRIGAON HILL ECO TOURISM
+  //       Jaigaon, West Bengal
+  //           +91-7547957222
+  // --------------------------------
+  // BILL NO : #${shortId}
+  // DINE IN :${dineInfo}
+  // WAITER  : ${order.waiter?.name || "N/A"}
+  // DATE    : ${dayjs().format("DD/MM/YYYY  hh:mm A")}
+  // --------------------------------
+  // ITEM         QTY   RATE      AMT
+  // --------------------------------
+  // ${itemsText}
+  // --------------------------------
+  // GRAND TOTAL            ${padLeft(String(order.totalAmount || calculateTotal()), 8)}
+  // --------------------------------
+  //           THANK YOU!
+  //       PLEASE VISIT AGAIN
+
+  // `;
+
+  //     win.document.write(`
+  //     <html><head><style>
+  //       body {
+  //         font-family: 'Courier New', Courier, monospace;
+  //         font-size: 12px;
+  //         white-space: pre;
+  //         margin: 0;
+  //         padding: 5mm;
+  //         width: 32ch;
+  //       }
+  //     </style></head>
+  //     <body onload="window.print(); window.close();">${receiptString}</body></html>
+  //   `);
+  //     win.document.close();
+  //   };
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
       <div className="bg-white rounded-3xl shadow-2xl w-full max-w-md overflow-hidden animate-in zoom-in duration-200 border border-gray-100">
@@ -618,46 +713,96 @@ GRAND TOTAL            ${padLeft(String(order.totalAmount || calculateTotal()), 
                             <span className="font-bold text-gray-800 text-[14px]">
                               {item.quantity}x {item.menuItem.name}
                             </span>
-
-                            <div className="flex items-center gap-2">
-                              <span
-                                className={`text-[10px] font-black uppercase tracking-tighter ${
-                                  item.status === "READY"
-                                    ? "text-green-600"
-                                    : "text-amber-600"
-                                }`}
-                              >
-                                {item.status === "READY"
-                                  ? "Ready to Serve"
-                                  : "Kitchen"}
-                              </span>
-
-                              <TypeBadge type={item.menuItem.type} />
-                            </div>
+                            {/* ... existing badge code ... */}
                           </div>
 
-                          <button
-                            onClick={() => handleServeItem(item.id)}
-                            className={`p-1 rounded-xl shadow-sm hover:text-white transition-all cursor-pointer tracking-wider ${
-                              item.status === "READY"
-                                ? "bg-white text-green-600 border border-green-200 hover:bg-green-600"
-                                : "bg-white text-amber-600 border border-amber-200 hover:bg-amber-600"
-                            }`}
-                          >
-                            <svg
-                              width="16"
-                              height="16"
-                              fill="none"
-                              stroke="currentColor"
-                              strokeWidth="3"
-                              viewBox="0 0 24 24"
+                          <div className="flex gap-2">
+                            {/* CANCEL BUTTON */}
+                            <button
+                              onClick={() => handleCancelItem(item.id)}
+                              className="p-1.5 rounded-xl border border-red-200 text-red-500 hover:bg-red-500 hover:text-white transition-all cursor-pointer"
+                              title="Cancel Item"
                             >
-                              <path d="M20 6L9 17l-5-5" />
-                            </svg>
-                          </button>
+                              <X size={14} strokeWidth={3} />
+                            </button>
+
+                            {/* SERVE BUTTON */}
+                            <button
+                              onClick={() => handleServeItem(item.id)}
+                              className={`p-1 rounded-xl shadow-sm hover:text-white transition-all cursor-pointer ${
+                                item.status === "READY"
+                                  ? "bg-white text-green-600 border border-green-200 hover:bg-green-600"
+                                  : "bg-white text-amber-600 border border-amber-200 hover:bg-amber-600"
+                              }`}
+                            >
+                              <svg
+                                width="16"
+                                height="16"
+                                fill="none"
+                                stroke="currentColor"
+                                strokeWidth="3"
+                                viewBox="0 0 24 24"
+                              >
+                                <path d="M20 6L9 17l-5-5" />
+                              </svg>
+                            </button>
+                          </div>
                         </div>
                       ))
                     ) : (
+                      //   pendingItems.map((item: any) => (
+                      //     <div
+                      //       key={item.id}
+                      //       className={`flex justify-between items-center p-2 px-4 rounded-2xl ${
+                      //         item.status === "READY"
+                      //           ? "bg-green-50 border-2 border-green-300"
+                      //           : "bg-amber-50 border border-amber-100"
+                      //       }`}
+                      //     >
+                      //       <div className="flex flex-col gap-1">
+                      //         <span className="font-bold text-gray-800 text-[14px]">
+                      //           {item.quantity}x {item.menuItem.name}
+                      //         </span>
+
+                      //         <div className="flex items-center gap-2">
+                      //           <span
+                      //             className={`text-[10px] font-black uppercase tracking-tighter ${
+                      //               item.status === "READY"
+                      //                 ? "text-green-600"
+                      //                 : "text-amber-600"
+                      //             }`}
+                      //           >
+                      //             {item.status === "READY"
+                      //               ? "Ready to Serve"
+                      //               : "Kitchen"}
+                      //           </span>
+
+                      //           <TypeBadge type={item.menuItem.type} />
+                      //         </div>
+                      //       </div>
+
+                      //       <button
+                      //         onClick={() => handleServeItem(item.id)}
+                      //         className={`p-1 rounded-xl shadow-sm hover:text-white transition-all cursor-pointer tracking-wider ${
+                      //           item.status === "READY"
+                      //             ? "bg-white text-green-600 border border-green-200 hover:bg-green-600"
+                      //             : "bg-white text-amber-600 border border-amber-200 hover:bg-amber-600"
+                      //         }`}
+                      //       >
+                      //         <svg
+                      //           width="16"
+                      //           height="16"
+                      //           fill="none"
+                      //           stroke="currentColor"
+                      //           strokeWidth="3"
+                      //           viewBox="0 0 24 24"
+                      //         >
+                      //           <path d="M20 6L9 17l-5-5" />
+                      //         </svg>
+                      //       </button>
+                      //     </div>
+                      //   )
+                      // )
                       <p className="text-xs text-gray-400   px-1">
                         All items served.
                       </p>
