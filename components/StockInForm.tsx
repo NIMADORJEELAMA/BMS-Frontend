@@ -13,17 +13,20 @@ import {
 import api from "@/lib/axios";
 import toast from "react-hot-toast";
 import { Button } from "./ui/button";
+import CategoryCombobox from "./CategoryCombobox";
 
 interface StockInFormProps {
   onClose: () => void;
   onSuccess: () => void;
   editData?: any;
+  categories?: string[];
 }
 
 export default function StockInForm({
   onClose,
   onSuccess,
   editData,
+  categories = [],
 }: StockInFormProps) {
   const [loading, setLoading] = useState(false);
   const [existingItems, setExistingItems] = useState([]);
@@ -330,7 +333,17 @@ export default function StockInForm({
               <ClipboardList size={12} className="text-slate-400" />
               Category
             </label>
-            <input
+            <CategoryCombobox
+              options={categories}
+              value={formData.category}
+              onChange={(val) =>
+                setFormData({
+                  ...formData,
+                  category: val.toUpperCase(), // Maintain consistency
+                })
+              }
+            />
+            {/* <input
               placeholder="e.g. BEVERAGES, VEGETABLES..."
               className="w-full px-4 py-3 bg-white rounded-xl border border-slate-200 font-medium text-sm focus:border-indigo-500 outline-none uppercase"
               value={formData.category}
@@ -340,7 +353,7 @@ export default function StockInForm({
                   category: e.target.value.toUpperCase(),
                 })
               }
-            />
+            /> */}
           </div>
           {/* Pricing */}
           <div className="space-y-2">

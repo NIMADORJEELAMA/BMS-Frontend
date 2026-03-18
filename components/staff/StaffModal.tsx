@@ -21,6 +21,7 @@ import {
   Lock,
   ShieldCheck,
   Activity,
+  IndianRupee,
 } from "lucide-react";
 import toast from "react-hot-toast";
 
@@ -49,6 +50,7 @@ const formSchema = z.object({
   password: z.string().optional(),
   role: z.string(),
   isActive: z.boolean().default(true),
+  dailyRate: z.coerce.number().min(0),
 });
 
 export default function StaffModal({ isOpen, onClose, editingUser }: any) {
@@ -63,6 +65,7 @@ export default function StaffModal({ isOpen, onClose, editingUser }: any) {
       password: "",
       role: "WAITER",
       isActive: true,
+      dailyRate: 0,
     },
   });
 
@@ -74,6 +77,7 @@ export default function StaffModal({ isOpen, onClose, editingUser }: any) {
         role: editingUser.role,
         isActive: editingUser.isActive ?? true,
         password: "",
+        dailyRate: editingUser.dailyRate || 0,
       });
     } else {
       form.reset({
@@ -82,6 +86,7 @@ export default function StaffModal({ isOpen, onClose, editingUser }: any) {
         password: "",
         role: "WAITER",
         isActive: true,
+        dailyRate: 0,
       });
     }
   }, [editingUser, isOpen, form]);
@@ -240,6 +245,27 @@ export default function StaffModal({ isOpen, onClose, editingUser }: any) {
                         </SelectItem>
                       </SelectContent>
                     </Select>
+                  </FormItem>
+                )}
+              />
+              {/* Daily Rate Field */}
+              <FormField
+                control={form.control}
+                name="dailyRate"
+                render={({ field }) => (
+                  <FormItem className="space-y-2">
+                    <FormLabel className="flex items-center gap-2 text-[11px] font-bold text-slate-700 uppercase tracking-wider">
+                      <IndianRupee size={12} className="text-slate-400" /> Daily
+                      Rate (₹)
+                    </FormLabel>
+                    <FormControl>
+                      <Input
+                        type="number"
+                        {...field}
+                        className="h-12 rounded-xl border-slate-200 font-bold"
+                      />
+                    </FormControl>
+                    <FormMessage className="text-[10px]" />
                   </FormItem>
                 )}
               />

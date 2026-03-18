@@ -3,17 +3,27 @@
 import { useState, useMemo } from "react";
 import { useUsers, useDeleteUser } from "@/hooks/useUsers";
 import StaffModal from "@/components/staff/StaffModal";
-import { Plus, Shield, User, Trash2, Edit3, Settings2 } from "lucide-react";
+import {
+  Plus,
+  Shield,
+  User,
+  Trash2,
+  Edit3,
+  Settings2,
+  UserIcon,
+} from "lucide-react";
 import toast from "react-hot-toast";
 import { Button } from "@/components/ui/button";
 import { SearchBar } from "@/components/ui/SearchBar";
-
+import { useRouter } from "next/navigation";
 // AG Grid Imports
 import { AgGridReact } from "ag-grid-react";
 import { ColDef } from "ag-grid-community";
 import "@/lib/agGrid";
+import Router from "next/router";
 
 export default function StaffPage() {
+  const router = useRouter();
   const { data: users = [], isLoading } = useUsers();
   const deleteUser = useDeleteUser();
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -98,6 +108,12 @@ export default function StaffPage() {
         pinned: "right",
         cellRenderer: (params: any) => (
           <div className="flex justify-center items-center gap-1 h-full">
+            <button
+              onClick={() => router.push(`/dashboard/staff/${params.data.id}`)}
+              className="p-1.5 text-indigo-500 hover:bg-indigo-50 rounded-md"
+            >
+              <UserIcon size={15} />
+            </button>
             <button
               onClick={() => {
                 setSelectedUser(params.data);

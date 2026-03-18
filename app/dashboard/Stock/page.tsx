@@ -45,6 +45,7 @@ import "@/lib/agGrid";
 import StockInForm from "@/components/StockInForm";
 
 import BulkStockModal from "./BulkStockModal";
+import { useMenu } from "@/hooks/useMenu";
 
 const { RangePicker } = DatePicker;
 
@@ -66,7 +67,14 @@ export default function StockManagementPage() {
   const isExternalFilterPresent = useCallback(() => {
     return statusFilter !== "ALL";
   }, [statusFilter]);
-
+  const { data: menuItems = [], isLoading } = useMenu();
+  const uniqueCategories = useMemo(() => {
+    // Add a type cast to ensure categories is treated as string[]
+    const categories = menuItems.map((i: any) =>
+      String(i.category),
+    ) as string[];
+    return Array.from(new Set(categories)).sort();
+  }, [menuItems]);
   // 2. Logic for the filter
   const doesExternalFilterPass = useCallback(
     (node: any) => {
@@ -665,6 +673,7 @@ export default function StockManagementPage() {
       {isModalOpen && (
         <div className="fixed inset-0 bg-slate-900/40 backdrop-blur-md z-[100] flex items-center justify-center p-4">
           <StockInForm
+            categories={uniqueCategories}
             editData={editingItem}
             onClose={() => {
               setIsModalOpen(false);

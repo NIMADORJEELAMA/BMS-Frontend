@@ -10,7 +10,16 @@ export const useUsers = () => {
     },
   });
 };
-
+export function useUser(id: string) {
+  return useQuery({
+    queryKey: ["user", id],
+    queryFn: async () => {
+      const { data } = await api.get(`/users/${id}`); // Assuming your backend route is /users/:id
+      return data;
+    },
+    enabled: !!id,
+  });
+}
 export const useRegisterUser = () => {
   const queryClient = useQueryClient();
   return useMutation({
