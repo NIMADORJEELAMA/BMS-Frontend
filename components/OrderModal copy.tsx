@@ -5,7 +5,6 @@ import toast from "react-hot-toast";
 import { io } from "socket.io-client";
 import { Beer, X, Utensils, Printer } from "lucide-react";
 import { Button } from "./ui/button";
-
 import {
   AlertDialog,
   AlertDialogAction,
@@ -19,11 +18,7 @@ import {
 } from "@/components/ui/alert-dialog";
 import dayjs from "dayjs";
 import { useTableSocket } from "@/hooks/use-table-socket";
-declare global {
-  interface Window {
-    qz: any;
-  }
-}
+
 interface OrderModalProps {
   table: any;
   onClose: () => void;
@@ -284,192 +279,88 @@ export default function OrderModal({
     );
   };
   /* ================= PRINT LOGIC (Thermal Monospace) ================= */
-  const handlePrintReceipt = async () => {
+
+  const handlePrintReceipt = () => {
     if (!order) return;
 
-    try {
-      if (typeof window === "undefined" || !window.qz) {
-        toast.error("QZ Tray is not running.");
-        return;
-      }
+    const win = window.open("", "", "width=1200,height=800");
+    if (!win) return;
 
-      // 1. Connection check
-      if (!window.qz.websocket.isActive()) {
-        await window.qz.websocket.connect();
-      }
+    const shortId = order.id.slice(-5).toUpperCase();
+    const tableName = order.table?.number || "N/A";
+    const categoryName = order?.table?.category?.name || "";
+    const dineInfo = `${tableName} ${categoryName}`;
 
-      // 2. Setup ESC/POS Commands
-      const ESC = "\x1B";
-      const CENTER = ESC + "a" + "\x01";
-      const LEFT = ESC + "a" + "\x00";
-      const BOLD_ON = ESC + "E" + "\x01";
-      const BOLD_OFF = ESC + "E" + "\x00";
-      const LINE_WIDTH = 48;
+    // Helper functions for character-width alignment (STRICT 48 chars total)
+    const padRight = (text: string | any[], len: number) =>
+      text.length >= len
+        ? text.slice(0, len)
+        : text + " ".repeat(len - text.length);
 
-      const padRight = (text: string, len: number) =>
-        text.length >= len
-          ? text.slice(0, len)
-          : text + " ".repeat(len - text.length);
+    const padLeft = (text: string | any[], len: number) =>
+      text.length >= len
+        ? text.slice(0, len)
+        : " ".repeat(len - text.length) + text;
 
-      const padLeft = (text: string, len: number) =>
-        text.length >= len
-          ? text.slice(0, len)
-          : " ".repeat(len - text.length) + text;
-
-      // 3. Format Items
-      const itemsText = (order.items || [])
-        .filter((item: any) => item.status === "SERVED")
-        .map((item: any) => {
-          const name = padRight(
-            (item.menuItem?.name || "Unknown").toUpperCase(),
-            22,
-          );
-          const qty = padLeft(String(item.quantity), 6);
-          const rate = padLeft(String(item.priceAtOrder), 10);
-          const amt = padLeft(String(item.priceAtOrder * item.quantity), 10);
+    // 1. FILTER & MAP ITEMS
+    const itemsText = (order.items || [])
+      .filter((item: { status: string }) => item.status === "SERVED")
+      .map(
+        (item: {
+          menuItem: { name: any };
+          quantity: number;
+          priceAtOrder: number;
+        }) => {
+          /** * COLUMN BUDGET (48 Total):
+           * Name(26) + Qty(5) + Rate(8) + Amt(9) = 48
+           */
+          const name = padRight(String(item.menuItem.name).toUpperCase(), 26);
+          const qty = padLeft(String(item.quantity), 5);
+          const rate = padLeft(String(item.priceAtOrder), 8);
+          const amt = padLeft(String(item.priceAtOrder * item.quantity), 9);
           return `${name}${qty}${rate}${amt}`;
-        })
-        .join("\n");
+        },
+      )
+      .join("\n");
 
-      const shortId = order.id.slice(-8).toUpperCase();
+    const receiptString = `
+        GAIRIGAON HILL ECO TOURISM
+             Jaigaon, West Bengal
+                +91-7547957222
+------------------------------------------------
+BILL NO : #${shortId}
+DINE IN : ${dineInfo}
+WAITER  : ${order.waiter?.name || "N/A"}
+DATE    : ${dayjs().format("DD/MM/YYYY hh:mm A")}
+------------------------------------------------
+ITEM                        QTY    RATE      AMT
+------------------------------------------------
+${itemsText}
+------------------------------------------------
+GRAND TOTAL                         ${padLeft("₹" + (order.totalAmount || calculateTotal()), 11)}
+------------------------------------------------
+            THANK YOU FOR VISITING!
+              PLEASE VISIT AGAIN
+`;
 
-      // 4. Build the Plain Text Receipt String
-      const receipt = [
-        CENTER,
-        BOLD_ON,
-        "GAIRIGAON HILL ECO TOURISM\n",
-        BOLD_OFF,
-        "Jaigaon, West Bengal\n",
-        "+91-7547957222\n",
-        LEFT,
-        "-".repeat(LINE_WIDTH) + "\n",
-        `BILL NO : #${shortId}\n`,
-        `TABLE   : ${order.table?.number || "N/A"}\n`,
-        `WAITER  : ${order.waiter?.name || "N/A"}\n`,
-        `DATE    : ${dayjs().format("DD/MM/YYYY hh:mm A")}\n`,
-        "-".repeat(LINE_WIDTH) + "\n",
-        padRight("ITEM", 22) +
-          padLeft("QTY", 6) +
-          padLeft("RATE", 10) +
-          padLeft("AMT", 10) +
-          "\n",
-        "-".repeat(LINE_WIDTH) + "\n",
-        itemsText + "\n",
-        "-".repeat(LINE_WIDTH) + "\n",
-        padRight("GRAND TOTAL", 38) +
-          padLeft("Rs." + (order.totalAmount || calculateTotal()), 10) +
-          "\n",
-        "-".repeat(LINE_WIDTH) + "\n",
-        CENTER,
-        "THANK YOU!\n",
-        "PLEASE VISIT AGAIN\n\n\n\x1Bm", // Cut command
-      ].join("");
-
-      // 5. Send to Printer (Using the saved printer name)
-      const printerName = localStorage.getItem("printer") || "Thermal"; // Default to Thermal if not set
-      const config = window.qz.configs.create(printerName);
-
-      await window.qz.print(config, [
-        { type: "raw", format: "plain", data: receipt },
-      ]);
-
-      toast.success("Printing Receipt...");
-    } catch (err: any) {
-      // ✅ CHECK FOR CANCELLATION
-      // QZ Tray or browser dialogs often return these strings when cancelled
-      const isUserCancelled =
-        err.message?.includes("cancelled") ||
-        err.message?.includes("User rejected") ||
-        err.message?.includes("closed");
-
-      if (isUserCancelled) {
-        toast("Print cancelled", { icon: "ℹ️" });
-      } else {
-        toast.error("Printing failed: " + (err.message || "Check QZ Tray"));
+    win.document.write(`
+    <html><head><style>
+      @page { margin: 0; }
+      body { 
+        font-family: 'Courier New', Courier, monospace; 
+        font-size: 15px; /* Slightly larger font for better readability */
+        font-weight: 600;
+        line-height: 1.4;
+        white-space: pre; 
+        margin: 0; 
+        padding: 6mm; /* Adjusted padding */
+        width: 48ch; /* Increased to 48 characters */
       }
-    }
+    </style></head>
+    <body onload="window.print(); window.close();">${receiptString}</body></html>
+  `);
+    win.document.close();
   };
-  //   const handlePrintReceipt = () => {
-  //     if (!order) return;
-
-  //     const win = window.open("", "", "width=1200,height=800");
-  //     if (!win) return;
-
-  //     const shortId = order.id.slice(-5).toUpperCase();
-  //     const tableName = order.table?.number || "N/A";
-  //     const categoryName = order?.table?.category?.name || "";
-  //     const dineInfo = `${tableName} ${categoryName}`;
-
-  //     // Helper functions for character-width alignment (STRICT 48 chars total)
-  //     const padRight = (text: string | any[], len: number) =>
-  //       text.length >= len
-  //         ? text.slice(0, len)
-  //         : text + " ".repeat(len - text.length);
-
-  //     const padLeft = (text: string | any[], len: number) =>
-  //       text.length >= len
-  //         ? text.slice(0, len)
-  //         : " ".repeat(len - text.length) + text;
-
-  //     // 1. FILTER & MAP ITEMS
-  //     const itemsText = (order.items || [])
-  //       .filter((item: { status: string }) => item.status === "SERVED")
-  //       .map(
-  //         (item: {
-  //           menuItem: { name: any };
-  //           quantity: number;
-  //           priceAtOrder: number;
-  //         }) => {
-  //           /** * COLUMN BUDGET (48 Total):
-  //            * Name(26) + Qty(5) + Rate(8) + Amt(9) = 48
-  //            */
-  //           const name = padRight(String(item.menuItem.name).toUpperCase(), 26);
-  //           const qty = padLeft(String(item.quantity), 5);
-  //           const rate = padLeft(String(item.priceAtOrder), 8);
-  //           const amt = padLeft(String(item.priceAtOrder * item.quantity), 9);
-  //           return `${name}${qty}${rate}${amt}`;
-  //         },
-  //       )
-  //       .join("\n");
-
-  //     const receiptString = `
-  //         GAIRIGAON HILL ECO TOURISM
-  //              Jaigaon, West Bengal
-  //                 +91-7547957222
-  // ------------------------------------------------
-  // BILL NO : #${shortId}
-  // DINE IN : ${dineInfo}
-  // WAITER  : ${order.waiter?.name || "N/A"}
-  // DATE    : ${dayjs().format("DD/MM/YYYY hh:mm A")}
-  // ------------------------------------------------
-  // ITEM                        QTY    RATE      AMT
-  // ------------------------------------------------
-  // ${itemsText}
-  // ------------------------------------------------
-  // GRAND TOTAL                         ${padLeft("₹" + (order.totalAmount || calculateTotal()), 11)}
-  // ------------------------------------------------
-  //             THANK YOU FOR VISITING!
-  //               PLEASE VISIT AGAIN
-  // `;
-
-  //     win.document.write(`
-  //     <html><head><style>
-  //       @page { margin: 0; }
-  //       body {
-  //         font-family: 'Courier New', Courier, monospace;
-  //         font-size: 15px; /* Slightly larger font for better readability */
-  //         font-weight: 600;
-  //         line-height: 1.4;
-  //         white-space: pre;
-  //         margin: 0;
-  //         padding: 6mm; /* Adjusted padding */
-  //         width: 48ch; /* Increased to 48 characters */
-  //       }
-  //     </style></head>
-  //     <body onload="window.print(); window.close();">${receiptString}</body></html>
-  //   `);
-  //     win.document.close();
-  //   };
   //   const handlePrintReceipt = () => {
   //     if (!order) return;
 

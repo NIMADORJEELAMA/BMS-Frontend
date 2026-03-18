@@ -161,6 +161,7 @@ import {
   ChevronLeft,
   ChevronRight,
   Settings,
+  Printer,
 } from "lucide-react";
 import { twMerge } from "tailwind-merge";
 import clsx, { ClassValue } from "clsx";
@@ -224,6 +225,10 @@ export default function Sidebar() {
         { name: "Users", href: "/dashboard/staff", icon: Users },
         { name: "Operations", href: "/dashboard/operations", icon: Clock },
       ],
+    },
+    {
+      label: "Printer",
+      items: [{ name: "Printer", href: "/dashboard/printer", icon: Printer }],
     },
   ];
 
