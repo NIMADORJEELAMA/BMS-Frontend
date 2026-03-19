@@ -1,7 +1,7 @@
 "use client";
 
 import { useParams, useRouter } from "next/navigation";
-import { useUsersById } from "@/hooks/useUsers"; // You'll need to create this hook
+import { useUser } from "@/hooks/useUsers"; // You'll need to create this hook
 import {
   ArrowLeft,
   Calendar,
@@ -17,7 +17,7 @@ import { useState } from "react";
 export default function StaffProfilePage() {
   const { id } = useParams();
   const router = useRouter();
-  const { data: user, isLoading } = useUsersById(id as string);
+  const { data: user, isLoading } = useUser(id as string);
   const [activeTab, setActiveTab] = useState<"attendance" | "advances">(
     "attendance",
   );

@@ -262,6 +262,8 @@ export default function StaffModal({ isOpen, onClose, editingUser }: any) {
                       <Input
                         type="number"
                         {...field}
+                        // Explicitly cast value to handle the 'unknown' type error
+                        value={field.value as number}
                         className="h-12 rounded-xl border-slate-200 font-bold"
                       />
                     </FormControl>
