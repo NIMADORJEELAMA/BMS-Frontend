@@ -652,7 +652,7 @@ export default function BookingManagerModal({
           />
           {/* RIGHT COLUMN: RESTAURANT & BILLING */}
 
-          <div className="col-span-5 bg-slate-50/80 p-0 flex flex-col border-l border-slate-200">
+          <div className="col-span-5 bg-slate-50/80 p-0 flex flex-col border-l border-slate-200 h-full overflow-hidden">
             {/* Scrollable Content */}
             <div className="flex-1 overflow-y-auto p-6 space-y-6 custom-scrollbar">
               {/* Room Charge Segment */}

@@ -702,7 +702,7 @@ export default function BookingHistoryModal({
             onConfirm={(payload: any) => checkoutMutation.mutate(payload)}
           />
 
-          <div className="col-span-5 bg-slate-50/80 p-0 flex flex-col border-l border-slate-200">
+          <div className="col-span-5 bg-slate-50/80 p-0 flex flex-col border-l border-slate-200 h-full overflow-hidden">
             {/* Scrollable Content */}
             <div className="flex-1 overflow-y-auto p-6 space-y-6 custom-scrollbar">
               {/* Room Charge Segment */}
@@ -849,6 +849,26 @@ export default function BookingHistoryModal({
 
             {/* Replace the Financial Footer content with this conditional logic */}
             <div className="p-6 bg-white border-t border-slate-200">
+              {booking?.advanceAmount > 0 && (
+                <div className="flex justify-between text-xs font-medium text-slate-500">
+                  <span>Advance Payment</span>
+                  <span className="text-slate-700">
+                    - ₹{booking?.advanceAmount}
+                  </span>
+                </div>
+              )}
+              {watchedMisc > 0 && (
+                <div className="flex justify-between text-xs font-medium text-slate-500">
+                  <span>Miscellaneous</span>
+                  <span className="text-slate-700">₹{watchedMisc}</span>
+                </div>
+              )}
+              {watchedDiscount > 0 && (
+                <div className="flex justify-between text-xs font-medium text-slate-500">
+                  <span>Discount</span>
+                  <span className="text-slate-700"> - ₹{watchedDiscount}</span>
+                </div>
+              )}
               {booking.status === "CANCELLED" ? (
                 <div className="bg-red-50 p-4 rounded-xl border border-red-100">
                   <p className="text-[10px] font-black text-red-400 uppercase mb-1">
