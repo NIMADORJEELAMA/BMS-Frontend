@@ -681,57 +681,6 @@ export default function BookingHistoryModal({
                 )}
               </div>
             </div>
-            {/* {booking?.id && (
-              <div className="p-6 bg-slate-50 border-t border-slate-200/60 shadow-[0_-4px_20px_rgba(0,0,0,0.03)]">
-                <div className="flex flex-col gap-4">
-                 
-                  <div className="flex gap-3 w-full">
-                    
-                    <Button
-                      variant="terminalGhost"
-                      className="flex-1  "
-                      onClick={() => updateMutation.mutate(form.getValues())}
-                      disabled={updateMutation.isPending}
-                    >
-                      {updateMutation.isPending ? (
-                        <Loader2 className="animate-spin" size={18} />
-                      ) : (
-                        <Save size={18} className="mr-2" />
-                      )}
-                      Update Details
-                    </Button>
-
-                   
-                    <div className="flex-[1.2]">
-                      {booking.status === "RESERVED" ? (
-                        <Button
-                          type="button"
-                          className="w-full h-12 bg-emerald-600 hover:bg-emerald-700 text-white font-black text-[11px] uppercase tracking-widest transition-all shadow-lg shadow-emerald-100 rounded-xl active:scale-[0.98]"
-                          onClick={() =>
-                            confirmCheckInMutation.mutate(booking.id)
-                          }
-                          disabled={confirmCheckInMutation.isPending}
-                        >
-                          {confirmCheckInMutation.isPending ? (
-                            <Loader2 className="animate-spin" />
-                          ) : (
-                            <div className="flex items-center justify-center">
-                              <CheckCircle2 size={18} className="mr-2" />
-                              Confirm Check-In
-                            </div>
-                          )}
-                        </Button>
-                      ) : (
-                        <div className="flex items-center justify-center h-12 w-full border border-slate-200 bg-slate-100/50 rounded-xl text-slate-400 font-bold text-[10px] uppercase tracking-widest cursor-not-allowed">
-                          <CheckCircle2 size={16} className="mr-2" />
-                          Already Checked In
-                        </div>
-                      )}
-                    </div>
-                  </div>
-                </div>
-              </div>
-            )} */}
           </div>
 
           <PaymentSettlementModal
@@ -900,120 +849,8 @@ export default function BookingHistoryModal({
 
             {/* Replace the Financial Footer content with this conditional logic */}
             <div className="p-6 bg-white border-t border-slate-200">
-              {booking?.advanceAmount > 0 && (
-                <div className="flex justify-between text-xs font-medium text-slate-500">
-                  <span>Advance Payment</span>
-                  <span className="text-slate-700">
-                    - ₹{booking?.advanceAmount}
-                  </span>
-                </div>
-              )}
-              {watchedMisc > 0 && (
-                <div className="flex justify-between text-xs font-medium text-slate-500">
-                  <span>Miscellaneous</span>
-                  <span className="text-slate-700">₹{watchedMisc}</span>
-                </div>
-              )}
-              {watchedDiscount > 0 && (
-                <div className="flex justify-between text-xs font-medium text-slate-500">
-                  <span>Discount</span>
-                  <span className="text-slate-700"> - ₹{watchedDiscount}</span>
-                </div>
-              )}
-              {booking.status === "CANCELLED" ? (
-                <div className="bg-red-50 p-4 rounded-xl border border-red-100">
-                  <p className="text-[10px] font-black text-red-400 uppercase mb-1">
-                    Cancellation Reason
-                  </p>
-                  <p className="text-sm font-medium text-red-700">
-                    {booking.cancelReason || "No reason provided"}
-                  </p>
-                </div>
-              ) : (
-                <div className="space-y-4">
-                  {/* Existing Subtotal/Advance/Misc/Discount rows here... */}
-
-                  <div className="flex justify-between items-end pt-2 border-t border-slate-50">
-                    <span className="text-xs font-black text-slate-900 uppercase">
-                      {booking.paymentStatus === "PAID"
-                        ? "Total Amount Paid"
-                        : "Total Balance Due"}
-                    </span>
-                    <div className="text-right">
-                      <p
-                        className={cn(
-                          "text-3xl font-black tracking-tight",
-                          booking.paymentStatus === "PAID"
-                            ? "text-emerald-600"
-                            : "text-slate-900",
-                        )}
-                      >
-                        ₹
-                        {(booking.paymentStatus === "PAID"
-                          ? booking.totalBill
-                          : grandTotal
-                        ).toLocaleString()}
-                      </p>
-                      {booking.paymentStatus === "PAID" && (
-                        <span className="text-[10px] font-bold text-emerald-500 uppercase">
-                          Paid via{" "}
-                          {booking.onlineAmount > 0 && booking.cashAmount > 0
-                            ? "Split Payment"
-                            : booking.onlineAmount > 0
-                              ? "Online"
-                              : "Cash"}
-                        </span>
-                      )}
-                    </div>
-                  </div>
-
-                  {/* FOOTER BUTTONS: Only show if not PAID and not CANCELLED */}
-                  {booking.status !== "CHECKED_OUT" &&
-                    booking.status !== "CANCELLED" && (
-                      <div className="grid grid-cols-2 gap-3 pt-4">
-                        <Button
-                          variant="destructive"
-                          onClick={() => setIsCancelModalOpen(true)}
-                        >
-                          <Trash2 size={14} className="mr-2" /> Cancel
-                          Reservation
-                        </Button>
-                        <Button
-                          className={cn(
-                            "h-12 text-white rounded-xl font-bold shadow-lg",
-                            booking.status === "RESERVED"
-                              ? "bg-slate-300 cursor-not-allowed"
-                              : "bg-indigo-600",
-                          )}
-                          onClick={() => setIsPaymentModalOpen(true)}
-                          disabled={booking.status === "RESERVED"}
-                        >
-                          <CreditCard size={18} className="mr-2" /> Checkout
-                        </Button>
-                      </div>
-                    )}
-
-                  {/* Optional: Print Bill button for past stays */}
-                  {/* {booking.status === "CHECKED_OUT" && (
-                    <Button
-                      variant="outline"
-                      className="w-full h-12 rounded-xl border-slate-200 hover:bg-slate-50 font-bold"
- 
-                    >
-                      Print Invoice
-                    </Button>
-                  )} */}
-                </div>
-              )}
-            </div>
-            {/* <div className="p-6 bg-white border-t border-slate-200 shadow-[0_-4px_20px_rgba(0,0,0,0.03)]">
-              <div className="space-y-2 mb-6">
-                <div className="flex justify-between text-xs font-medium text-slate-500">
-                  <span>Subtotal</span>
-                  <span className="text-slate-700">
-                    ₹{(roomTotal + foodTotal).toLocaleString()}
-                  </span>
-                </div>
+              {/* Adjustments Summary */}
+              <div className="space-y-1 mb-4">
                 {booking?.advanceAmount > 0 && (
                   <div className="flex justify-between text-xs font-medium text-slate-500">
                     <span>Advance Payment</span>
@@ -1031,54 +868,97 @@ export default function BookingHistoryModal({
                 {watchedDiscount > 0 && (
                   <div className="flex justify-between text-xs font-medium text-slate-500">
                     <span>Discount</span>
-                    <span className="text-slate-700">
-                      {" "}
-                      - ₹{watchedDiscount}
-                    </span>
+                    <span className="text-slate-700">- ₹{watchedDiscount}</span>
                   </div>
                 )}
+              </div>
 
-                <div className="flex justify-between items-end pt-2">
-                  <span className="text-xs font-black text-slate-900 uppercase">
-                    Total Balance Due
-                  </span>
-                  <div className="text-right">
-                    <p className="text-3xl font-black text-slate-900 tracking-tight">
-                      ₹{grandTotal.toLocaleString()}
+              {booking.status === "CANCELLED" ? (
+                <div className="bg-red-50 p-4 rounded-xl border border-red-100">
+                  <p className="text-[10px] font-black text-red-400 uppercase mb-1">
+                    Cancellation Reason
+                  </p>
+                  <p className="text-sm font-medium text-red-700">
+                    {booking.cancelReason || "No reason provided"}
+                  </p>
+                </div>
+              ) : (
+                <div className="space-y-4">
+                  <div className="flex items-end justify-between pt-4 border-t border-slate-100">
+                    {/* LEFT */}
+                    <div className="flex flex-col gap-1.5">
+                      <span className="text-[11px] font-bold text-slate-800 uppercase tracking-wider">
+                        {booking.paymentStatus === "PAID"
+                          ? "Final Settlement"
+                          : "Total Balance Due"}
+                      </span>
+
+                      {booking.paymentStatus === "PAID" && (
+                        <>
+                          <span className="text-[11px] font-medium px-2 py-0.5 rounded-md bg-emerald-50 text-emerald-600 w-fit">
+                            Paid via{" "}
+                            {booking.onlineAmount > 0 && booking.cashAmount > 0
+                              ? "Split"
+                              : booking.onlineAmount > 0
+                                ? "Online"
+                                : "Cash"}
+                          </span>
+                          <p className="text-[14px] text-slate-800">
+                            Invoice total:{" "}
+                            <span className="text-slate-700 font-bold">
+                              ₹{booking.totalBill.toLocaleString()}
+                            </span>
+                          </p>
+                        </>
+                      )}
+                    </div>
+
+                    {/* RIGHT */}
+                    <p
+                      className={cn(
+                        "text-[32px] font-medium tracking-tight leading-none",
+                        booking.paymentStatus === "PAID"
+                          ? "text-emerald-600"
+                          : "text-slate-900",
+                      )}
+                    >
+                      ₹
+                      {(booking.paymentStatus === "PAID"
+                        ? booking.netPayableAtCheckout || 0
+                        : grandTotal
+                      ).toLocaleString()}
                     </p>
                   </div>
-                </div>
-              </div>
 
-              <div className="grid grid-cols-2 gap-3">
-                <Button
-                  variant="destructive"
-                  // className="h-12 border-slate-200 text-slate-600 rounded-xl font-bold hover:bg-slate-50"
-                  onClick={() => setIsCancelModalOpen(true)}
-                >
-                  <Trash2 size={14} />
-                  Cancel Reservation
-                </Button>
-                <Button
-                  className={cn(
-                    "h-12 text-white rounded-xl font-bold shadow-lg transition-all flex items-center justify-center gap-2",
-                    booking.status === "RESERVED"
-                      ? "bg-slate-300 shadow-none cursor-not-allowed"
-                      : "bg-indigo-600 hover:bg-indigo-700 shadow-indigo-100",
-                  )}
-                  onClick={() => setIsPaymentModalOpen(true)}
-                  // Disable if pending OR if the guest hasn't checked in yet
-                  disabled={
-                    checkoutMutation.isPending || booking.status === "RESERVED"
-                  }
-                >
-                  <CreditCard size={18} />
-                  {booking.status === "RESERVED"
-                    ? "Checkout (Check-in first)"
-                    : "Checkout"}
-                </Button>
-              </div>
-            </div> */}
+                  {/* BUTTONS */}
+                  {booking.status !== "CHECKED_OUT" &&
+                    booking.status !== "CANCELLED" && (
+                      <div className="grid grid-cols-2 gap-2.5">
+                        <Button
+                          variant="ghost"
+                          className="h-11 rounded-lg text-[13px] font-bold border border-red-200 text-red-500 hover:bg-red-50"
+                          onClick={() => setIsCancelModalOpen(true)}
+                        >
+                          <Trash2 size={13} className="mr-1.5" /> Cancel stay
+                        </Button>
+
+                        <Button
+                          className={cn(
+                            "h-11 rounded-lg text-[13px] font-bold",
+                            booking.status === "RESERVED"
+                              ? "bg-slate-100 text-slate-400 cursor-not-allowed"
+                              : "bg-indigo-600 hover:bg-indigo-700 text-white",
+                          )}
+                          onClick={() => setIsPaymentModalOpen(true)}
+                          disabled={booking.status === "RESERVED"}
+                        >
+                          <CreditCard size={14} className="mr-1.5" /> Checkout
+                        </Button>
+                      </div>
+                    )}
+                </div>
+              )}
+            </div>
           </div>
         </div>
       </DialogContent>

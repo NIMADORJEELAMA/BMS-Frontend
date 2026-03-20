@@ -256,38 +256,59 @@ export default function BookingHistoryPage() {
           params.value ? `₹${params.value.toLocaleString()}` : "",
       },
       {
+        headerName: "Net Paid",
+        field: "netPayableAtCheckout",
+        filter: false,
+        width: 160,
+        cellClass: (params) =>
+          params.node.isRowPinned()
+            ? // For the Total/Pinned row: Deep Blue with a soft Blue background
+              "text-right font-black text-blue-900 bg-blue-200 border-l-2 border-blue-400"
+            : // For regular rows: Indigo text with a very subtle lavender/blue tint
+              "text-right font-bold text-indigo-700 bg-indigo-50/40",
+        valueFormatter: (params) =>
+          params.value ? `₹${params.value.toLocaleString()}` : "₹0",
+      },
+      {
         headerName: "Actions",
         field: "id",
         width: 160,
         colId: "actions",
-        cellClass: "actions-cell",
         sortable: false,
         filter: false,
         pinned: "right",
+
+        // 👇 Add these
+        cellStyle: {
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "center",
+        },
+
         cellRenderer: (params: any) => {
           if (params.node.isRowPinned()) return null;
 
           return (
-            <div className="flex items-center text-center gap-2 ">
-              {/* EYE ICON: Opens Manager Modal */}
+            <div className="flex items-center justify-center gap-2 w-full h-full">
+              {/* EYE ICON */}
               <button
                 onClick={(e) => {
-                  e.stopPropagation(); // CRITICAL: Prevents onRowClicked from firing
+                  e.stopPropagation();
                   setManagerBookingId(params.value);
                 }}
-                className="p-2   rounded-full text-blue-600 hover:bg-blue-300 text-blue-800 transition-colors cursor-pointer"
+                className="p-2 rounded-full text-blue-600 hover:bg-blue-100 transition-colors cursor-pointer"
                 title="Open Manager"
               >
                 <Eye size={18} />
               </button>
 
-              {/* PRINTER ICON: Opens Booking Details (Same as Row Click) */}
+              {/* PRINTER ICON */}
               <button
                 onClick={(e) => {
-                  e.stopPropagation(); // Stop bubbling to prevent double-firing
-                  setSelectedBooking(params.data); // Manually trigger the details modal
+                  e.stopPropagation();
+                  setSelectedBooking(params.data);
                 }}
-                className="p-2 hover:bg-slate-100 rounded-full text-slate-600 hover:bg-slate-500 text-slate-800 transition-colors cursor-pointer"
+                className="p-2 rounded-full text-slate-700 hover:bg-slate-200 transition-colors cursor-pointer"
                 title="Print/View Details"
               >
                 <Printer size={18} />
@@ -336,6 +357,10 @@ export default function BookingHistoryPage() {
         ),
         onlineAmount: history.reduce(
           (s: number, b: any) => s + (b.onlineAmount || 0),
+          0,
+        ),
+        netPayableAtCheckout: history.reduce(
+          (s: number, b: any) => s + (Number(b.netPayableAtCheckout) || 0),
           0,
         ),
         grandTotal: totalNetRevenue,

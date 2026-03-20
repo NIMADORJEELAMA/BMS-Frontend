@@ -313,15 +313,12 @@
 //       </div>
 //     </div>
 //   );
-// }
-
-"use client";
+// }"use client";
 import { X, Printer, Download } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import jsPDF from "jspdf";
 import { useRef } from "react";
 import { toPng } from "html-to-image";
-import dayjs from "dayjs";
 import toast from "react-hot-toast";
 
 export default function BookingReceiptModal({ booking, onClose }: any) {
@@ -352,13 +349,35 @@ export default function BookingReceiptModal({ booking, onClose }: any) {
 
   const foodTotal = foodItems.reduce((a: number, b: any) => a + b.total, 0);
   const grossTotal = Number(booking.totalBill) || 0;
-  const miscCharges = grossTotal - (totalRoomCharge + foodTotal);
+  const miscCharges = Number(booking.miscCharges) || 0;
   const discount = Number(booking.discount) || 0;
   const grandTotal = grossTotal - discount;
   const advance = Number(booking.advanceAmount) || 0;
+  const netPayable = grandTotal - advance;
+
+  /* ================= PDF DOWNLOAD LOGIC ================= */
+  const downloadPDF = async () => {
+    const element = receiptRef.current;
+    if (!element) return;
+
+    try {
+      const dataUrl = await toPng(element, { quality: 1.0, pixelRatio: 3 });
+      const pdf = new jsPDF({
+        orientation: "portrait",
+        unit: "mm",
+        format: [80, 180], // Standard thermal width, adjusted height
+      });
+
+      pdf.addImage(dataUrl, "PNG", 0, 0, 80, 180);
+      pdf.save(`Receipt_${booking.guestName.replace(/\s+/g, "_")}.pdf`);
+      toast.success("PDF Downloaded");
+    } catch (err) {
+      console.error("PDF Generation failed", err);
+      toast.error("Failed to generate PDF");
+    }
+  };
 
   /* ================= QZ TRAY PRINT LOGIC ================= */
-
   const printThermalESC = async () => {
     try {
       if (typeof window === "undefined" || !window.qz) {
@@ -387,7 +406,6 @@ export default function BookingReceiptModal({ booking, onClose }: any) {
           ? text.slice(0, len)
           : " ".repeat(len - text.length) + text;
 
-      // Formatting helper for items
       const formatRow = (
         name: string,
         qty: string,
@@ -402,7 +420,6 @@ export default function BookingReceiptModal({ booking, onClose }: any) {
         );
       };
 
-      // 1. Prepare Item Rows
       let itemsText =
         formatRow(
           `Room Stay(${nights}N)`,
@@ -410,7 +427,6 @@ export default function BookingReceiptModal({ booking, onClose }: any) {
           String(roomRate),
           String(totalRoomCharge),
         ) + "\n";
-
       foodItems.forEach((i: any) => {
         itemsText +=
           formatRow(i.name, String(i.qty), String(i.rate), String(i.total)) +
@@ -427,7 +443,6 @@ export default function BookingReceiptModal({ booking, onClose }: any) {
           ) + "\n";
       }
 
-      // 2. Build the Raw Receipt
       const receipt = [
         CENTER,
         BOLD_ON,
@@ -450,28 +465,32 @@ export default function BookingReceiptModal({ booking, onClose }: any) {
         discount > 0
           ? padRight("DISCOUNT", 38) + padLeft(`-${discount}`, 10) + "\n"
           : "",
-        BOLD_ON,
         padRight("GRAND TOTAL", 38) + padLeft(String(grandTotal), 10) + "\n",
+        advance > 0
+          ? padRight("ADVANCE PAID", 38) + padLeft(`-${advance}`, 10) + "\n"
+          : "",
+        BOLD_ON,
+        padRight("NET PAYABLE", 38) + padLeft(String(netPayable), 10) + "\n",
         BOLD_OFF,
         "-".repeat(LINE_WIDTH) + "\n",
-        advance > 0
-          ? padRight("ADVANCE PAID", 38) + padLeft(String(advance), 10) + "\n"
-          : "",
+        CENTER,
+        "PAYMENT BREAKDOWN\n",
+        LEFT,
         booking.cashAmount > 0
-          ? padRight("CASH PAYMENT", 38) +
+          ? padRight("  CASH", 38) +
             padLeft(String(booking.cashAmount), 10) +
             "\n"
           : "",
         booking.onlineAmount > 0
-          ? padRight("UPI PAYMENT", 38) +
+          ? padRight("  UPI/ONLINE", 38) +
             padLeft(String(booking.onlineAmount), 10) +
             "\n"
           : "",
         "-".repeat(LINE_WIDTH) + "\n",
         CENTER,
         `STATUS: ${booking.paymentStatus.toUpperCase()}\n`,
-        "THANK YOU FOR STAYING AT GAIRIGAON!\n",
-        "\n\n\n\x1Bm", // Cut paper
+        "THANK YOU FOR STAYING!\n",
+        "\n\n\n\x1Bm",
       ].join("");
 
       const printerName = localStorage.getItem("printer") || "Thermal";
@@ -484,38 +503,13 @@ export default function BookingReceiptModal({ booking, onClose }: any) {
     }
   };
 
-  /* ================= THE REST OF YOUR COMPONENT ================= */
-  // ... (Keep your ReceiptContent, downloadPDF, and existing return statement)
-  const downloadPDF = async () => {
-    const element = receiptRef.current;
-    if (!element) return;
-
-    try {
-      // This library is much more stable than html2canvas
-      const dataUrl = await toPng(element, { quality: 1.0, pixelRatio: 3 });
-
-      const pdf = new jsPDF({
-        orientation: "portrait",
-        unit: "mm",
-        format: [80, 150], // Adjust height as needed
-      });
-
-      pdf.addImage(dataUrl, "PNG", 0, 0, 80, 150);
-      pdf.save(`Receipt_${booking.id.slice(0, 4)}.pdf`);
-    } catch (err) {
-      console.error("PDF Generation failed", err);
-    }
-  };
+  /* ================= UI RECEIPT CONTENT ================= */
   const ReceiptContent = () => (
-    <div className="w-[72mm] mx-auto text-black p-1 leading-tight">
+    <div className="w-[72mm] mx-auto text-black p-1 leading-tight bg-white">
       <div className="text-center mb-4">
         <h2 className="text-lg font-bold uppercase m-0">GAIRIGAON</h2>
-        <p className="text-[10px] m-0">Hill Top Eco Tourism</p>
-        <p className="text-[10px] m-0"> Jaigaon, West Bengal</p>
-        <p className="text-[10px] m-0"> +91-7547957222</p>
+        <p className="text-[10px] m-0">Hill Top Eco Tourism | Jaigaon</p>
       </div>
-
-      <div className="border-t border-dashed border-black my-2" />
 
       <div className="text-[11px] space-y-1">
         <div className="flex justify-between">
@@ -532,12 +526,6 @@ export default function BookingReceiptModal({ booking, onClose }: any) {
           <span>ROOM:</span>
           <span className="font-bold">{booking.room?.roomNumber}</span>
         </div>
-        <div className="flex justify-between">
-          <span>PERIOD:</span>
-          <span className="font-bold">
-            {formatDate(booking.checkIn)} - {formatDate(booking.checkOut)}
-          </span>
-        </div>
       </div>
 
       <div className="border-t border-dashed border-black my-2" />
@@ -546,37 +534,25 @@ export default function BookingReceiptModal({ booking, onClose }: any) {
         <thead>
           <tr className="border-b border-black">
             <th className="text-left py-1">ITEM</th>
-            <th className="text-center py-1">QTY</th>
-            <th className="text-center py-1">RATE</th>
-
             <th className="text-right py-1">AMT</th>
           </tr>
         </thead>
         <tbody>
           <tr>
             <td className="py-1">Room Stay ({nights}N)</td>
-            <td className="text-center">-</td>
-            <td className="text-right">₹{roomRate}</td>
-
             <td className="text-right">₹{totalRoomCharge}</td>
           </tr>
-          {foodItems.map(
-            (item: any, i: number) => (
-              console.log("item", item),
-              (
-                <tr key={i}>
-                  <td className="py-1">{item.name}</td>
-                  <td className="text-center">{item.qty}</td>
-                  <td className="text-center">{item.rate}</td>
-                  <td className="text-right">₹{item.total}</td>
-                </tr>
-              )
-            ),
-          )}
+          {foodItems.map((item: any, i: number) => (
+            <tr key={i}>
+              <td className="py-1">
+                {item.name} x{item.qty}
+              </td>
+              <td className="text-right">₹{item.total}</td>
+            </tr>
+          ))}
           {miscCharges > 0 && (
             <tr>
               <td className="py-1">Misc Charges</td>
-              <td className="text-center">-</td>
               <td className="text-right">₹{miscCharges}</td>
             </tr>
           )}
@@ -596,48 +572,51 @@ export default function BookingReceiptModal({ booking, onClose }: any) {
             <span>-₹{discount}</span>
           </div>
         )}
-        <div className="flex justify-between font-bold text-sm border-t border-black pt-1 mt-1">
+        <div className="flex justify-between font-semibold">
           <span>GRAND TOTAL</span>
           <span>₹{grandTotal}</span>
+        </div>
+        <div className="flex justify-between text-gray-600">
+          <span>ADVANCE PAID</span>
+          <span>-₹{advance}</span>
+        </div>
+
+        <div className="flex justify-between font-bold text-sm border-t-2 border-black pt-1 mt-1 bg-gray-100 p-1">
+          <span>NET PAYABLE</span>
+          <span>₹{netPayable}</span>
         </div>
       </div>
 
       <div className="border-t border-dashed border-black my-2" />
 
-      <div className="text-[11px] space-y-1">
-        {advance > 0 && (
-          <div className="flex justify-between">
-            <span>ADVANCE PAID</span>
-            <span>₹{advance}</span>
-          </div>
-        )}
+      <div className="text-[10px] space-y-1 italic">
         {booking.cashAmount > 0 && (
           <div className="flex justify-between">
-            <span>CASH PAYMENT</span>
+            <span>Cash Paid:</span>
             <span>₹{booking.cashAmount}</span>
           </div>
         )}
         {booking.onlineAmount > 0 && (
           <div className="flex justify-between">
-            <span>UPI PAYMENT</span>
+            <span>Online Paid:</span>
             <span>₹{booking.onlineAmount}</span>
           </div>
         )}
       </div>
 
-      <div className="text-center mt-6 text-[10px] space-y-1">
+      <div className="text-center mt-6 text-[10px]">
         <div className="font-bold uppercase italic">
           Status: {booking.paymentStatus}
         </div>
         <div>Thank You for staying at Gairigaon!</div>
-        <div className="text-[8px] opacity-70">Computer Generated Receipt</div>
       </div>
     </div>
   );
+
   return (
     <div className="fixed inset-0 bg-black/80 flex items-center justify-center z-50 p-4">
       <div className="absolute top-6 right-6 flex gap-3">
-        {/* Updated Button to use QZ Tray */}
+        {/* ACTION BUTTONS */}
         <Button size="icon" onClick={printThermalESC}>
           <Printer size={18} />
         </Button>
