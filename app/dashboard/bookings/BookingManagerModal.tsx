@@ -51,7 +51,21 @@ import { DialogDescription } from "@radix-ui/react-dialog";
 
 import PaymentSettlementModal from "@/components/rooms/PaymentSettlementModal";
 import { cn } from "@/lib/utils";
-
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+const DOCUMENT_OPTIONS = [
+  { id: "aadhar", name: "Aadhar Card" },
+  { id: "voter_id", name: "Voter Card" },
+  { id: "driving_license", name: "Driver's License" },
+  { id: "pan_card", name: "PAN Card" },
+  { id: "passport", name: "Passport" },
+  { id: "others", name: "Others" },
+];
 export default function BookingManagerModal({
   isOpen,
   onClose,
@@ -66,6 +80,7 @@ export default function BookingManagerModal({
   const manageBookingSchema = z.object({
     guestName: z.string().min(2, "Name required"),
     phone: z.string().min(10, "Valid phone required"),
+    documentType: z.string().min(1, "Required"), // Add this
     documentId: z.string().min(1, "ID required"),
     address: z.string().min(2, "Address required"),
     checkInDate: z.string().min(1),
@@ -88,6 +103,7 @@ export default function BookingManagerModal({
     defaultValues: {
       guestName: "",
       phone: "",
+      documentType: "",
       documentId: "",
       address: "",
       checkInDate: "",
@@ -207,6 +223,8 @@ export default function BookingManagerModal({
       form.reset({
         guestName: booking.guestName,
         phone: booking.guestPhone || "",
+        documentType: booking.documentType || "",
+
         documentId: booking.documentId || "",
         address: booking.address || "",
         checkInDate: initialCheckIn,
@@ -409,6 +427,59 @@ export default function BookingManagerModal({
                       />
                       <FormField
                         control={form.control}
+                        name="address"
+                        render={({ field }) => (
+                          <FormItem className="">
+                            <FormControl>
+                              <div className="relative">
+                                <MapPin
+                                  className="absolute left-4 top-3.5 text-slate-400"
+                                  size={18}
+                                />
+                                <Input
+                                  placeholder="Full Address"
+                                  className="pl-12 h-12 bg-slate-50 border-none rounded-xl"
+                                  {...field}
+                                />
+                              </div>
+                            </FormControl>
+                          </FormItem>
+                        )}
+                      />
+                      <FormField
+                        control={form.control}
+                        name="documentType"
+                        render={({ field }) => (
+                          <FormItem className="">
+                            <Select
+                              onValueChange={field.onChange}
+                              defaultValue={field.value}
+                            >
+                              <FormControl>
+                                <SelectTrigger className="h-12 bg-slate-50 border-none rounded-xl focus:ring-0">
+                                  <div className="flex items-center gap-3">
+                                    <CreditCard
+                                      className="text-slate-400"
+                                      size={18}
+                                    />
+                                    <SelectValue placeholder="Document Type" />
+                                  </div>
+                                </SelectTrigger>
+                              </FormControl>
+                              <SelectContent>
+                                {DOCUMENT_OPTIONS.map((opt) => (
+                                  <SelectItem key={opt.id} value={opt.id}>
+                                    {opt.name}
+                                  </SelectItem>
+                                ))}
+                              </SelectContent>
+                            </Select>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+                      <FormField
+                        control={form.control}
                         name="documentId"
                         render={({ field }) => (
                           <FormItem>
@@ -420,27 +491,6 @@ export default function BookingManagerModal({
                                 />
                                 <Input
                                   placeholder="Document ID"
-                                  className="pl-12 h-12 bg-slate-50 border-none rounded-xl"
-                                  {...field}
-                                />
-                              </div>
-                            </FormControl>
-                          </FormItem>
-                        )}
-                      />
-                      <FormField
-                        control={form.control}
-                        name="address"
-                        render={({ field }) => (
-                          <FormItem className="col-span-2">
-                            <FormControl>
-                              <div className="relative">
-                                <MapPin
-                                  className="absolute left-4 top-3.5 text-slate-400"
-                                  size={18}
-                                />
-                                <Input
-                                  placeholder="Full Address"
                                   className="pl-12 h-12 bg-slate-50 border-none rounded-xl"
                                   {...field}
                                 />

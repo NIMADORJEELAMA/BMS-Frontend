@@ -1,5 +1,5 @@
 "use client";
-import { useState, useRef, useEffect } from "react";
+import React, { useState, useRef, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { ChevronDown, Filter, Check, X, LucideIcon } from "lucide-react";
 
@@ -16,15 +16,17 @@ interface GenericDropdownProps {
   allLabel?: string; // e.g., "All Types", "All Categories"
   icon?: LucideIcon;
   className?: string;
+  showClear?: boolean;
 }
 
-export default function GenericDropdown({
+function GenericDropdown({
   options,
   selectedValue,
   onSelect,
   placeholder = "Select Option",
   allLabel = "All",
   icon: Icon = Filter,
+  showClear = true,
   className = "w-full md:w-64",
 }: GenericDropdownProps) {
   const [isOpen, setIsOpen] = useState(false);
@@ -135,7 +137,7 @@ export default function GenericDropdown({
 
       {/* Quick Clear Button */}
       <AnimatePresence>
-        {selectedValue !== "ALL" && (
+        {showClear && selectedValue !== "ALL" && (
           <motion.button
             initial={{ opacity: 0, scale: 0.8 }}
             animate={{ opacity: 1, scale: 1 }}
@@ -150,3 +152,5 @@ export default function GenericDropdown({
     </div>
   );
 }
+
+export default React.memo(GenericDropdown);

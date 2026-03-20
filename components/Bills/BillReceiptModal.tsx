@@ -23,6 +23,7 @@ export default function BillReceiptModal({
   const receiptRef = useRef<HTMLDivElement>(null);
   if (!order) return null;
 
+  console.log("order", order);
   const isSplit = order.paymentMode === "SPLIT";
   const shortId = order.id.slice(-8).toUpperCase();
 
@@ -73,7 +74,10 @@ export default function BillReceiptModal({
           return `${name}${qty}${rate}${amt}`;
         })
         .join("\n");
-
+      const customerInfo = [
+        order?.customerName ? `CUSTOMER: ${order?.customerName}\n` : "",
+        order?.customerPhone ? `PHONE   : ${order?.customerPhone}\n` : "",
+      ].join("");
       const receipt = [
         CENTER,
         BOLD_ON,
@@ -86,6 +90,7 @@ export default function BillReceiptModal({
         `BILL NO : #${shortId}\n`,
         `TABLE   : ${order.table?.number || "N/A"}\n`,
         `WAITER  : ${order.waiter?.name || "N/A"}\n`,
+        customerInfo,
         `DATE    : ${dayjs(order.updatedAt).format("DD/MM/YYYY hh:mm A")}\n`,
         "-".repeat(LINE_WIDTH) + "\n",
         padRight("ITEM", 22) +
@@ -264,6 +269,18 @@ export default function BillReceiptModal({
           <span>TABLE:</span>
           <span className="font-bold">{order.table?.number}</span>
         </div>
+        {order?.customerName && (
+          <div className="flex justify-between">
+            <span>CUSTOMER :</span>
+            <span className="font-bold">{order?.customerName}</span>
+          </div>
+        )}
+        {order?.customerPhone && (
+          <div className="flex justify-between">
+            <span>Phone Number :</span>
+            <span className="font-bold">{order?.customerPhone}</span>
+          </div>
+        )}
         <div className="flex justify-between">
           <span>DATE:</span>
           <span className="font-bold">

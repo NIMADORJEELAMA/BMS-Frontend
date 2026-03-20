@@ -19,6 +19,7 @@ import {
 } from "@/components/ui/alert-dialog";
 import dayjs from "dayjs";
 import { useTableSocket } from "@/hooks/use-table-socket";
+import { div } from "framer-motion/client";
 declare global {
   interface Window {
     qz: any;
@@ -39,13 +40,15 @@ export default function OrderModal({
   const [loading, setLoading] = useState(true);
   // Track if we are in "Receipt Mode"
   // Inside OrderModal component
+  const [customerName, setCustomerName] = useState("");
+  const [customerPhone, setCustomerPhone] = useState("");
   const [isSplitPay, setIsSplitPay] = useState(false);
   const [cashAmount, setCashAmount] = useState<number>(0);
   const [onlineAmount, setOnlineAmount] = useState<number>(0);
   const [isConfirmOpen, setIsConfirmOpen] = useState(false);
-  const [paymentType, setPaymentType] = useState<"FULL_CASH" | "FULL_UPI">(
-    "FULL_CASH",
-  );
+  const [paymentType, setPaymentType] = useState<
+    "FULL_CASH" | "FULL_UPI" | "DUE"
+  >("FULL_CASH");
   // Update amounts whenever order total changes or split is toggled
   useEffect(() => {
     if (order) {
@@ -129,30 +132,6 @@ export default function OrderModal({
     }, 0);
   };
 
-  const handleSettle = async () => {
-    if (!order) return;
-
-    if (hasPending && !isConfirmOpen) {
-      setIsConfirmOpen(true);
-      return;
-    }
-
-    try {
-      const res = await api.patch(`/orders/${order.id}/generate-bill`);
-
-      // FIX: Keep the existing items but update the order metadata
-      setOrder({
-        ...order, // Keep existing items/waiter info
-        ...res.data, // Overwrite with new status and totalAmount from API
-      });
-
-      setIsBilled(true);
-      toast.success("Bill Finalized");
-    } catch (err) {
-      toast.error("Failed to generate bill");
-    }
-  };
-
   // const handleSettle = async () => {
   //   if (!order) return;
 
@@ -164,14 +143,38 @@ export default function OrderModal({
   //   try {
   //     const res = await api.patch(`/orders/${order.id}/generate-bill`);
 
-  //     setOrder(res.data);
+  //     // FIX: Keep the existing items but update the order metadata
+  //     setOrder({
+  //       ...order, // Keep existing items/waiter info
+  //       ...res.data, // Overwrite with new status and totalAmount from API
+  //     });
+
   //     setIsBilled(true);
-  //     toast.success("Bill Finalized (Pending items cancelled)");
-  //     // onRefresh();
+  //     toast.success("Bill Finalized");
   //   } catch (err) {
   //     toast.error("Failed to generate bill");
   //   }
   // };
+
+  const handleSettle = async () => {
+    if (!order) return;
+
+    if (hasPending && !isConfirmOpen) {
+      setIsConfirmOpen(true);
+      return;
+    }
+
+    try {
+      const res = await api.patch(`/orders/${order.id}/generate-bill`);
+
+      setOrder(res.data);
+      setIsBilled(true);
+      toast.success("Bill Finalized (Pending items cancelled)");
+      // onRefresh();
+    } catch (err) {
+      toast.error("Failed to generate bill");
+    }
+  };
 
   const handleServeItem = async (itemId: string) => {
     try {
@@ -210,39 +213,107 @@ export default function OrderModal({
         i.status === "READY",
     ) || [];
   const servedItems =
-    order?.items?.filter(
-      (i: any) => i.status === "SERVED" || order.status === "BILLED",
-    ) || [];
+    order?.items?.filter((i: any) => i.status === "SERVED") || [];
   const hasPending = pendingItems?.length > 0;
 
-  const handlePayment = async (type: "FULL_CASH" | "FULL_UPI" | "SPLIT") => {
+  const handlePayment = async (
+    type: "FULL_CASH" | "FULL_UPI" | "SPLIT" | "DUE",
+  ) => {
     if (!order) return;
 
     const total = Number(order.totalAmount || calculateTotal());
-    let payload = { cash: 0, online: 0 };
 
-    if (type === "FULL_CASH") payload = { cash: total, online: 0 };
-    else if (type === "FULL_UPI") payload = { cash: 0, online: total };
-    else payload = { cash: cashAmount, online: onlineAmount };
+    // Initialize payload with the new fields
+    let payload: any = {
+      cash: 0,
+      online: 0,
+      isDue: false,
+      customerName: "",
+      customerPhone: "",
+    };
 
-    // Validation: Ensure total matches
-    if (payload.cash + payload.online !== total) {
+    if (type === "FULL_CASH") {
+      payload = { ...payload, cash: total, online: 0 };
+    } else if (type === "FULL_UPI") {
+      payload = { ...payload, cash: 0, online: total };
+    } else if (type === "DUE") {
+      // 1. Validation for Due: You need a way to identify the person later
+      if (!customerName && !customerPhone) {
+        toast.error("Please provide a Name or Phone for Due orders");
+        return;
+      }
+      payload = {
+        ...payload,
+        cash: 0,
+        online: 0,
+        isDue: true,
+        customerName,
+        customerPhone,
+      };
+    } else {
+      // SPLIT logic
+      payload = { ...payload, cash: cashAmount, online: onlineAmount };
+    }
+
+    // 2. Validation: Ensure total matches (Skip this check for DUE types)
+    if (type !== "DUE" && payload.cash + payload.online !== total) {
       toast.error(`Total must equal ₹${total}`);
       return;
     }
 
     try {
-      const loadingToast = toast.loading("Processing Payment...");
+      const loadingMessage =
+        type === "DUE" ? "Saving Due Record..." : "Processing Payment...";
+      const loadingToast = toast.loading(loadingMessage);
+
       await api.patch(`/orders/${order.id}/confirm-payment`, payload);
 
       toast.dismiss(loadingToast);
-      toast.success("Payment successful!");
+      toast.success(
+        type === "DUE" ? "Order marked as Due" : "Payment successful!",
+      );
+
       onRefresh();
       onClose();
     } catch (err) {
-      toast.error("Payment confirmation failed");
+      toast.error(
+        type === "DUE"
+          ? "Failed to save due record"
+          : "Payment confirmation failed",
+      );
     }
   };
+
+  // const handlePayment = async (
+  //   type: "FULL_CASH" | "FULL_UPI" | "SPLIT" | "DUE",
+  // ) => {
+  //   if (!order) return;
+
+  //   const total = Number(order.totalAmount || calculateTotal());
+  //   let payload = { cash: 0, online: 0 };
+
+  //   if (type === "FULL_CASH") payload = { cash: total, online: 0 };
+  //   else if (type === "FULL_UPI") payload = { cash: 0, online: total };
+  //   else payload = { cash: cashAmount, online: onlineAmount };
+
+  //   // Validation: Ensure total matches
+  //   if (payload.cash + payload.online !== total) {
+  //     toast.error(`Total must equal ₹${total}`);
+  //     return;
+  //   }
+
+  //   try {
+  //     const loadingToast = toast.loading("Processing Payment...");
+  //     await api.patch(`/orders/${order.id}/confirm-payment`, payload);
+
+  //     toast.dismiss(loadingToast);
+  //     toast.success("Payment successful!");
+  //     onRefresh();
+  //     onClose();
+  //   } catch (err) {
+  //     toast.error("Payment confirmation failed");
+  //   }
+  // };
   // Inside OrderModal component
   const handleCancelItem = async (orderItemId: string) => {
     try {
@@ -331,6 +402,11 @@ export default function OrderModal({
         })
         .join("\n");
 
+      const customerInfo = [
+        customerName ? `CUSTOMER: ${customerName}\n` : "",
+        customerPhone ? `PHONE   : ${customerPhone}\n` : "",
+      ].join("");
+
       const shortId = order.id.slice(-8).toUpperCase();
 
       // 4. Build the Plain Text Receipt String
@@ -346,6 +422,7 @@ export default function OrderModal({
         `BILL NO : #${shortId}\n`,
         `TABLE   : ${order.table?.number || "N/A"}\n`,
         `WAITER  : ${order.waiter?.name || "N/A"}\n`,
+        customerInfo,
         `DATE    : ${dayjs().format("DD/MM/YYYY hh:mm A")}\n`,
         "-".repeat(LINE_WIDTH) + "\n",
         padRight("ITEM", 22) +
@@ -389,158 +466,7 @@ export default function OrderModal({
       }
     }
   };
-  //   const handlePrintReceipt = () => {
-  //     if (!order) return;
 
-  //     const win = window.open("", "", "width=1200,height=800");
-  //     if (!win) return;
-
-  //     const shortId = order.id.slice(-5).toUpperCase();
-  //     const tableName = order.table?.number || "N/A";
-  //     const categoryName = order?.table?.category?.name || "";
-  //     const dineInfo = `${tableName} ${categoryName}`;
-
-  //     // Helper functions for character-width alignment (STRICT 48 chars total)
-  //     const padRight = (text: string | any[], len: number) =>
-  //       text.length >= len
-  //         ? text.slice(0, len)
-  //         : text + " ".repeat(len - text.length);
-
-  //     const padLeft = (text: string | any[], len: number) =>
-  //       text.length >= len
-  //         ? text.slice(0, len)
-  //         : " ".repeat(len - text.length) + text;
-
-  //     // 1. FILTER & MAP ITEMS
-  //     const itemsText = (order.items || [])
-  //       .filter((item: { status: string }) => item.status === "SERVED")
-  //       .map(
-  //         (item: {
-  //           menuItem: { name: any };
-  //           quantity: number;
-  //           priceAtOrder: number;
-  //         }) => {
-  //           /** * COLUMN BUDGET (48 Total):
-  //            * Name(26) + Qty(5) + Rate(8) + Amt(9) = 48
-  //            */
-  //           const name = padRight(String(item.menuItem.name).toUpperCase(), 26);
-  //           const qty = padLeft(String(item.quantity), 5);
-  //           const rate = padLeft(String(item.priceAtOrder), 8);
-  //           const amt = padLeft(String(item.priceAtOrder * item.quantity), 9);
-  //           return `${name}${qty}${rate}${amt}`;
-  //         },
-  //       )
-  //       .join("\n");
-
-  //     const receiptString = `
-  //         GAIRIGAON HILL ECO TOURISM
-  //              Jaigaon, West Bengal
-  //                 +91-7547957222
-  // ------------------------------------------------
-  // BILL NO : #${shortId}
-  // DINE IN : ${dineInfo}
-  // WAITER  : ${order.waiter?.name || "N/A"}
-  // DATE    : ${dayjs().format("DD/MM/YYYY hh:mm A")}
-  // ------------------------------------------------
-  // ITEM                        QTY    RATE      AMT
-  // ------------------------------------------------
-  // ${itemsText}
-  // ------------------------------------------------
-  // GRAND TOTAL                         ${padLeft("₹" + (order.totalAmount || calculateTotal()), 11)}
-  // ------------------------------------------------
-  //             THANK YOU FOR VISITING!
-  //               PLEASE VISIT AGAIN
-  // `;
-
-  //     win.document.write(`
-  //     <html><head><style>
-  //       @page { margin: 0; }
-  //       body {
-  //         font-family: 'Courier New', Courier, monospace;
-  //         font-size: 15px; /* Slightly larger font for better readability */
-  //         font-weight: 600;
-  //         line-height: 1.4;
-  //         white-space: pre;
-  //         margin: 0;
-  //         padding: 6mm; /* Adjusted padding */
-  //         width: 48ch; /* Increased to 48 characters */
-  //       }
-  //     </style></head>
-  //     <body onload="window.print(); window.close();">${receiptString}</body></html>
-  //   `);
-  //     win.document.close();
-  //   };
-  //   const handlePrintReceipt = () => {
-  //     if (!order) return;
-
-  //     const win = window.open("", "", "width=1200,height=800");
-  //     if (!win) return;
-  //     console.log("order==", order);
-  //     const shortId = order.id.slice(-5).toUpperCase();
-  //     const tableName = order.table?.number || "N/A";
-  //     const categoryName = order.table?.category?.name;
-  //     const isSplit = order.paymentMode === "SPLIT";
-  //     const dineInfo = `${tableName} (${categoryName})`;
-  //     // Helper functions for character-width alignment (STRICT 32 chars total)
-  //     const padRight = (text: string, len: number) =>
-  //       text.length >= len
-  //         ? text.slice(0, len)
-  //         : text + " ".repeat(len - text.length);
-
-  //     const padLeft = (text: string, len: number) =>
-  //       text.length >= len
-  //         ? text.slice(0, len)
-  //         : " ".repeat(len - text.length) + text;
-
-  //     // 1. FILTER & MAP ITEMS (Only served items for the bill)
-  //     const itemsText = (order.items || [])
-  //       .filter((item: any) => item.status === "SERVED")
-  //       .map((item: any) => {
-  //         // COLUMN BUDGET: Name(12) + Qty(4) + Rate(7) + Amt(9) = 32
-  //         const name = padRight(String(item.menuItem.name).toUpperCase(), 12);
-  //         const qty = padLeft(String(item.quantity), 4);
-  //         const rate = padLeft(String(item.priceAtOrder), 7);
-  //         const amt = padLeft(String(item.priceAtOrder * item.quantity), 9);
-  //         return `${name}${qty}${rate}${amt}`;
-  //       })
-  //       .join("\n");
-
-  //     const receiptString = `
-  //   GAIRIGAON HILL ECO TOURISM
-  //       Jaigaon, West Bengal
-  //           +91-7547957222
-  // --------------------------------
-  // BILL NO : #${shortId}
-  // DINE IN :${dineInfo}
-  // WAITER  : ${order.waiter?.name || "N/A"}
-  // DATE    : ${dayjs().format("DD/MM/YYYY  hh:mm A")}
-  // --------------------------------
-  // ITEM         QTY   RATE      AMT
-  // --------------------------------
-  // ${itemsText}
-  // --------------------------------
-  // GRAND TOTAL            ${padLeft(String(order.totalAmount || calculateTotal()), 8)}
-  // --------------------------------
-  //           THANK YOU!
-  //       PLEASE VISIT AGAIN
-
-  // `;
-
-  //     win.document.write(`
-  //     <html><head><style>
-  //       body {
-  //         font-family: 'Courier New', Courier, monospace;
-  //         font-size: 12px;
-  //         white-space: pre;
-  //         margin: 0;
-  //         padding: 5mm;
-  //         width: 32ch;
-  //       }
-  //     </style></head>
-  //     <body onload="window.print(); window.close();">${receiptString}</body></html>
-  //   `);
-  //     win.document.close();
-  //   };
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
       <div className="bg-white rounded-3xl shadow-2xl w-full max-w-md overflow-hidden animate-in zoom-in duration-200 border border-gray-100">
@@ -568,14 +494,42 @@ export default function OrderModal({
         </div>
 
         {/* CONTENT AREA */}
-        <div className="p-6 max-h-[65vh] overflow-y-auto">
+        <div className="p-3 max-h-[65vh] overflow-y-auto">
           {loading ? (
             <div className="py-20 text-center text-gray-400  ">
               Processing...
             </div>
           ) : isBilled ? (
             /* --- PROPER BILL VIEW --- */
+
             <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-500">
+              <div className="space-y-3 animate-in fade-in slide-in-from-top-2 duration-300">
+                <div className="space-y-1">
+                  <label className="text-[10px] uppercase font-bold text-gray-700 ml-1">
+                    Customer Name
+                  </label>
+                  <input
+                    type="text"
+                    value={customerName}
+                    onChange={(e) => setCustomerName(e.target.value)}
+                    placeholder="Enter name"
+                    className="w-full h-8 px-4 rounded-xl border border-gray-400 bg-gray-100 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all"
+                  />
+                </div>
+
+                <div className="space-y-1">
+                  <label className="text-[10px] uppercase font-bold text-gray-700 ml-1">
+                    Phone Number
+                  </label>
+                  <input
+                    type="tel"
+                    value={customerPhone}
+                    onChange={(e) => setCustomerPhone(e.target.value)}
+                    placeholder="Enter 10-digit mobile"
+                    className="w-full h-8 px-4 rounded-xl border border-gray-400 bg-gray-100 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all"
+                  />
+                </div>
+              </div>
               <div className="space-y-3 bg-white p-2 rounded-xl border border-slate-100 shadow-sm">
                 {/* Header Row - Optional but recommended for clarity */}
                 <div className="flex justify-between items-center pb-0 border-b border-slate-100 text-[10px] uppercase tracking-wider font-bold text-slate-400">
@@ -659,12 +613,14 @@ export default function OrderModal({
                   <div className="flex flex-col gap-4">
                     {/* SLIDER / TOGGLE SECTION */}
                     <div className="bg-gray-100 p-1 rounded-2xl flex relative h-12">
-                      {/* Sliding Background Indicator */}
+                      {/* Sliding Background Indicator - Now 1/3 width */}
                       <div
-                        className={`absolute top-1 bottom-1 w-[calc(50%-4px)] bg-white rounded-xl shadow-sm transition-all duration-300 ease-in-out ${
-                          paymentType === "FULL_UPI"
-                            ? "translate-x-[100%]"
-                            : "translate-x-0"
+                        className={`absolute top-1 bottom-1 w-[calc(33.33%-4px)] bg-white rounded-xl shadow-sm transition-all duration-300 ease-in-out ${
+                          paymentType === "FULL_CASH"
+                            ? "translate-x-0"
+                            : paymentType === "FULL_UPI"
+                              ? "translate-x-[100%]"
+                              : "translate-x-[200%]" // This targets "DUE"
                         }`}
                       />
 
@@ -691,30 +647,43 @@ export default function OrderModal({
                       >
                         UPI
                       </button>
+
+                      {/* Due Option */}
+                      <button
+                        onClick={() => setPaymentType("DUE")}
+                        className={`flex-1 z-10 flex items-center justify-center gap-2 text-xs font-bold uppercase tracking-wider transition-colors ${
+                          paymentType === "DUE"
+                            ? "text-orange-600"
+                            : "text-gray-400"
+                        }`}
+                      >
+                        Due
+                      </button>
                     </div>
 
                     {/* CONFIRM SETTLEMENT BUTTON */}
                     <div className="flex gap-2 items-stretch mt-4">
-                      {/* PRINT RECEIPT (20% Width) */}
                       <Button
                         variant="terminalGhost"
                         className="flex-[0.2] h-12 flex flex-col items-center justify-center p-0"
                         onClick={handlePrintReceipt}
-                        title="Print Receipt"
                       >
                         <Printer size={18} />
-                        <span className="text-[8px] uppercase font-bold ">
+                        <span className="text-[8px] uppercase font-bold">
                           Print
                         </span>
                       </Button>
 
-                      {/* CONFIRM (80% Width) */}
                       <Button
-                        variant="default"
+                        variant={
+                          paymentType === "DUE" ? "successGhost" : "default"
+                        }
                         className="flex-[0.8] h-12 rounded-xl text-xs font-black uppercase tracking-[0.15em] shadow-lg"
                         onClick={() => handlePayment(paymentType)}
                       >
-                        Confirm {paymentType === "FULL_CASH" ? "Cash" : "UPI"}
+                        {paymentType === "DUE"
+                          ? "Mark as Unpaid (Due)"
+                          : `Confirm ${paymentType === "FULL_CASH" ? "Cash" : "UPI"}`}
                       </Button>
                     </div>
                   </div>
@@ -918,7 +887,7 @@ export default function OrderModal({
                     )}
                   </div>
 
-                  <div className="space-y-3">
+                  <div className="space-y-1">
                     {/* Header Row */}
                     <div>
                       <p className="text-[10px] font-black text-gray-400 uppercase">
@@ -926,10 +895,13 @@ export default function OrderModal({
                       </p>
                     </div>
                     <div className="grid grid-cols-12 gap-2 px-3 text-[10px] font-black text-slate-400 uppercase tracking-widest">
-                      <div className="col-span-6">Item</div>
+                      <div className="col-span-5">Item</div>{" "}
+                      {/* Reduced from 6 */}
                       <div className="col-span-1 text-center">Qty</div>
                       <div className="col-span-2 text-right">Rate</div>
                       <div className="col-span-3 text-right">Total</div>
+                      <div className="col-span-1"></div>{" "}
+                      {/* Placeholder for the button space */}
                     </div>
 
                     <div className="space-y-1">
@@ -938,28 +910,28 @@ export default function OrderModal({
                           key={item.id}
                           className="grid grid-cols-12 gap-2 items-center p-3 bg-slate-50/50 border border-slate-100 rounded-xl hover:bg-white hover:border-indigo-100 transition-all group"
                         >
-                          {/* Item Name */}
-                          <div className="col-span-6">
+                          {/* Item Name (Span 5) */}
+                          <div className="col-span-5">
                             <span className="text-xs font-bold text-slate-700 truncate block">
                               {item.menuItem.name}
                             </span>
                           </div>
 
-                          {/* Quantity */}
+                          {/* Quantity (Span 1) */}
                           <div className="col-span-1 text-center">
                             <span className="text-xs font-medium text-slate-500 bg-slate-100 px-1.5 py-0.5 rounded">
                               {item.quantity}
                             </span>
                           </div>
 
-                          {/* Rate */}
+                          {/* Rate (Span 2) */}
                           <div className="col-span-2 text-right">
                             <span className="text-[11px] font-medium text-slate-400">
                               ₹{item.priceAtOrder}
                             </span>
                           </div>
 
-                          {/* Total */}
+                          {/* Total (Span 3) */}
                           <div className="col-span-3 text-right">
                             <span className="font-mono text-xs font-black text-slate-800">
                               ₹
@@ -967,6 +939,17 @@ export default function OrderModal({
                                 item.priceAtOrder * item.quantity
                               ).toLocaleString()}
                             </span>
+                          </div>
+
+                          {/* Action Button (Span 1) */}
+                          <div className="col-span-1 flex justify-end">
+                            <button
+                              onClick={() => handleCancelItem(item.id)}
+                              className="p-1.5 rounded-lg border border-red-100 text-red-400 opacity-0 group-hover:opacity-100 hover:bg-red-500 hover:text-white hover:border-red-500 transition-all cursor-pointer"
+                              title="Cancel Item"
+                            >
+                              <X size={12} strokeWidth={3} />
+                            </button>
                           </div>
                         </div>
                       ))}

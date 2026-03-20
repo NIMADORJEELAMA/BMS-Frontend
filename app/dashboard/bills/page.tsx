@@ -7,20 +7,42 @@ import { ColDef } from "ag-grid-community";
 import "@/lib/agGrid";
 
 import { useBillHistory } from "@/hooks/useHistory";
-import { Search, Loader2, RotateCcw, Eye, Calendar } from "lucide-react";
+import {
+  Search,
+  Loader2,
+  RotateCcw,
+  Eye,
+  Calendar,
+  CheckCircle,
+} from "lucide-react";
 import { DatePicker, ConfigProvider } from "antd";
 import dayjs from "dayjs";
 import BillReceiptModal from "@/components/Bills/BillReceiptModal";
 import { Button } from "@/components/ui/button";
+import GenericDropdown from "@/components/ui/GenericDropdown";
+import ConfirmPaymentModal from "./ConfirmPaymentModal";
+import toast from "react-hot-toast";
+import api from "@/lib/axios";
+import { useQueryClient } from "@tanstack/react-query";
 
 const { RangePicker } = DatePicker;
+const status_options = [
+  { id: "PAID", name: "PAID" },
+  { id: "PENDING", name: "PENDING" },
+  { id: "CANCELLED", name: "CANCELLED" },
+  { id: "COMPLETED", name: "COMPLETED" },
+  { id: "BILLED", name: "BILLED" },
+  { id: "DUE", name: "DUE" },
+];
 
 export default function BillHistoryPage() {
+  const queryClient = useQueryClient();
   const gridRef = useRef<AgGridReactType>(null);
   const [selectedBill, setSelectedBill] = useState<any>(null);
   const [statusFilter, setStatusFilter] = useState("ALL");
   const [searchBuffer, setSearchBuffer] = useState("");
-
+  const [paymentOrder, setPaymentOrder] = useState<any>(null);
+  const [isSubmitting, setIsSubmitting] = useState(false);
   const [dateRange, setDateRange] = useState<[dayjs.Dayjs, dayjs.Dayjs]>([
     dayjs().subtract(7, "day"),
     dayjs(),
@@ -48,7 +70,32 @@ export default function BillHistoryPage() {
       end: today.format("YYYY-MM-DD"),
     });
   };
+  // Inside BillHistoryPage component
+  const handlePaymentSubmit = async (orderId: string, payload: any) => {
+    setIsSubmitting(true);
+    const loadingToast = toast.loading("Processing Payment...");
 
+    try {
+      // Calling your specific API endpoint
+      await api.patch(`/orders/${orderId}/confirm-payment`, payload);
+
+      toast.dismiss(loadingToast);
+      toast.success("Payment successful!");
+      await queryClient.invalidateQueries({ queryKey: ["bill-history"] });
+      setPaymentOrder(null); // Close the modal
+
+      // REFRESH DATA:
+      // If using TanStack Query, use: queryClient.invalidateQueries(['billHistory']);
+      // Otherwise, call your manual refresh/fetch function here:
+      applyFilters();
+    } catch (err) {
+      toast.dismiss(loadingToast);
+      toast.error("Payment confirmation failed");
+      console.error("Payment Error:", err);
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
   const filteredData = useMemo(() => {
     if (!data) return [];
     if (statusFilter === "ALL") return data;
@@ -185,20 +232,28 @@ export default function BillHistoryPage() {
       },
       {
         headerName: "Action",
-        width: 80,
+        width: 120,
         pinned: "right",
-        sortable: false,
-        filter: false,
         cellRenderer: (params: any) => {
           if (params.data?.isPinnedRow) return null;
+          const isPending = ["BILLED", "DUE"].includes(params.data?.status);
+
           return (
-            <div className="flex justify-center items-center h-full">
+            <div className="flex justify-center items-center h-full gap-1">
               <button
                 onClick={() => setSelectedBill(params.data)}
-                className="p-2 text-slate-400 hover:text-slate-600 transition-all cursor-pointer"
+                className="..."
               >
                 <Eye size={18} />
               </button>
+              {isPending && (
+                <button
+                  onClick={() => setPaymentOrder(params.data)}
+                  className="p-2 text-emerald-500 hover:bg-emerald-50 rounded-lg transition-colors"
+                >
+                  <CheckCircle size={18} />
+                </button>
+              )}
             </div>
           );
         },
@@ -222,19 +277,14 @@ export default function BillHistoryPage() {
       {/* HEADER SECTION */}
       <header className="flex flex-col lg:flex-row justify-between items-center gap-6   py-6  ">
         <div className="flex bg-slate-100 p-1 rounded-xl">
-          {["ALL", "PAID", "BILLED"].map((s) => (
-            <button
-              key={s}
-              onClick={() => setStatusFilter(s)}
-              className={`px-8 py-2 rounded-lg text-[11px] font-black tracking-widest transition-all ${
-                statusFilter === s
-                  ? "bg-white shadow-md text-blue-600"
-                  : "text-slate-500 hover:text-slate-700"
-              }`}
-            >
-              {s}
-            </button>
-          ))}
+          <GenericDropdown
+            allLabel="All Status"
+            options={status_options}
+            selectedValue={statusFilter}
+            onSelect={(val) => setStatusFilter(val)}
+            showClear={true}
+            // icon={Utensils}
+          />
         </div>
 
         <div className="flex items-center gap-3">
@@ -288,6 +338,14 @@ export default function BillHistoryPage() {
         <BillReceiptModal
           order={selectedBill}
           onClose={() => setSelectedBill(null)}
+        />
+      )}
+      {paymentOrder && (
+        <ConfirmPaymentModal
+          order={paymentOrder}
+          loading={isSubmitting}
+          onClose={() => setPaymentOrder(null)}
+          onConfirm={handlePaymentSubmit}
         />
       )}
     </div>
