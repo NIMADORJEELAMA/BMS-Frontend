@@ -191,8 +191,24 @@ export default function DashboardPage() {
       await api.patch(`/orders/${orderId}/swap-table`, { newTableId });
       toast.success("Table swapped successfully!");
       // Refresh your data here or let Socket.io handle it
+      queryClient.invalidateQueries({ queryKey: ["table-layout"] });
     } catch (error) {
       toast.error("Failed to swap table");
+    }
+  };
+  const handleMergeRequest = async (
+    sourceOrderId: string,
+    targetTableId: string,
+  ) => {
+    try {
+      await api.patch(`/orders/${sourceOrderId}/merge-table`, {
+        targetTableId,
+      });
+      toast.success("Tables merged successfully!");
+      queryClient.invalidateQueries({ queryKey: ["table-layout"] });
+    } catch (error: any) {
+      const message = error.response?.data?.message || "Failed to merge tables";
+      toast.error(message);
     }
   };
 
@@ -236,6 +252,7 @@ export default function DashboardPage() {
             searchQuery={searchQuery}
             onSwapTables={handleSwapRequest}
             onTableClick={(table: any) => setSelectedTable(table)}
+            onMergeTables={handleMergeRequest}
           />
         </main>
       </div>
