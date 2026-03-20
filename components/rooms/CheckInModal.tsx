@@ -135,9 +135,15 @@ export default function CheckInModal({ isOpen, onClose, gridData }: any) {
     if (isOpen && gridData) {
       // If editing existing record, skip selection
       setMode(gridData.id ? "FORM" : "SELECTION");
+      const checkIn = gridData.date
+        ? dayjs(gridData.date).startOf("day")
+        : dayjs().startOf("day");
 
-      const checkIn = gridData.date ? dayjs(gridData.date) : dayjs();
+      // Set checkout to 11 AM the next day
       const checkOut = checkIn.add(1, "day").hour(11).minute(0);
+
+      // const checkIn = gridData.date ? dayjs(gridData.date) : dayjs();
+      // const checkOut = checkIn.add(1, "day").hour(11).minute(0);
 
       form.reset({
         roomId: gridData.roomId || gridData.room?.id || "",

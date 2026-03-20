@@ -134,7 +134,8 @@ export default function BookingManagerModal({
   });
   const watchedMisc = Number(form.watch("miscCharges") ?? 0);
   const watchedDiscount = Number(form.watch("discount") ?? 0);
-
+  const watchedCheckIn = form.watch("checkInDate");
+  const watchedCheckOut = form.watch("checkOutDate");
   const confirmCheckInMutation = useMutation({
     mutationFn: (id: string) => {
       const currentFormData = form.getValues();
@@ -188,15 +189,15 @@ export default function BookingManagerModal({
 
   // Calculate Room Total (Simplified version of your logic)
   const nights =
-    booking?.checkIn && booking?.checkOut
+    watchedCheckIn && watchedCheckOut
       ? Math.max(
           1,
           differenceInDays(
-            startOfDay(new Date(booking.checkOut)),
-            startOfDay(new Date(booking.checkIn)),
+            startOfDay(new Date(watchedCheckOut)),
+            startOfDay(new Date(watchedCheckIn)),
           ),
         )
-      : 0;
+      : 1;
   const roomTotal = nights * Number(booking?.room?.basePrice || 0);
   // const grandTotal = roomTotal + foodTotal;
 
@@ -271,6 +272,7 @@ export default function BookingManagerModal({
     }) =>
       api.post(`/rooms/bookings/${booking.id}/checkout`, {
         ...payload,
+        checkOutDate: watchedCheckOut,
         totalBill: grandTotal,
         discount: watchedDiscount,
         miscCharges: watchedMisc,
