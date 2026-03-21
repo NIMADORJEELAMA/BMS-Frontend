@@ -78,6 +78,31 @@ export default function BillReceiptModal({
         order?.customerName ? `CUSTOMER: ${order?.customerName}\n` : "",
         order?.customerPhone ? `PHONE   : ${order?.customerPhone}\n` : "",
       ].join("");
+      const paymentInfo = (() => {
+        if (isSplit) {
+          return [
+            padRight("CASH AMOUNT", 38) +
+              padLeft(String(order.amountCash || 0), 10) +
+              "\n",
+            padRight("ONLINE AMOUNT", 38) +
+              padLeft(String(order.amountOnline || 0), 10) +
+              "\n",
+          ].join("");
+        } else if (order.paymentMode === "CASH") {
+          return (
+            padRight("CASH PAID", 38) +
+            padLeft(String(order.totalAmount), 10) +
+            "\n"
+          );
+        } else if (order.paymentMode === "ONLINE") {
+          return (
+            padRight("ONLINE PAID", 38) +
+            padLeft(String(order.totalAmount), 10) +
+            "\n"
+          );
+        }
+        return "";
+      })();
       const receipt = [
         CENTER,
         BOLD_ON,
@@ -105,6 +130,7 @@ export default function BillReceiptModal({
           padLeft(String(order.totalAmount), 10) +
           "\n",
         "-".repeat(LINE_WIDTH) + "\n",
+        paymentInfo,
         padRight("GRAND TOTAL", 38) +
           padLeft("Rs." + String(order.totalAmount), 10) +
           "\n",
@@ -129,104 +155,6 @@ export default function BillReceiptModal({
       toast.error("Printing failed: " + (err.message || "Check QZ Tray"));
     }
   };
-  //   const printThermal = () => {
-  //     const win = window.open("", "", "width=1200,height=1200");
-  //     if (!win) return;
-  //     const LINE_WIDTH = 48;
-  //     const centerText = (text: string) => {
-  //       if (text.length >= LINE_WIDTH) return text;
-
-  //       let totalPadding = LINE_WIDTH - text.length;
-
-  //       // 🎯 Dynamic correction (stronger for longer text)
-  //       let adjustment = 0;
-  //       if (text.length > 34) adjustment = 3;
-  //       else if (text.length > 30) adjustment = 2;
-  //       else if (text.length > 26) adjustment = 1;
-
-  //       const leftPadding = Math.floor(totalPadding / 2) - adjustment;
-
-  //       return " ".repeat(leftPadding > 0 ? leftPadding : 0) + text;
-  //     };
-  //     // Standard 80mm thermal printers usually support 48 characters in 'Font A'
-
-  //     const padRight = (text: string, len: number) =>
-  //       text.length >= len
-  //         ? text.slice(0, len)
-  //         : text + " ".repeat(len - text.length);
-
-  //     const padLeft = (text: string, len: number) =>
-  //       text.length >= len
-  //         ? text.slice(0, len)
-  //         : " ".repeat(len - text.length) + text;
-
-  //     // BUDGET (48): Name(24) + Qty(6) + Rate(8) + Amt(10)
-  //     const itemsText = order.items
-  //       ?.filter((item: any) => item.status !== "CANCELLED")
-  //       ?.map((item: any) => {
-  //         const name = padRight(String(item.menuItem.name).toUpperCase(), 22);
-  //         const qty = padLeft(String(item.quantity), 6);
-  //         const rate = padLeft(String(item.priceAtOrder), 8);
-  //         const amt = padLeft(String(item.priceAtOrder * item.quantity), 10);
-  //         return `${name}${qty}${rate}${amt}`;
-  //       })
-  //       .join("\n");
-
-  //     const separator = "-".repeat(LINE_WIDTH);
-
-  //     const receiptString = `
-  // ${"  GAIRIGAON HILL ECO TOURISM"}
-  // ${centerText("Jaigaon, West Bengal")}
-  // ${centerText("+91-7547957222")}
-  // ${separator}
-  // BILL NO : #${shortId}
-  // TABLE   : ${order.table?.number || "N/A"}
-  // WAITER  : ${order.waiter?.name || "N/A"}
-  // DATE    : ${dayjs(order.updatedAt).format("DD/MM/YYYY  hh:mm A")}
-  // ${separator}
-  // ITEM                     QTY    RATE       AMT
-  // ${separator}
-  // ${itemsText}
-  // ${separator}
-  // SUBTOTAL                          ${padLeft(String(order.totalAmount), 12)}
-  // GRAND TOTAL                       ${padLeft(String(order.totalAmount), 12)}
-  // ${separator}
-  // MODE: ${order.paymentMode || "PENDING"}
-  // ${isSplit ? `CASH: ${padLeft(String(order.amountCash), 14)}\nONLINE: ${padLeft(String(order.amountOnline), 12)}` : ""}
-  // ${separator}
-  // ${centerText("THANK YOU!")}
-  // ${centerText("PLEASE VISIT AGAIN")}
-  // \n\n\n\n
-  // `;
-
-  //     win.document.write(`
-  //       <html><head><style>
-  //         @page {
-  //           margin: 0;
-  //           size: 80mm auto;
-  //         }
-  //         body {
-  //           font-family: 'Courier New', Courier, monospace;
-  //           font-size: 14px; /* Slightly larger for 80mm */
-  //           font-weight: bold; /* Thermal printers look better with bold mono */
-  //           line-height: 1.1;
-  //           white-space: pre;
-  //           margin: 0;
-  //             padding-bottom: 25mm;
-  //           padding: 4mm; /* Adjusted padding */
-  //           width: 72mm;
-  //         }
-  //       </style></head>
-  //       <body>${receiptString}</body></html>
-  //     `);
-  //     win.document.close();
-
-  //     // Crucial: Wait for fonts to load before printing
-  //     win.onload = () => {
-  //       win.print();
-  //       win.close();
-  //     };
-  //   };
 
   /* ================= PDF DOWNLOAD LOGIC ================= */
   const downloadPDF = async () => {
@@ -317,6 +245,29 @@ export default function BillReceiptModal({
       </table>
 
       <div className="border-t border-black pt-2 mt-2">
+        {/* Payment Breakdown Section */}
+        <div className="text-[12px] space-y-1 mb-2">
+          {isSplit ? (
+            <>
+              <div className="flex justify-between">
+                <span>CASH AMOUNT:</span>
+                <span>₹{order.amountCash}</span>
+              </div>
+              <div className="flex justify-between">
+                <span>ONLINE AMOUNT:</span>
+                <span>₹{order.amountOnline}</span>
+              </div>
+            </>
+          ) : (
+            <div className="flex justify-between font-medium">
+              <span>{order.paymentMode} PAYMENT:</span>
+              <span>₹{order.totalAmount}</span>
+            </div>
+          )}
+        </div>
+
+        <div className="border-t border-dashed border-gray-400 my-1" />
+
         <div className="flex justify-between font-bold text-base">
           <span>GRAND TOTAL</span>
           <span>₹{order.totalAmount}</span>

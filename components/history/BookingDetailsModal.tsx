@@ -313,7 +313,8 @@
 //       </div>
 //     </div>
 //   );
-// }"use client";
+// }
+"use client";
 import { X, Printer, Download } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import jsPDF from "jspdf";

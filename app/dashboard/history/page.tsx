@@ -137,6 +137,7 @@ export default function BookingHistoryPage() {
         headerName: "Guest",
         field: "guestName",
         flex: 1.5,
+        minWidth: 100,
         // Bold the "TOTALS" label
         cellStyle: (params) =>
           params.node.isRowPinned()
