@@ -46,17 +46,35 @@ export default function OrderModal({
   const [cashAmount, setCashAmount] = useState<number>(0);
   const [onlineAmount, setOnlineAmount] = useState<number>(0);
   const [isConfirmOpen, setIsConfirmOpen] = useState(false);
+  const [discount, setDiscount] = useState<number>(0);
+  const [miscCharges, setMiscCharges] = useState<number>(0);
   const [paymentType, setPaymentType] = useState<
     "FULL_CASH" | "FULL_UPI" | "DUE"
   >("FULL_CASH");
   // Update amounts whenever order total changes or split is toggled
+
+  const calculateFinalPayable = () => {
+    // Ensure we are working with numbers to avoid "3700" + "0" = "37000"
+    const baseTotal = Number(order?.totalAmount || calculateTotal());
+    const misc = Number(miscCharges) || 0;
+    const disc = Number(discount) || 0;
+
+    return Math.max(0, baseTotal + misc - disc);
+  };
   useEffect(() => {
     if (order) {
-      const total = Number(order.totalAmount || calculateTotal());
-      setOnlineAmount(total);
+      const finalTotal = calculateFinalPayable();
+      setOnlineAmount(Number(finalTotal));
       setCashAmount(0);
     }
-  }, [order, isSplitPay]);
+  }, [order, isSplitPay, discount, miscCharges]);
+  // useEffect(() => {
+  //   if (order) {
+  //     const total = Number(order.totalAmount || calculateTotal());
+  //     setOnlineAmount(total);
+  //     setCashAmount(0);
+  //   }
+  // }, [order, isSplitPay]);
 
   // Helper to auto-calculate the other field
   const handleCashChange = (val: number) => {
@@ -221,44 +239,47 @@ export default function OrderModal({
   ) => {
     if (!order) return;
 
-    const total = Number(order.totalAmount || calculateTotal());
+    // Force all inputs to Numbers to prevent "3700" + "0" = "37000"
+    const finalPayableAmount = Number(calculateFinalPayable());
 
-    // Initialize payload with the new fields
     let payload: any = {
       cash: 0,
       online: 0,
       isDue: false,
-      customerName: "",
-      customerPhone: "",
+      customerName,
+      customerPhone,
+      discount: Number(discount) || 0,
+      miscCharges: Number(miscCharges) || 0,
+      finalAmount: finalPayableAmount,
     };
 
     if (type === "FULL_CASH") {
-      payload = { ...payload, cash: total, online: 0 };
+      payload.cash = finalPayableAmount;
+      payload.online = 0;
     } else if (type === "FULL_UPI") {
-      payload = { ...payload, cash: 0, online: total };
+      payload.cash = 0;
+      payload.online = finalPayableAmount;
     } else if (type === "DUE") {
-      // 1. Validation for Due: You need a way to identify the person later
       if (!customerName && !customerPhone) {
         toast.error("Please provide a Name or Phone for Due orders");
         return;
       }
-      payload = {
-        ...payload,
-        cash: 0,
-        online: 0,
-        isDue: true,
-        customerName,
-        customerPhone,
-      };
+      payload.isDue = true;
+      payload.cash = 0;
+      payload.online = 0;
     } else {
-      // SPLIT logic
-      payload = { ...payload, cash: cashAmount, online: onlineAmount };
-    }
+      // SPLIT logic: Use the new finalPayableAmount variable here
+      const currentSplitTotal = Number(cashAmount) + Number(onlineAmount);
 
-    // 2. Validation: Ensure total matches (Skip this check for DUE types)
-    if (type !== "DUE" && payload.cash + payload.online !== total) {
-      toast.error(`Total must equal ₹${total}`);
-      return;
+      // Using Math.round to avoid floating point issues (e.g. 0.1 + 0.2)
+      if (Math.round(currentSplitTotal) !== Math.round(finalPayableAmount)) {
+        toast.error(
+          `Split total (₹${currentSplitTotal}) must equal ₹${finalPayableAmount}`,
+        );
+        return;
+      }
+      payload.cash = Number(cashAmount);
+      payload.online = Number(onlineAmount);
     }
 
     try {
@@ -276,11 +297,7 @@ export default function OrderModal({
       onRefresh();
       onClose();
     } catch (err) {
-      toast.error(
-        type === "DUE"
-          ? "Failed to save due record"
-          : "Payment confirmation failed",
-      );
+      toast.error("Payment confirmation failed");
     }
   };
 
@@ -408,7 +425,7 @@ export default function OrderModal({
       ].join("");
 
       const shortId = order.id.slice(-8).toUpperCase();
-
+      const finalPayable = calculateFinalPayable();
       // 4. Build the Plain Text Receipt String
       const receipt = [
         CENTER,
@@ -433,9 +450,15 @@ export default function OrderModal({
         "-".repeat(LINE_WIDTH) + "\n",
         itemsText + "\n",
         "-".repeat(LINE_WIDTH) + "\n",
-        padRight("GRAND TOTAL", 38) +
-          padLeft("Rs." + (order.totalAmount || calculateTotal()), 10) +
-          "\n",
+        discount > 0
+          ? padRight("DISCOUNT", 38) + padLeft("-Rs." + discount, 10) + "\n"
+          : "",
+        miscCharges > 0
+          ? padRight("MISC CHARGES", 38) +
+            padLeft("+Rs." + miscCharges, 10) +
+            "\n"
+          : "",
+        padRight("GRAND TOTAL", 38) + padLeft("Rs." + finalPayable, 10) + "\n",
         "-".repeat(LINE_WIDTH) + "\n",
         CENTER,
         "THANK YOU!\n",
@@ -580,8 +603,46 @@ export default function OrderModal({
                   ))}
                 </div>
               </div>
+              <div className="grid grid-cols-2 gap-4 bg-gray-50 p-3 rounded-xl border border-gray-100">
+                <div className="space-y-1">
+                  <label className="text-[10px] uppercase font-bold text-red-600">
+                    Discount (₹)
+                  </label>
+                  <input
+                    type="number"
+                    value={discount}
+                    onChange={(e) => setDiscount(Number(e.target.value))}
+                    className="w-full h-8 px-2 rounded-lg border border-gray-300 text-sm font-bold focus:ring-red-500"
+                    placeholder="0"
+                  />
+                </div>
+                <div className="space-y-1">
+                  <label className="text-[10px] uppercase font-bold text-gray-700">
+                    Misc Charges (₹)
+                  </label>
+                  <input
+                    type="number"
+                    value={miscCharges}
+                    onChange={(e) => setMiscCharges(Number(e.target.value))}
+                    className="w-full h-8 px-2 rounded-lg border border-gray-300 text-sm font-bold focus:ring-blue-500"
+                    placeholder="0"
+                  />
+                </div>
+              </div>
 
+              {/* Update the Grand Total Display */}
               <div className="pt-6 border-t border-gray-100">
+                <div className="flex justify-between items-end">
+                  <span className="text-sm font-black text-gray-900 uppercase">
+                    Grand Total
+                  </span>
+                  <span className="text-4xl font-black text-blue-600 tracking-tighter">
+                    ₹{calculateFinalPayable()}
+                  </span>
+                </div>
+              </div>
+
+              {/* <div className="pt-6 border-t border-gray-100">
                 <div className="flex justify-between items-end">
                   <span className="text-sm font-black text-gray-900 uppercase">
                     Grand Total
@@ -590,7 +651,7 @@ export default function OrderModal({
                     ₹{order?.totalAmount || calculateTotal()}
                   </span>
                 </div>
-              </div>
+              </div> */}
 
               {/* /////split */}
 

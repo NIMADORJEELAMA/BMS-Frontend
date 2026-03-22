@@ -62,7 +62,7 @@ export default function BillReceiptModal({
 
       // Formatting items: Name(22) Qty(6) Rate(10) Amt(10) = 48 chars
       const itemsText = (order.items || [])
-        .filter((item: any) => item.status !== "CANCELLED")
+        .filter((item: any) => item.status === "SERVED")
         .map((item: any) => {
           const name = padRight(
             (item.menuItem?.name || "Unknown").toUpperCase(),
@@ -229,7 +229,7 @@ export default function BillReceiptModal({
         </thead>
         <tbody>
           {order.items
-            ?.filter((item: any) => item.status !== "CANCELLED")
+            ?.filter((item: any) => item.status === "SERVED")
             .map((item: any, i: number) => (
               <tr key={i}>
                 <td className="py-1 uppercase text-[11px]">

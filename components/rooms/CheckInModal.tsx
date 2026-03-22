@@ -133,17 +133,23 @@ export default function CheckInModal({ isOpen, onClose, gridData }: any) {
 
   useEffect(() => {
     if (isOpen && gridData) {
-      // If editing existing record, skip selection
       setMode(gridData.id ? "FORM" : "SELECTION");
-      const checkIn = gridData.date
-        ? dayjs(gridData.date).startOf("day")
-        : dayjs().startOf("day");
 
-      // Set checkout to 11 AM the next day
+      // 1. If it's a new check-in/booking, use current time for hour/min precision
+      // 2. If it's an existing record (gridData.id), use the stored date
+      let checkIn = dayjs();
+
+      if (gridData.id) {
+        // Use existing record's date if we are editing
+        checkIn = dayjs(gridData.checkIn || gridData.date);
+      } else if (gridData.date) {
+        // If clicking a grid but it's a NEW entry,
+        // combine grid date with CURRENT time to avoid the midnight bug
+        const now = dayjs();
+        checkIn = dayjs(gridData.date).hour(now.hour()).minute(now.minute());
+      }
+
       const checkOut = checkIn.add(1, "day").hour(11).minute(0);
-
-      // const checkIn = gridData.date ? dayjs(gridData.date) : dayjs();
-      // const checkOut = checkIn.add(1, "day").hour(11).minute(0);
 
       form.reset({
         roomId: gridData.roomId || gridData.room?.id || "",
@@ -160,6 +166,37 @@ export default function CheckInModal({ isOpen, onClose, gridData }: any) {
       });
     }
   }, [isOpen, gridData, form]);
+
+  // useEffect(() => {
+  //   if (isOpen && gridData) {
+  //     // If editing existing record, skip selection
+  //     setMode(gridData.id ? "FORM" : "SELECTION");
+  //     const checkIn = gridData.date ? dayjs(gridData.date) : dayjs();
+  //     // const checkIn = gridData.date
+  //     //   ? dayjs(gridData.date).startOf("day")
+  //     //   : dayjs().startOf("day");
+
+  //     // Set checkout to 11 AM the next day
+  //     const checkOut = checkIn.add(1, "day").hour(11).minute(0);
+
+  //     // const checkIn = gridData.date ? dayjs(gridData.date) : dayjs();
+  //     // const checkOut = checkIn.add(1, "day").hour(11).minute(0);
+
+  //     form.reset({
+  //       roomId: gridData.roomId || gridData.room?.id || "",
+  //       guestName: gridData.guestName || "",
+  //       guestPhone: gridData.guestPhone || "",
+  //       documentId: gridData.documentId || "",
+  //       address: gridData.address || "",
+  //       documentType: gridData.documentType || "aadhar",
+  //       cashAmount: gridData.cashAmount || 0,
+  //       onlineAmount: gridData.onlineAmount || 0,
+  //       checkInDate: checkIn.toISOString(),
+  //       checkOutDate: checkOut.toISOString(),
+  //       secondaryGuests: gridData.secondaryGuests || [],
+  //     });
+  //   }
+  // }, [isOpen, gridData, form]);
 
   const onSubmit: SubmitHandler<BookingValues> = (data) => {
     const totalAdvance =

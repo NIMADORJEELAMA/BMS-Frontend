@@ -135,6 +135,7 @@ export default function BookingHistoryModal({
   });
   const watchedMisc = Number(form.watch("miscCharges") ?? 0);
   const watchedDiscount = Number(form.watch("discount") ?? 0);
+  const watchedCheckOut = form.watch("checkOutDate");
 
   const confirmCheckInMutation = useMutation({
     mutationFn: (id: string) => {
@@ -272,10 +273,12 @@ export default function BookingHistoryModal({
     }) =>
       api.post(`/rooms/bookings/${booking.id}/checkout`, {
         ...payload,
+        checkOutDate: watchedCheckOut,
         totalBill: grandTotal,
         discount: watchedDiscount,
         miscCharges: watchedMisc,
       }),
+
     onSuccess: () => {
       toast.success("Guest checked out successfully.");
       queryClient.invalidateQueries({ queryKey: ["room-timeline"] });
