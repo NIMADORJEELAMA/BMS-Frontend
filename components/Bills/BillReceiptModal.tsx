@@ -11,11 +11,13 @@ interface BillReceiptModalProps {
   order: any;
   onClose: () => void;
 }
+
 declare global {
-  interface Window {
+  interface window {
     qz: any;
   }
 }
+
 export default function BillReceiptModal({
   order,
   onClose,
@@ -23,11 +25,18 @@ export default function BillReceiptModal({
   const receiptRef = useRef<HTMLDivElement>(null);
   if (!order) return null;
 
-  console.log("order", order);
   const isSplit = order.paymentMode === "SPLIT";
   const shortId = order.id.slice(-8).toUpperCase();
 
-  /* ================= PRINT LOGIC (80mm Optimized) ================= */
+  // Helper to ensure numeric values
+  const misc = Number(order.miscCharges || 0);
+  const discount = Number(order.discount || 0);
+  const rawItemsTotal = (order.items || [])
+    .filter((i: any) => i.status === "SERVED")
+    .reduce(
+      (acc: number, item: any) => acc + item.priceAtOrder * item.quantity,
+      0,
+    );
 
   /* ================= PRINT LOGIC (80mm Optimized) ================= */
 
@@ -38,7 +47,6 @@ export default function BillReceiptModal({
         return;
       }
 
-      // Ensure connection
       if (!window.qz.websocket.isActive()) {
         await window.qz.websocket.connect();
       }
@@ -48,7 +56,7 @@ export default function BillReceiptModal({
       const LEFT = ESC + "a" + "\x00";
       const BOLD_ON = ESC + "E" + "\x01";
       const BOLD_OFF = ESC + "E" + "\x00";
-      const LINE_WIDTH = 48; // Standard for 80mm
+      const LINE_WIDTH = 48;
 
       const padRight = (text: string, len: number) =>
         text.length >= len
@@ -60,7 +68,6 @@ export default function BillReceiptModal({
           ? text.slice(0, len)
           : " ".repeat(len - text.length) + text;
 
-      // Formatting items: Name(22) Qty(6) Rate(10) Amt(10) = 48 chars
       const itemsText = (order.items || [])
         .filter((item: any) => item.status === "SERVED")
         .map((item: any) => {
@@ -74,35 +81,7 @@ export default function BillReceiptModal({
           return `${name}${qty}${rate}${amt}`;
         })
         .join("\n");
-      const customerInfo = [
-        order?.customerName ? `CUSTOMER: ${order?.customerName}\n` : "",
-        order?.customerPhone ? `PHONE   : ${order?.customerPhone}\n` : "",
-      ].join("");
-      const paymentInfo = (() => {
-        if (isSplit) {
-          return [
-            padRight("CASH AMOUNT", 38) +
-              padLeft(String(order.amountCash || 0), 10) +
-              "\n",
-            padRight("ONLINE AMOUNT", 38) +
-              padLeft(String(order.amountOnline || 0), 10) +
-              "\n",
-          ].join("");
-        } else if (order.paymentMode === "CASH") {
-          return (
-            padRight("CASH PAID", 38) +
-            padLeft(String(order.totalAmount), 10) +
-            "\n"
-          );
-        } else if (order.paymentMode === "ONLINE") {
-          return (
-            padRight("ONLINE PAID", 38) +
-            padLeft(String(order.totalAmount), 10) +
-            "\n"
-          );
-        }
-        return "";
-      })();
+
       const receipt = [
         CENTER,
         BOLD_ON,
@@ -114,8 +93,7 @@ export default function BillReceiptModal({
         "-".repeat(LINE_WIDTH) + "\n",
         `BILL NO : #${shortId}\n`,
         `TABLE   : ${order.table?.number || "N/A"}\n`,
-        `WAITER  : ${order.waiter?.name || "N/A"}\n`,
-        customerInfo,
+        `WAITER   : ${order.waiter?.name || "N/A"}\n`,
         `DATE    : ${dayjs(order.updatedAt).format("DD/MM/YYYY hh:mm A")}\n`,
         "-".repeat(LINE_WIDTH) + "\n",
         padRight("ITEM", 22) +
@@ -126,24 +104,27 @@ export default function BillReceiptModal({
         "-".repeat(LINE_WIDTH) + "\n",
         itemsText + "\n",
         "-".repeat(LINE_WIDTH) + "\n",
-        padRight("SUBTOTAL", 38) +
-          padLeft(String(order.totalAmount), 10) +
-          "\n",
+        padRight("ITEMS TOTAL", 38) + padLeft(String(rawItemsTotal), 10) + "\n",
+        misc > 0
+          ? padRight("MISC CHARGES (+)", 38) + padLeft(String(misc), 10) + "\n"
+          : "",
+        discount > 0
+          ? padRight("DISCOUNT (-)", 38) + padLeft(String(discount), 10) + "\n"
+          : "",
         "-".repeat(LINE_WIDTH) + "\n",
-        paymentInfo,
+        BOLD_ON,
         padRight("GRAND TOTAL", 38) +
           padLeft("Rs." + String(order.totalAmount), 10) +
           "\n",
-
+        BOLD_OFF,
         "-".repeat(LINE_WIDTH) + "\n",
         CENTER,
-        "THANK YOU!\n",
-        "PLEASE VISIT AGAIN\n\n\n\x1Bm", // \x1Bm is paper cut for some printers
+        "THANK YOU! VISIT AGAIN\n\n\n\x1Bm",
       ].join("");
 
       const printerName = localStorage.getItem("printer");
       if (!printerName) {
-        alert("Please select a printer in the settings first.");
+        alert("Please select a printer in settings.");
         return;
       }
 
@@ -155,7 +136,6 @@ export default function BillReceiptModal({
       toast.error("Printing failed: " + (err.message || "Check QZ Tray"));
     }
   };
-
   /* ================= PDF DOWNLOAD LOGIC ================= */
   const downloadPDF = async () => {
     const element = receiptRef.current;
@@ -175,10 +155,9 @@ export default function BillReceiptModal({
       console.error("PDF Generation failed", err);
     }
   };
-
   /* ================= UI PREVIEW ================= */
   const ReceiptContent = () => (
-    <div className="w-[72mm] mx-auto text-black p-2 leading-tight text-left">
+    <div className="w-[72mm] mx-auto text-black p-2 leading-tight text-left font-mono">
       <div className="text-center mb-4">
         <h2 className="text-xl font-bold uppercase m-0">Gairigaon Hill</h2>
         <p className="text-[12px] m-0">Eco Tourism</p>
@@ -186,16 +165,18 @@ export default function BillReceiptModal({
         <p className="text-[11px] m-0">+91-7547957222</p>
       </div>
 
-      <div className="border-t border-dashed border-black my-2" />
-
       <div className="text-[12px] space-y-1">
         <div className="flex justify-between">
-          <span>BILL NO:</span>
+          <span>BILL:</span>
           <span className="font-bold">#{shortId}</span>
         </div>
         <div className="flex justify-between">
           <span>TABLE:</span>
           <span className="font-bold">{order.table?.number}</span>
+        </div>
+        <div className="flex justify-between">
+          <span>WAITER:</span>
+          <span className="font-bold">{order.waiter?.name}</span>
         </div>
         {order?.customerName && (
           <div className="flex justify-between">
@@ -211,9 +192,7 @@ export default function BillReceiptModal({
         )}
         <div className="flex justify-between">
           <span>DATE:</span>
-          <span className="font-bold">
-            {dayjs(order.updatedAt).format("DD/MM/YYYY hh:mm A")}
-          </span>
+          <span>{dayjs(order.updatedAt).format("DD/MM/YYYY HH:mm")}</span>
         </div>
       </div>
 
@@ -244,27 +223,25 @@ export default function BillReceiptModal({
         </tbody>
       </table>
 
-      <div className="border-t border-black pt-2 mt-2">
-        {/* Payment Breakdown Section */}
-        <div className="text-[12px] space-y-1 mb-2">
-          {isSplit ? (
-            <>
-              <div className="flex justify-between">
-                <span>CASH AMOUNT:</span>
-                <span>₹{order.amountCash}</span>
-              </div>
-              <div className="flex justify-between">
-                <span>ONLINE AMOUNT:</span>
-                <span>₹{order.amountOnline}</span>
-              </div>
-            </>
-          ) : (
-            <div className="flex justify-between font-medium">
-              <span>{order.paymentMode} PAYMENT:</span>
-              <span>₹{order.totalAmount}</span>
-            </div>
-          )}
+      <div className="border-t border-black pt-2 mt-2 space-y-1 text-[12px]">
+        <div className="flex justify-between">
+          <span>Items Total:</span>
+          <span>₹{rawItemsTotal}</span>
         </div>
+
+        {misc > 0 && (
+          <div className="flex justify-between">
+            <span>Misc Charges (+):</span>
+            <span>₹{misc}</span>
+          </div>
+        )}
+
+        {discount > 0 && (
+          <div className="flex justify-between text-red-600">
+            <span>Discount (-):</span>
+            <span>₹{discount}</span>
+          </div>
+        )}
 
         <div className="border-t border-dashed border-gray-400 my-1" />
 
@@ -272,10 +249,29 @@ export default function BillReceiptModal({
           <span>GRAND TOTAL</span>
           <span>₹{order.totalAmount}</span>
         </div>
+
+        <div className="pt-2 text-[11px]">
+          <div className="flex justify-between">
+            <span>MODE:</span>
+            <span className="uppercase">{order.paymentMode}</span>
+          </div>
+          {isSplit && (
+            <>
+              <div className="flex justify-between text-[10px] pl-2">
+                <span>- Cash:</span>
+                <span>₹{order.amountCash}</span>
+              </div>
+              <div className="flex justify-between text-[10px] pl-2">
+                <span>- Online:</span>
+                <span>₹{order.amountOnline}</span>
+              </div>
+            </>
+          )}
+        </div>
       </div>
 
       <div className="text-center mt-6 text-[11px]">
-        <div className="font-bold uppercase italic">Status: {order.status}</div>
+        <div className="font-bold italic">Status: {order.status}</div>
         <div>Thank You! Please Visit Again.</div>
       </div>
     </div>
@@ -294,9 +290,8 @@ export default function BillReceiptModal({
           <X size={18} />
         </Button>
       </div>
-
       <div className="bg-white p-4 shadow-2xl max-h-[90vh] overflow-y-auto rounded-sm">
-        <div ref={receiptRef} className="bg-white text-black font-mono">
+        <div ref={receiptRef} className="bg-white text-black">
           <ReceiptContent />
         </div>
       </div>

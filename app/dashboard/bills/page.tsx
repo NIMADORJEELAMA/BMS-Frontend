@@ -105,15 +105,24 @@ export default function BillHistoryPage() {
   /* ================= PINNED TOTAL ROW ================= */
   const pinnedBottomRowData = useMemo(() => {
     if (!filteredData.length) return [];
-    const total = filteredData.reduce(
-      (sum: number, item: any) => sum + Number(item.totalAmount || 0),
-      0,
+
+    const totals = filteredData.reduce(
+      (acc: any, item: any) => {
+        acc.totalAmount += Number(item.totalAmount || 0);
+        acc.amountCash += Number(item.amountCash || 0);
+        acc.amountOnline += Number(item.amountOnline || 0);
+        return acc;
+      },
+      { totalAmount: 0, amountCash: 0, amountOnline: 0 },
     );
+
     return [
       {
-        isPinnedRow: true, // Custom flag to identify the row in renderers
+        isPinnedRow: true,
         table: { number: "TOTAL" },
-        totalAmount: total,
+        totalAmount: totals.totalAmount,
+        amountCash: totals.amountCash, // Added
+        amountOnline: totals.amountOnline, // Added
         status: "",
         paymentMode: "",
         updatedAt: null,
@@ -192,6 +201,52 @@ export default function BillHistoryPage() {
         filter: false,
         valueFormatter: (p) =>
           p.data?.isPinnedRow ? "" : p.value?.toUpperCase() || "PENDING",
+      },
+      {
+        headerName: "Cash",
+        field: "amountCash",
+        filter: false,
+        width: 160,
+        // 1. Remove default padding and align text to right via AG Grid class
+        cellClass: "p-0 text-right",
+        cellRenderer: (params: any) => {
+          const isPinned = params.data?.isPinnedRow;
+
+          return (
+            <div
+              className={`flex items-center justify-end h-full w-full p-6  font-mono transition-colors ${
+                isPinned
+                  ? "font-black text-emerald-900  "
+                  : "font-bold text-emerald-700  "
+              }`}
+            >
+              ₹{Number(params.value).toLocaleString()}
+            </div>
+          );
+        },
+      },
+      {
+        headerName: "Online",
+        field: "amountOnline",
+        filter: false,
+        width: 160,
+        // 1. Remove default padding and align text to right via AG Grid class
+        cellClass: "p-0 text-right",
+        cellRenderer: (params: any) => {
+          const isPinned = params.data?.isPinnedRow;
+
+          return (
+            <div
+              className={`flex items-center justify-end h-full w-full p-6  font-mono transition-colors ${
+                isPinned
+                  ? "font-black text-emerald-900  "
+                  : "font-bold text-emerald-700  "
+              }`}
+            >
+              ₹{Number(params.value).toLocaleString()}
+            </div>
+          );
+        },
       },
 
       {

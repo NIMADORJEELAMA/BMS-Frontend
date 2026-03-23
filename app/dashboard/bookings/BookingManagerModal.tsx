@@ -147,7 +147,7 @@ export default function BookingManagerModal({
     },
     onSuccess: () => {
       toast.success("Details saved and Guest checked in!");
-      queryClient.invalidateQueries({ queryKey: ["room-timeline"] });
+      queryClient.invalidateQueries({ queryKey: ["booking-history"] });
       queryClient.invalidateQueries({ queryKey: ["rooms"] });
       onClose();
     },
@@ -163,7 +163,7 @@ export default function BookingManagerModal({
 
     onSuccess: () => {
       toast.success("Booking cancelled");
-      queryClient.invalidateQueries({ queryKey: ["room-timeline"] });
+      queryClient.invalidateQueries({ queryKey: ["booking-history"] });
       queryClient.invalidateQueries({ queryKey: ["rooms"] });
       setCancelReason("");
       onClose();
@@ -248,7 +248,7 @@ export default function BookingManagerModal({
       api.patch(`/rooms/bookings/${booking.id}`, data),
     onSuccess: () => {
       // This forces the Gantt Chart to refetch from the server
-      queryClient.invalidateQueries({ queryKey: ["room-timeline"] });
+      queryClient.invalidateQueries({ queryKey: ["booking-history"] });
 
       // Also invalidate the specific details for this booking
       queryClient.invalidateQueries({
@@ -279,7 +279,7 @@ export default function BookingManagerModal({
       }),
     onSuccess: () => {
       toast.success("Guest checked out successfully.");
-      queryClient.invalidateQueries({ queryKey: ["room-timeline"] });
+      queryClient.invalidateQueries({ queryKey: ["booking-history"] });
       setIsPaymentModalOpen(false);
       onClose();
     },

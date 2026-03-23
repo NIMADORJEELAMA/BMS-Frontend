@@ -75,13 +75,22 @@ export default function OrderModal({
   //     setCashAmount(0);
   //   }
   // }, [order, isSplitPay]);
-
-  // Helper to auto-calculate the other field
   const handleCashChange = (val: number) => {
-    const total = Number(order.totalAmount || calculateTotal());
+    // Use the function that accounts for discount and misc charges
+    const finalTotal = calculateFinalPayable();
+
     setCashAmount(val);
-    setOnlineAmount(Math.max(0, total - val));
+
+    // Calculate the remainder, but don't go below 0
+    const remainder = Math.max(0, finalTotal - val);
+    setOnlineAmount(remainder);
   };
+  // Helper to auto-calculate the other field
+  // const handleCashChange = (val: number) => {
+  //   const total = Number(order.totalAmount || calculateTotal());
+  //   setCashAmount(val);
+  //   setOnlineAmount(Math.max(0, total - val));
+  // };
 
   const [isBilled, setIsBilled] = useState(false);
   const fetchActiveOrder = useCallback(async () => {
@@ -269,15 +278,24 @@ export default function OrderModal({
       payload.online = 0;
     } else {
       // SPLIT logic: Use the new finalPayableAmount variable here
+      // 1. Re-calculate the absolute total fresh to avoid stale state issues
+      const baseTotal = Number(order.totalAmount || calculateTotal());
+      const currentFinalPayable = Math.max(
+        0,
+        baseTotal + Number(miscCharges) - Number(discount),
+      );
+
+      // 2. Sum the current split inputs
       const currentSplitTotal = Number(cashAmount) + Number(onlineAmount);
 
-      // Using Math.round to avoid floating point issues (e.g. 0.1 + 0.2)
-      if (Math.round(currentSplitTotal) !== Math.round(finalPayableAmount)) {
+      // 3. Compare using Math.round to handle JS floating point math (e.g., 0.1 + 0.2)
+      if (Math.round(currentSplitTotal) !== Math.round(currentFinalPayable)) {
         toast.error(
-          `Split total (₹${currentSplitTotal}) must equal ₹${finalPayableAmount}`,
+          `Split total (₹${currentSplitTotal}) must equal Grand Total (₹${currentFinalPayable})`,
         );
         return;
       }
+
       payload.cash = Number(cashAmount);
       payload.online = Number(onlineAmount);
     }
