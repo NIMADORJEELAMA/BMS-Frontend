@@ -1,175 +1,324 @@
 "use client";
-import { useEffect, useState } from "react";
-import api from "@/lib/axios";
+
+import { useState, useMemo } from "react";
+import { useDashboardReport } from "@/hooks/useReports";
 import {
   TrendingUp,
-  ShoppingBag,
-  ChevronRight,
-  Calendar,
-  Trophy,
+  Banknote,
+  CreditCard,
+  Utensils,
+  ArrowLeft,
   Download,
-  ArrowUpRight,
+  Calendar,
+  AlertCircle,
+  BarChart3,
+  Clock,
+  Layers,
+  Wallet,
 } from "lucide-react";
-import toast from "react-hot-toast";
+import "@/lib/agGrid";
 
-export default function SalesReportPage() {
-  const [report, setReport] = useState<any>(null);
-  const [loading, setLoading] = useState(true);
+import { DatePicker, Button, Card, Statistic, Space, Tooltip } from "antd";
+import { AgGridReact } from "ag-grid-react";
+import dayjs, { Dayjs } from "dayjs";
+import Link from "next/link";
 
-  const fetchReport = async () => {
-    try {
-      setLoading(true);
-      const res = await api.get("/orders/reports/daily");
-      setReport(res.data);
-    } catch (err) {
-      toast.error("Failed to fetch daily report");
-    } finally {
-      setLoading(false);
-    }
-  };
+const { RangePicker } = DatePicker;
 
-  useEffect(() => {
-    fetchReport();
-  }, []);
+export default function AdminReportPage() {
+  const [dateRange, setDateRange] = useState<[Dayjs | null, Dayjs | null]>([
+    dayjs().startOf("month"),
+    dayjs(),
+  ]);
 
-  if (loading)
-    return (
-      <div className="p-8 flex items-center justify-center min-h-screen text-gray-400 font-black uppercase text-xs tracking-widest animate-pulse">
-        Crunching Numbers...
-      </div>
-    );
+  const startDate = dateRange?.[0]?.format("YYYY-MM-DD");
+  const endDate = dateRange?.[1]?.format("YYYY-MM-DD");
+
+  const { data, isLoading } = useDashboardReport(startDate, endDate);
+
+  const columnDefs = useMemo(
+    () => [
+      {
+        headerName: "Item",
+        field: "name",
+        flex: 1,
+        cellRenderer: (params: any) => (
+          <span className="font-semibold text-slate-700">{params.value}</span>
+        ),
+      },
+      {
+        headerName: "Quantity Sold",
+        field: "quantity",
+        width: 140,
+        sortable: true,
+        cellRenderer: (params: any) => (
+          <span className="font-mono text-blue-600 font-bold">
+            {params.value}
+          </span>
+        ),
+      },
+      {
+        headerName: "% Contribution",
+        width: 140,
+        valueGetter: (params: any) => {
+          const total = data?.stats?.totalFoodItemsSold || 1;
+          return ((params.data.quantity / total) * 100).toFixed(1);
+        },
+        cellRenderer: (params: any) => (
+          <div className="flex items-center gap-2">
+            <div className="w-12 bg-slate-100 h-1.5 rounded-full overflow-hidden">
+              <div
+                className="bg-blue-400 h-full"
+                style={{ width: `${params.value}%` }}
+              />
+            </div>
+            <span className="text-[10px] font-bold text-slate-500">
+              {params.value}%
+            </span>
+          </div>
+        ),
+      },
+    ],
+    [data],
+  );
 
   return (
-    <div className="p-8 bg-[#F8F9FC] min-h-screen">
-      <div className="max-w-5xl mx-auto space-y-8">
+    <div className="min-h-screen bg-[#f8fafc] p-4 lg:p-10 text-slate-900">
+      <div className="  mx-auto space-y-8">
         {/* HEADER */}
-        <header className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
-          <div>
-            <h1 className="text-4xl font-black text-gray-900 tracking-tighter">
-              Daily Analytics
-            </h1>
-            <div className="flex items-center gap-2 mt-1 text-gray-500 font-bold text-sm">
-              <Calendar size={16} />
-              <span>
-                Report for{" "}
-                {new Date(report.date).toLocaleDateString("en-IN", {
-                  dateStyle: "long",
-                })}
-              </span>
-            </div>
-          </div>
-          <button
-            onClick={() => window.print()}
-            className="flex items-center gap-2 bg-white border border-gray-200 px-6 py-3 rounded-2xl text-xs font-black uppercase tracking-widest hover:bg-gray-50 transition-all shadow-sm"
-          >
-            <Download size={16} /> Export PDF
-          </button>
-        </header>
+        <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+          <div></div>
 
-        {/* TOP STATS */}
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-          <div className="bg-blue-600 p-8 rounded-[40px] text-white shadow-xl shadow-blue-200 relative overflow-hidden group">
-            <TrendingUp className="absolute -right-4 -bottom-4 w-32 h-32 opacity-10 group-hover:scale-110 transition-transform" />
-            <p className="text-[10px] font-black uppercase tracking-[0.2em] opacity-80">
-              Total Revenue
-            </p>
-            <h2 className="text-5xl font-black mt-2">
-              ₹{report.totalRevenue.toLocaleString()}
-            </h2>
-            <div className="flex items-center gap-2 mt-6 text-xs font-bold bg-white/20 w-fit px-3 py-1 rounded-full">
-              <ArrowUpRight size={14} /> +12% from yesterday
-            </div>
-          </div>
-
-          <div className="bg-white p-8 rounded-[40px] border border-gray-100 shadow-sm flex flex-col justify-between">
-            <div>
-              <p className="text-[10px] font-black text-gray-400 uppercase tracking-[0.2em]">
-                Orders Settle
-              </p>
-              <h2 className="text-5xl font-black text-gray-900 mt-2">
-                {report.orderCount}
-              </h2>
-            </div>
-            <div className="flex items-center gap-4 mt-8">
-              <div className="flex -space-x-2">
-                {[1, 2, 3].map((i) => (
-                  <div
-                    key={i}
-                    className="w-8 h-8 rounded-full bg-gray-100 border-2 border-white flex items-center justify-center text-[10px] font-black text-gray-400"
-                  >
-                    {String.fromCharCode(64 + i)}
-                  </div>
-                ))}
-              </div>
-              <p className="text-[10px] font-bold text-gray-400 uppercase tracking-tight">
-                Handled by active staff
-              </p>
-            </div>
-          </div>
+          <RangePicker
+            value={dateRange}
+            onChange={(val: any) => setDateRange(val)}
+          />
         </div>
 
-        {/* TOP SELLING ITEMS */}
-        <section className="bg-white rounded-[40px] border border-gray-100 shadow-sm overflow-hidden">
-          <div className="p-8 border-b border-gray-50 flex justify-between items-center">
-            <div className="flex items-center gap-3">
-              <div className="p-3 bg-amber-50 text-amber-600 rounded-2xl">
-                <Trophy size={20} />
+        {/* TOP ROW: REVENUE BREAKDOWN */}
+        <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-6 gap-4">
+          <KPI
+            title="Total Revenue"
+            value={data?.revenue.totalCollected}
+            prefix="₹"
+            icon={<TrendingUp size={20} />}
+            color="emerald"
+          />
+          <KPI
+            title="Cash"
+            value={data?.revenue.cash}
+            prefix="₹"
+            icon={<Banknote size={20} />}
+            color="blue"
+          />
+          <KPI
+            title="Online"
+            value={data?.revenue.online}
+            prefix="₹"
+            icon={<CreditCard size={20} />}
+            color="purple"
+          />
+          <KPI
+            title="Other/Card"
+            value={data?.revenue.other}
+            prefix="₹"
+            icon={<Wallet size={20} />}
+            color="cyan"
+          />
+          <KPI
+            title="Outstanding Due"
+            value={data?.revenue.due}
+            prefix="₹"
+            icon={<AlertCircle size={20} />}
+            color="red"
+          />
+          <KPI
+            title="Avg. Order"
+            value={data?.stats.avgOrderValue}
+            prefix="₹"
+            icon={<BarChart3 size={20} />}
+            color="orange"
+          />
+        </div>
+
+        {/* MIDDLE ROW: CHARTS & STATS */}
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+          <Card
+            className="lg:col-span-2 shadow-sm border-slate-200 rounded-2xl"
+            title={
+              <div className="flex items-center gap-2">
+                <Clock size={18} className="text-blue-500" /> Peak Order Hours
               </div>
-              <h3 className="text-xl font-black text-gray-900">
-                Top Performers
-              </h3>
+            }
+          >
+            {/* Reduced height from h-50 to h-32 and padding from pt-10 to pt-6 */}
+            <div className="h-74 flex items-end gap-1 px-2 pt-3 border-b border-l border-slate-100">
+              {(() => {
+                const maxVal = Math.max(...(data?.peakHours || []), 1);
+
+                return data?.peakHours.map((count: number, hour: number) => {
+                  const barHeight = (count / maxVal) * 100;
+
+                  return (
+                    <Tooltip title={`${hour}:00 - ${count} Orders`} key={hour}>
+                      <div className="flex-1 flex flex-col items-center group h-full justify-end">
+                        <div
+                          className="w-full bg-blue-500 rounded-t-sm group-hover:bg-blue-400 transition-all cursor-pointer relative"
+                          style={{
+                            height: `${barHeight}%`,
+                            minHeight: count > 0 ? "4px" : "1px",
+                          }}
+                        >
+                          {count > 0 && (
+                            /* Moved label closer (-top-5 instead of -top-6) */
+                            <span className="absolute -top-5 left-1/2 -translate-x-1/2 text-[10px] font-black text-slate-700">
+                              {count}
+                            </span>
+                          )}
+                        </div>
+                        <span className="text-[9px] text-slate-400 mt-1 hidden md:block">
+                          {hour}h
+                        </span>
+                      </div>
+                    </Tooltip>
+                  );
+                });
+              })()}
             </div>
-          </div>
+            <div className="flex justify-between mt-2 px-2 text-[10px] text-slate-400 font-bold">
+              <span>12 AM</span>
+              <span>12 PM</span>
+              <span>11 PM</span>
+            </div>
+          </Card>
 
-          <div className="p-4">
-            {report.topSellingItems.map((item: any, index: number) => (
-              <div
-                key={index}
-                className="flex items-center justify-between p-4 hover:bg-gray-50 rounded-3xl transition-all group"
-              >
-                <div className="flex items-center gap-4">
-                  <span className="w-10 h-10 flex items-center justify-center bg-gray-900 text-white rounded-2xl font-black text-xs">
-                    0{index + 1}
-                  </span>
-                  <div>
-                    <p className="font-black text-gray-900 uppercase tracking-tight">
-                      {item.name}
-                    </p>
-                    <p className="text-[10px] font-bold text-gray-400 uppercase">
-                      {item.quantity} portions sold
-                    </p>
-                  </div>
-                </div>
-                <div className="flex items-center gap-4">
-                  <div className="h-1.5 w-24 bg-gray-100 rounded-full overflow-hidden hidden md:block">
-                    <div
-                      className="h-full bg-blue-600 rounded-full"
-                      style={{
-                        width: `${(item.quantity / report.topSellingItems[0].quantity) * 100}%`,
-                      }}
-                    />
-                  </div>
-                  <ChevronRight
-                    size={18}
-                    className="text-gray-300 group-hover:text-blue-600 group-hover:translate-x-1 transition-all"
-                  />
-                </div>
+          {/* CATEGORY BREAKDOWN */}
+          <Card
+            className="shadow-sm border-slate-200 rounded-2xl"
+            title={
+              <div className="flex items-center gap-2">
+                <Layers size={18} className="text-purple-500" /> Sales by
+                Category
               </div>
-            ))}
-          </div>
-        </section>
+            }
+          >
+            {/* Reduced spacing from space-y-4 to space-y-2 */}
+            <div className="space-y-2">
+              {Object.entries(data?.categoryBreakdown || {}).map(
+                ([cat, val]: any) => (
+                  <div key={cat} className="flex flex-col gap-0.5">
+                    <div className="flex justify-between text-[10px] font-bold uppercase tracking-wider text-slate-500">
+                      <span>{cat}</span>
+                      <span>₹{val.toLocaleString()}</span>
+                    </div>
+                    <div className="w-full bg-slate-100 h-1.5 rounded-full overflow-hidden">
+                      <div
+                        className="bg-purple-500 h-full"
+                        style={{
+                          width: `${(val / (data?.revenue.totalCollected || 1)) * 100}%`,
+                        }}
+                      />
+                    </div>
+                  </div>
+                ),
+              )}
+            </div>
+          </Card>
+        </div>
 
-        {/* FOOTER NOTE */}
-        <footer className="bg-gray-900 p-8 rounded-[40px] text-center">
-          <ShoppingBag className="mx-auto text-blue-500 mb-4" size={32} />
-          <p className="text-white font-black uppercase text-xs tracking-widest">
-            Hill Top pos intelligence
-          </p>
-          <p className="text-gray-500 text-[10px] mt-1 font-bold">
-            Automatic sync enabled • Real-time database accuracy
-          </p>
-        </footer>
+        {/* BOTTOM ROW: TABLES */}
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+          <Card
+            className="lg:col-span-2 shadow-sm border-slate-200 rounded-2xl"
+            title={
+              <div className="flex items-center gap-2">
+                <Utensils size={18} className="text-orange-500" /> Best Selling
+                Items
+              </div>
+            }
+          >
+            <div className="ag-theme-quartz" style={{ height: 450 }}>
+              <AgGridReact
+                rowData={data?.topItems || []}
+                columnDefs={columnDefs}
+                rowHeight={50}
+                headerHeight={45}
+              />
+            </div>
+          </Card>
+
+          <Card
+            className="shadow-sm border-slate-200 rounded-2xl"
+            title={
+              <div className="flex items-center gap-2">
+                <Calendar size={18} className="text-emerald-500" /> Table
+                Traffic
+              </div>
+            }
+          >
+            <div className="grid grid-cols-1 gap-3">
+              {data?.popularTables?.map((t: any, i: number) => (
+                <div
+                  key={i}
+                  className="flex justify-between items-center p-4 bg-slate-50 border border-slate-100 rounded-xl"
+                >
+                  <div className="flex items-center gap-3">
+                    <div className="w-10 h-10 rounded-full bg-white flex items-center justify-center border border-slate-200 font-bold text-slate-600 shadow-sm">
+                      {t.tableNumber.slice(-1)}
+                    </div>
+                    <div>
+                      <p className="text-[10px] uppercase font-black text-slate-400">
+                        Location
+                      </p>
+                      <p className="font-bold text-slate-700">
+                        {t.tableNumber}
+                      </p>
+                    </div>
+                  </div>
+                  <div className="text-right">
+                    <p className="text-2xl font-black text-slate-800 leading-none">
+                      {t.count}
+                    </p>
+                    <p className="text-[10px] font-bold text-slate-400 uppercase">
+                      Visits
+                    </p>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </Card>
+        </div>
       </div>
     </div>
+  );
+}
+
+function KPI({ title, value, prefix, icon, color }: any) {
+  const colorMap: any = {
+    emerald: "text-emerald-600 bg-emerald-50 border-emerald-100",
+    blue: "text-blue-600 bg-blue-50 border-blue-100",
+    purple: "text-purple-600 bg-purple-50 border-purple-100",
+    red: "text-red-600 bg-red-50 border-red-100",
+    orange: "text-orange-600 bg-orange-50 border-orange-100",
+    cyan: "text-cyan-600 bg-cyan-50 border-cyan-100",
+  };
+
+  return (
+    <Card className="rounded-2xl shadow-sm border-slate-200 overflow-hidden">
+      <div className="flex justify-between items-start mb-2">
+        <span className="text-[10px] font-black uppercase tracking-widest text-slate-400">
+          {title}
+        </span>
+        <div className={`p-2 rounded-lg border ${colorMap[color]}`}>{icon}</div>
+      </div>
+      <div className="flex items-baseline gap-1">
+        <span className="text-xs font-bold text-slate-400">{prefix}</span>
+        <span className="text-2xl font-black tracking-tight text-slate-800">
+          {typeof value === "number"
+            ? value.toLocaleString(undefined, { maximumFractionDigits: 0 })
+            : "0"}
+        </span>
+      </div>
+    </Card>
   );
 }

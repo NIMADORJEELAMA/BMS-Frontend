@@ -40,3 +40,15 @@ export const useItemDrilldown = (id: string, start: string, end: string) => {
     enabled: !!id, // Only fetch if an ID is provided
   });
 };
+
+export function useDashboardReport(startDate?: string, endDate?: string) {
+  return useQuery({
+    queryKey: ["dashboard-report", startDate, endDate],
+    queryFn: async () => {
+      const { data } = await api.get("/orders/report", {
+        params: { startDate, endDate },
+      });
+      return data;
+    },
+  });
+}
