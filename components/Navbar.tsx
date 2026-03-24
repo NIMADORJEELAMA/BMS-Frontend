@@ -13,7 +13,9 @@ export default function Navbar() {
     "/dashboard/tables": "Table Management",
     "/dashboard/menu": "Menu Items",
     "/dashboard/bills": "Billing & Invoices",
-    "/dashboard/reports": "Food Reports",
+
+    "/dashboard/reports": "Table Reports",
+
     "/dashboard/salesReport": "Sales Reports",
 
     "/dashboard/customReport": "Food Report",

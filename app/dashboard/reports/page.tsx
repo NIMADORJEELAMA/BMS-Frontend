@@ -22,6 +22,8 @@ import { DatePicker, Button, Card, Statistic, Space, Tooltip } from "antd";
 import { AgGridReact } from "ag-grid-react";
 import dayjs, { Dayjs } from "dayjs";
 import Link from "next/link";
+import CategoryBreakdownCard from "./CategoryBreakdownCard";
+import TableTrafficCard from "./TableTrafficCard";
 
 const { RangePicker } = DatePicker;
 
@@ -144,7 +146,7 @@ export default function AdminReportPage() {
         {/* MIDDLE ROW: CHARTS & STATS */}
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
           <Card
-            className="lg:col-span-2 shadow-sm border-slate-200 rounded-2xl"
+            className="lg:col-span-2  max-h-[450px]  shadow-sm border-slate-200 rounded-2xl"
             title={
               <div className="flex items-center gap-2">
                 <Clock size={18} className="text-blue-500" /> Peak Order Hours
@@ -193,37 +195,10 @@ export default function AdminReportPage() {
           </Card>
 
           {/* CATEGORY BREAKDOWN */}
-          <Card
-            className="shadow-sm border-slate-200 rounded-2xl"
-            title={
-              <div className="flex items-center gap-2">
-                <Layers size={18} className="text-purple-500" /> Sales by
-                Category
-              </div>
-            }
-          >
-            {/* Reduced spacing from space-y-4 to space-y-2 */}
-            <div className="space-y-2">
-              {Object.entries(data?.categoryBreakdown || {}).map(
-                ([cat, val]: any) => (
-                  <div key={cat} className="flex flex-col gap-0.5">
-                    <div className="flex justify-between text-[10px] font-bold uppercase tracking-wider text-slate-500">
-                      <span>{cat}</span>
-                      <span>₹{val.toLocaleString()}</span>
-                    </div>
-                    <div className="w-full bg-slate-100 h-1.5 rounded-full overflow-hidden">
-                      <div
-                        className="bg-purple-500 h-full"
-                        style={{
-                          width: `${(val / (data?.revenue.totalCollected || 1)) * 100}%`,
-                        }}
-                      />
-                    </div>
-                  </div>
-                ),
-              )}
-            </div>
-          </Card>
+          <CategoryBreakdownCard
+            data={data?.categoryBreakdown}
+            total={data?.revenue?.totalCollected}
+          />
         </div>
 
         {/* BOTTOM ROW: TABLES */}
@@ -247,46 +222,7 @@ export default function AdminReportPage() {
             </div>
           </Card>
 
-          <Card
-            className="shadow-sm border-slate-200 rounded-2xl"
-            title={
-              <div className="flex items-center gap-2">
-                <Calendar size={18} className="text-emerald-500" /> Table
-                Traffic
-              </div>
-            }
-          >
-            <div className="grid grid-cols-1 gap-3">
-              {data?.popularTables?.map((t: any, i: number) => (
-                <div
-                  key={i}
-                  className="flex justify-between items-center p-4 bg-slate-50 border border-slate-100 rounded-xl"
-                >
-                  <div className="flex items-center gap-3">
-                    <div className="w-10 h-10 rounded-full bg-white flex items-center justify-center border border-slate-200 font-bold text-slate-600 shadow-sm">
-                      {t.tableNumber.slice(-1)}
-                    </div>
-                    <div>
-                      <p className="text-[10px] uppercase font-black text-slate-400">
-                        Location
-                      </p>
-                      <p className="font-bold text-slate-700">
-                        {t.tableNumber}
-                      </p>
-                    </div>
-                  </div>
-                  <div className="text-right">
-                    <p className="text-2xl font-black text-slate-800 leading-none">
-                      {t.count}
-                    </p>
-                    <p className="text-[10px] font-bold text-slate-400 uppercase">
-                      Visits
-                    </p>
-                  </div>
-                </div>
-              ))}
-            </div>
-          </Card>
+          <TableTrafficCard data={data?.popularTables} />
         </div>
       </div>
     </div>

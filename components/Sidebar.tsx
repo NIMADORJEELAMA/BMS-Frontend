@@ -46,7 +46,7 @@ export default function Sidebar() {
       items: [
         { name: "Rooms", href: "/dashboard/rooms", icon: DoorOpen },
         { name: "Check In", href: "/dashboard/bookings", icon: ClipboardCheck },
-        { name: "History", href: "/dashboard/history", icon: History },
+        { name: "Booking History", href: "/dashboard/history", icon: History },
       ],
     },
     {
@@ -61,7 +61,7 @@ export default function Sidebar() {
       label: "Reports ",
       items: [
         { name: "Bill", href: "/dashboard/bills", icon: FileText },
-        { name: "Bill Report", href: "/dashboard/reports", icon: FileText },
+        { name: "Table Report", href: "/dashboard/reports", icon: FileText },
         {
           name: "Sales Report",
           href: "/dashboard/salesReport",
