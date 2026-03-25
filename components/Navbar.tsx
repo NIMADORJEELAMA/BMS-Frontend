@@ -22,6 +22,8 @@ export default function Navbar() {
     "/dashboard/Stock": "Inventory & Stock",
     "/dashboard/kitchen": "Kitchen Display",
     "/dashboard/staff": "User Management",
+    "/dashboard/customer": "Customer Management",
+
     "/dashboard/operations": "Staff Operations",
     "/dashboard/rooms": "Room Management",
     "/dashboard/bookings": "Check-In Desk",

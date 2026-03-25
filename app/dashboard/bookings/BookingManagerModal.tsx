@@ -148,6 +148,8 @@ export default function BookingManagerModal({
     onSuccess: () => {
       toast.success("Details saved and Guest checked in!");
       queryClient.invalidateQueries({ queryKey: ["booking-history"] });
+      queryClient.invalidateQueries({ queryKey: ["room-timeline"] });
+
       queryClient.invalidateQueries({ queryKey: ["rooms"] });
       onClose();
     },
@@ -164,7 +166,9 @@ export default function BookingManagerModal({
     onSuccess: () => {
       toast.success("Booking cancelled");
       queryClient.invalidateQueries({ queryKey: ["booking-history"] });
+      queryClient.invalidateQueries({ queryKey: ["room-timeline"] });
       queryClient.invalidateQueries({ queryKey: ["rooms"] });
+
       setCancelReason("");
       onClose();
     },
@@ -279,6 +283,8 @@ export default function BookingManagerModal({
       }),
     onSuccess: () => {
       toast.success("Guest checked out successfully.");
+      queryClient.invalidateQueries({ queryKey: ["room-timeline"] });
+      queryClient.invalidateQueries({ queryKey: ["rooms"] });
       queryClient.invalidateQueries({ queryKey: ["booking-history"] });
       setIsPaymentModalOpen(false);
       onClose();

@@ -250,7 +250,7 @@ export default function BookingHistoryModal({
     onSuccess: () => {
       // This forces the Gantt Chart to refetch from the server
       queryClient.invalidateQueries({ queryKey: ["room-timeline"] });
-
+      queryClient.invalidateQueries({ queryKey: ["rooms"] });
       // Also invalidate the specific details for this booking
       queryClient.invalidateQueries({
         queryKey: ["booking-details", booking.id],
@@ -282,6 +282,7 @@ export default function BookingHistoryModal({
     onSuccess: () => {
       toast.success("Guest checked out successfully.");
       queryClient.invalidateQueries({ queryKey: ["room-timeline"] });
+      queryClient.invalidateQueries({ queryKey: ["rooms"] });
       setIsPaymentModalOpen(false);
       onClose();
     },

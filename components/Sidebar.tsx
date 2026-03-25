@@ -82,6 +82,7 @@ export default function Sidebar() {
       label: "Inventory & Staff",
       items: [
         { name: "Users", href: "/dashboard/staff", icon: Users },
+        { name: "Customers", href: "/dashboard/customer", icon: Users },
         { name: "Operations", href: "/dashboard/operations", icon: Clock },
       ],
     },
