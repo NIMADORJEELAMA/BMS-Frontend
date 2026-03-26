@@ -16,6 +16,8 @@ import {
   EyeOff,
   Activity,
   Scale,
+  CheckCircle2,
+  Circle,
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useState, useMemo } from "react";
@@ -33,6 +35,7 @@ interface MenuItemFormProps {
     inventoryItemId: string;
     portionSize: number;
     isActive: boolean;
+    requiresPreparation: boolean;
   };
   setFormData: (data: any) => void;
   inventory: any[];
@@ -205,7 +208,6 @@ export default function MenuItemForm({
             )}
           </div>
         </div>
-
         {/* ROW 2: TOGGLES */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
           {/* Type */}
@@ -303,6 +305,29 @@ export default function MenuItemForm({
           </div>
         </div>
 
+        <div className="flex items-center gap-3 py-2.5 px-3 bg-slate-100 rounded-xl w-fit">
+          {/* Text */}
+          <span className="text-[13px] font-semibold text-slate-600 tracking-tight">
+            Requires Preparation
+          </span>
+
+          {/* Toggle */}
+          <button
+            type="button"
+            onClick={() => updateField("me", !formData.requiresPreparation)}
+            className={`relative inline-flex h-5 w-9 items-center rounded-full transition-colors duration-200 ${
+              formData.requiresPreparation ? "bg-indigo-500" : "bg-slate-300"
+            }`}
+          >
+            <span
+              className={`inline-block h-3.5 w-3.5 transform rounded-full bg-white shadow-sm transition-transform duration-200 ${
+                formData.requiresPreparation
+                  ? "translate-x-4.5"
+                  : "translate-x-1"
+              }`}
+            />
+          </button>
+        </div>
         {/* SECTION: INVENTORY LINKING */}
         <div className="pt-6 border-t border-slate-100 bg-indigo-50/30 -mx-8 px-8 pb-8 space-y-6">
           <div className="flex items-center gap-2 mb-2">

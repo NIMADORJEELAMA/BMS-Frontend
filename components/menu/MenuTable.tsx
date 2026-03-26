@@ -20,6 +20,7 @@ interface MenuItem {
   isActive: boolean;
   createdAt: string;
   portionSize: number;
+  requiresPreparation: boolean;
 }
 
 interface Props {
@@ -135,7 +136,7 @@ export default function EnterpriseMenuTable({
         },
       },
       {
-        headerName: "Item",
+        headerName: "Category",
         field: "name",
         flex: 1.6,
         // 1. Align cell container to the start (left)

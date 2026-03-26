@@ -8,4 +8,5 @@ export interface MenuItem {
   isVeg: boolean;
   isActive: boolean;
   portionSize: number;
+  requiresPreparation: boolean;
 }

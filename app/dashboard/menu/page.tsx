@@ -42,6 +42,7 @@ export default function MenuPage() {
     isVeg: false,
     isActive: true,
     portionSize: 0,
+    requiresPreparation: true,
   });
   const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -81,6 +82,7 @@ export default function MenuPage() {
       isVeg: false,
       isActive: true,
       portionSize: 0,
+      requiresPreparation: true,
     });
     setSelectedItem(null); // Clear the selected item reference
   };
@@ -237,6 +239,7 @@ export default function MenuPage() {
       inventoryItemId: item.inventoryItemId || "",
       isActive: item.isActive,
       portionSize: item.portionSize,
+      requiresPreparation: item.requiresPreparation,
     });
     setIsModalOpen(true);
   };
