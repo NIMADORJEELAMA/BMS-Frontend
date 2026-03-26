@@ -20,7 +20,7 @@ export default function PettyCashTab() {
 
   // Helper to get today's date in YYYY-MM-DD
   const getToday = () => new Date().toISOString().split("T")[0];
-
+  const [selectedCategory, setSelectedCategory] = useState<string>("ALL");
   const [selectedUserId, setSelectedUserId] = useState<string>("ALL");
   const [dateRange, setDateRange] = useState<[string, string]>([
     getToday(),
@@ -33,6 +33,7 @@ export default function PettyCashTab() {
     dateRange[0],
     dateRange[1],
     selectedUserId === "ALL" ? undefined : selectedUserId,
+    selectedCategory === "ALL" ? undefined : selectedCategory,
   );
 
   const { data: users = [] } = useUsers();
@@ -209,6 +210,18 @@ export default function PettyCashTab() {
             icon={User}
           />
         </div>
+
+        <GenericDropdown
+          options={[
+            { id: "STAFF_ADVANCE", name: "Staff Advances" },
+            { id: "GENERAL_EXPENSE", name: "General Expenses" },
+          ]}
+          selectedValue={selectedCategory}
+          onSelect={(val) => setSelectedCategory(val)}
+          placeholder="Filter by Type"
+          allLabel="All Types"
+          icon={Wallet} // or any icon you prefer
+        />
 
         <Button
           variant="outline"

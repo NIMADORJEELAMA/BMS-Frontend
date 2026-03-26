@@ -31,19 +31,25 @@ export const usePettyCash = (
   startDate: string,
   endDate: string,
   userId?: string,
+  category?: string,
 ) => {
   return useQuery({
-    queryKey: ["petty-cash", startDate, endDate, userId],
+    // Keep the category in the queryKey so the cache refreshes when you toggle the filter
+    queryKey: ["petty-cash", startDate, endDate, userId, category],
     queryFn: async () => {
       const { data } = await api.get("/operations/petty-cash", {
-        params: { startDate, endDate, userId: userId || undefined },
+        params: {
+          startDate,
+          endDate,
+          userId,
+          category: category || undefined, // Corrected: key name must be explicit
+        },
       });
 
-      return data; // { logs, totalAmount }
+      return data; // returns { logs, totalAmount }
     },
   });
 };
-
 export const useDeletePettyCash = () => {
   const queryClient = useQueryClient();
   return useMutation({
