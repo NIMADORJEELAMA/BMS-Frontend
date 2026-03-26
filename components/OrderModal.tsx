@@ -62,6 +62,12 @@ export default function OrderModal({
   const [availablePoints, setAvailablePoints] = useState<number>(0);
   // Add a search effect for the phone number
   useEffect(() => {
+    // 1. Add this check: If the phone matches the selected customer, don't search
+    if (selectedCustomerId) {
+      setSearchResults([]);
+      return;
+    }
+
     const delayDebounceFn = setTimeout(async () => {
       if (customerPhone.length >= 3) {
         setIsSearching(true);
@@ -78,11 +84,13 @@ export default function OrderModal({
       } else {
         setSearchResults([]);
       }
-    }, 300); // Debounce to prevent hitting API on every keystroke
+    }, 300);
 
     return () => clearTimeout(delayDebounceFn);
-  }, [customerPhone]);
 
+    // 2. Add selectedCustomerId to dependencies so the effect re-runs
+    // and hits the 'if' guard above when a customer is picked.
+  }, [customerPhone, selectedCustomerId]);
   const handleSelectCustomer = (customer: any) => {
     setCustomerName(customer.name);
     setCustomerPhone(customer.phone);
@@ -551,7 +559,7 @@ export default function OrderModal({
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
-      <div className="bg-white rounded-3xl shadow-2xl w-full max-w-md overflow-hidden animate-in zoom-in duration-200 border border-gray-100">
+      <div className="bg-white rounded-3xl shadow-2xl w-full max-w-xl max-h-[90vh]  flex flex-col overflow-hidden animate-in zoom-in duration-200 border border-gray-100">
         {/* HEADER: Dynamic based on mode */}
         <div
           className={`${isBilled ? "bg-white text-gray-900 border-b-2 border-dashed" : "bg-gray-900 text-white"} p-6 flex justify-between items-center transition-colors duration-500`}
@@ -576,7 +584,7 @@ export default function OrderModal({
         </div>
 
         {/* CONTENT AREA */}
-        <div className="p-3 max-h-[65vh] overflow-y-auto">
+        <div className="p-3   overflow-y-auto">
           {loading ? (
             <div className="py-20 text-center text-gray-400  ">
               Processing...
@@ -586,18 +594,6 @@ export default function OrderModal({
 
             <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-500">
               <div className="space-y-3 animate-in fade-in slide-in-from-top-2 duration-300">
-                <div className="space-y-1">
-                  <label className="text-[10px] uppercase font-bold text-gray-700 ml-1">
-                    Customer Name
-                  </label>
-                  <input
-                    type="text"
-                    value={customerName}
-                    onChange={(e) => setCustomerName(e.target.value)}
-                    placeholder="Enter name"
-                    className="w-full h-8 px-4 rounded-xl border border-gray-400 bg-gray-100 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all"
-                  />
-                </div>
                 <div className="space-y-1 relative">
                   <label className="text-[10px] uppercase font-bold text-gray-700 ml-1 flex justify-between">
                     <span>Phone Number</span>
@@ -640,6 +636,20 @@ export default function OrderModal({
                       ))}
                     </div>
                   )}
+                </div>
+                <div className="space-y-1">
+                  <label className="text-[10px] uppercase font-bold text-gray-700 ml-1">
+                    Customer Name
+                  </label>
+                  <input
+                    type="text"
+                    value={customerName}
+                    onChange={(e) => setCustomerName(e.target.value)}
+                    placeholder="Enter customer name"
+                    className="w-full h-10 px-4 rounded-xl border border-gray-400 bg-gray-100 text-sm focus:ring-2 focus:ring-blue-500 transition-all"
+
+                    // className="w-full h-8 px-4 rounded-xl border border-gray-400 bg-gray-100 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all"
+                  />
                 </div>
               </div>
               <div className="space-y-3 bg-white p-2 rounded-xl border border-slate-100 shadow-sm">

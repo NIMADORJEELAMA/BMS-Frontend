@@ -53,105 +53,138 @@ export default function CustomerPage() {
       {
         headerName: "Customer",
         field: "name",
-
+        minWidth: 200,
+        flex: 1,
         cellRenderer: (params: any) => (
           <div className="flex items-center gap-3 h-full">
-            <div className="w-8 h-8 rounded-full bg-indigo-50 flex items-center justify-center text-indigo-600 font-bold border border-indigo-100 text-[10px] uppercase">
-              {params.data.name?.charAt(0) || "C"}
+            <div className="relative">
+              {params.data.isVip && (
+                <div
+                  className="absolute -top-1 -right-1 w-3 h-3 bg-amber-400 border-2 border-white rounded-full"
+                  title="VIP Customer"
+                />
+              )}
             </div>
             <div className="leading-tight">
-              <p className="text-sm font-semibold text-slate-900">
+              <p className="text-sm font-semibold text-slate-900 truncate">
                 {params.data.name}
               </p>
             </div>
           </div>
         ),
       },
-      {
-        headerName: "Email",
-        field: "email",
 
+      {
+        headerName: "Phone ",
+        field: "phone",
+        width: 220,
         cellRenderer: (params: any) => (
-          <div className="flex items-center gap-3 h-full">
-            <div className="leading-tight">
-              <p className="text-[14px] text-slate-800">
-                {params.data.email || "No Email"}
-              </p>
-            </div>
+          <div className="flex flex-col justify-center h-full leading-tight">
+            <p className="text-sm text-slate-800">{params.data.phone}</p>
           </div>
         ),
       },
       {
-        headerName: "Phone Number",
-        field: "phone",
-        width: 300,
+        headerName: "Address ",
+        field: "address",
+        width: 220,
         cellRenderer: (params: any) => (
-          <div className="flex items-center gap-2 h-full text-sm font-medium text-slate-700">
-            {params.value}
+          <div className="flex flex-col justify-center h-full leading-tight">
+            <p className="text-sm text-slate-800">{params.data.address}</p>
           </div>
         ),
       },
+
       {
         headerName: "Loyalty",
         field: "loyaltyPoints",
-        width: 200,
+        width: 130,
         cellRenderer: (params: any) => (
           <div className="flex items-center gap-2 h-full">
             <span className="px-2 py-0.5 bg-amber-50 text-amber-700 border border-amber-100 rounded-md text-[10px] font-bold">
-              {params.value} PTS
+              {params.value || 0} PTS
             </span>
+          </div>
+        ),
+      },
+      {
+        headerName: "Visits",
+        field: "visitCount",
+        width: 100,
+        cellClass: "flex items-center",
+        cellRenderer: (params: any) => (
+          <span className="text-sm font-medium text-slate-700">
+            {params.value} {params.value === 1 ? "visit" : "visits"}
+          </span>
+        ),
+      },
+      {
+        headerName: "Total Spent",
+        field: "totalSpent",
+        width: 140,
+        cellRenderer: (params: any) => (
+          <div className="flex items-center h-full text-sm font-bold text-emerald-600">
+            ₹{params.value?.toLocaleString() || 0}
+          </div>
+        ),
+      },
+      {
+        headerName: "Last Visit",
+        field: "updatedAt",
+        width: 150,
+        cellRenderer: (params: any) => (
+          <div className="text-xs text-slate-500 h-full flex items-center">
+            {new Date(params.value).toLocaleDateString("en-GB", {
+              day: "numeric",
+              month: "short",
+              year: "numeric",
+            })}
           </div>
         ),
       },
       {
         headerName: "Actions",
         field: "id",
-        width: 120,
+        width: 140,
         sortable: false,
         filter: false,
         pinned: "right",
         cellRenderer: (params: any) => (
-          console.log("params", params),
-          (
-            <div className="flex justify-center items-center gap-1 h-full">
-              <button
-                onClick={() =>
-                  router.push(`/dashboard/customer/${params.data.id}`)
-                }
-                className="p-1.5 text-indigo-500 hover:bg-indigo-50 rounded-md"
-              >
-                <UserIcon size={15} />
+          <div className="flex justify-center items-center gap-1 h-full">
+            <button
+              onClick={() =>
+                router.push(`/dashboard/customer/${params.data.id}`)
+              }
+              className="p-1.5 text-indigo-500 hover:bg-indigo-50 rounded-md transition-colors"
+              title="View Profile"
+            >
+              <UserIcon size={16} />
+            </button>
+            <button
+              onClick={() => {
+                setSelectedUser(params.data);
+                setIsModalOpen(true);
+              }}
+              className="p-1.5 text-slate-400 hover:text-slate-900 hover:bg-slate-100 rounded-md transition-all cursor-pointer"
+              title="Edit"
+            >
+              <Edit3 size={16} />
+            </button>
+            <Popconfirm
+              title="Delete customer?"
+              description="This action cannot be undone."
+              onConfirm={() => handleDelete(params.data.id, params.data.name)}
+              okButtonProps={{ danger: true }}
+            >
+              <button className="p-1.5 text-slate-400 hover:text-rose-600 hover:bg-rose-50 rounded-md transition-all cursor-pointer">
+                <Trash2 size={16} />
               </button>
-              <button
-                onClick={() => {
-                  setSelectedUser(params.data);
-                  setIsModalOpen(true);
-                }}
-                className="p-1.5 text-slate-400 hover:text-slate-900 hover:  rounded-md transition-all cursor-pointer"
-              >
-                <Edit3 size={15} />
-              </button>
-              <Popconfirm
-                title="Delete record?"
-                onConfirm={() => handleDelete(params.data.id, params.data.name)}
-                okButtonProps={{ danger: true }}
-              >
-                <button className="flex items-center justify-center p-2 text-slate-400 hover:text-rose-600 rounded-xl transition-all h-full cursor-pointer">
-                  <Trash2 size={18} />
-                </button>
-              </Popconfirm>
-              <button
-                onClick={() => handleDelete(params.data.id, params.data.name)}
-                className="p-1.5 text-slate-400 hover:text-red-600 hover: rounded-md transition-all cursor-pointer"
-              >
-                <Trash2 size={15} />
-              </button>
-            </div>
-          )
+            </Popconfirm>
+          </div>
         ),
       },
     ],
-    [],
+    [router, setSelectedUser, setIsModalOpen, handleDelete],
   );
 
   const defaultColDef = useMemo(

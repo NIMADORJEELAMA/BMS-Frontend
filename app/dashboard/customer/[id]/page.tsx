@@ -7,35 +7,36 @@ import {
   ArrowLeft,
   Calendar,
   IndianRupee,
-  Wallet,
   History,
   User as UserIcon,
-  Clock,
-  Edit3,
+  ShoppingBag,
+  Star,
+  Bed,
+  Phone,
   Mail,
-  Shield,
-  CheckCircle2,
-  XCircle,
+  MapPin,
+  Ticket,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import StaffModal from "@/components/staff/StaffModal";
+import { Card } from "@/components/ui/card";
+// Assuming you have a generic CustomerModal or similar for editing
+import CustomerModal from "../CustomerModal";
 
 export default function CustomerProfilePage() {
   const { id } = useParams();
   const router = useRouter();
   const { data: user, isLoading, refetch } = useCustomer(id as string);
-  const [activeTab, setActiveTab] = useState<"attendance" | "advances">(
-    "attendance",
-  );
+  const [activeTab, setActiveTab] = useState<"orders" | "bookings">("orders");
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
 
   if (isLoading)
     return (
       <div className="p-10 text-center animate-pulse text-slate-500">
-        Loading Employee Profile...
+        Loading Customer Profile...
       </div>
     );
-  if (!user) return <div className="p-10 text-center">Employee not found.</div>;
+
+  if (!user) return <div className="p-10 text-center">Customer not found.</div>;
 
   return (
     <div className="min-h-screen bg-[#fcfcfd] p-6 space-y-6">
@@ -52,35 +53,64 @@ export default function CustomerProfilePage() {
           <div>
             <div className="flex items-center gap-2">
               <h1 className="text-2xl font-bold text-slate-900">{user.name}</h1>
-              {user.isActive ? (
-                <CheckCircle2 size={16} className="text-emerald-500" />
-              ) : (
-                <XCircle size={16} className="text-slate-400" />
+              {user.isVip && (
+                <span className="bg-amber-100 text-amber-700 text-[10px] font-bold px-2 py-0.5 rounded-full border border-amber-200">
+                  VIP
+                </span>
               )}
             </div>
-            <p className="text-sm text-slate-500 flex items-center gap-2">
-              <Shield size={14} /> {user.role} • <Mail size={14} /> {user.email}
-            </p>
+            <div className="flex flex-wrap gap-x-4 gap-y-1 mt-1 text-sm text-slate-500">
+              <span className="flex items-center gap-1.5">
+                <Phone size={14} /> {user.phone}
+              </span>
+              <span className="flex items-center gap-1.5">
+                <Mail size={14} /> {user.email}
+              </span>
+              <span className="flex items-center gap-1.5">
+                <MapPin size={14} /> {user.address}
+              </span>
+            </div>
           </div>
         </div>
 
         <Button
-          variant="terminal"
+          variant="outline"
           onClick={() => setIsEditModalOpen(true)}
-          className="flex items-center gap-2"
+          className="flex items-center gap-2 bg-white"
         >
-          <Edit3 size={16} /> Edit Profile & Daily Rate
+          Edit Customer Details
         </Button>
       </div>
 
       {/* Stats Dashboard */}
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4">
         <StatsCard
-          title="Daily Rate"
-          value={user.dailyRate}
+          title="Total Spent"
+          value={user.totalSpent}
           icon={<IndianRupee size={16} />}
-          color="blue"
+          color="emerald"
           isCurrency
+        />
+        <StatsCard
+          title="Loyalty Points"
+          value={user.loyaltyPoints}
+          icon={<Star size={16} />}
+          color="blue"
+        />
+        <StatsCard
+          title="Total Visits"
+          value={user.visitCount}
+          icon={<History size={16} />}
+          color="indigo"
+        />
+        <StatsCard
+          title="Active Bookings"
+          value={
+            user.bookings?.filter((b: any) => b.status === "CHECKED_IN")
+              .length || 0
+          }
+          icon={<Bed size={16} />}
+          color="amber"
         />
       </div>
 
@@ -88,34 +118,33 @@ export default function CustomerProfilePage() {
       <div className="bg-white border border-slate-200 rounded-[24px] overflow-hidden shadow-sm">
         <div className="flex border-b border-slate-100 bg-slate-50/50">
           <TabButton
-            active={activeTab === "attendance"}
-            onClick={() => setActiveTab("attendance")}
-            label={`Attendance (${user.attendances?.length || 0})`}
+            active={activeTab === "orders"}
+            onClick={() => setActiveTab("orders")}
+            label={`Orders (${user.orders?.length || 0})`}
           />
           <TabButton
-            active={activeTab === "advances"}
-            onClick={() => setActiveTab("advances")}
-            label={`Advances (${user.pettyCashLogs?.length || 0})`}
+            active={activeTab === "bookings"}
+            onClick={() => setActiveTab("bookings")}
+            label={`Stay History (${user.bookings?.length || 0})`}
           />
         </div>
 
         <div className="p-6">
-          {activeTab === "attendance" ? (
-            <AttendanceTable data={user.attendances} />
+          {activeTab === "orders" ? (
+            <OrdersTable data={user.orders} />
           ) : (
-            <AdvanceLogs data={user.pettyCashLogs} />
+            <BookingsTable data={user.bookings} />
           )}
         </div>
       </div>
 
-      {/* Edit Modal - Reusing your existing StaffModal */}
-      <StaffModal
+      <CustomerModal
         isOpen={isEditModalOpen}
         onClose={() => {
           setIsEditModalOpen(false);
-          refetch(); // Refresh data after edit
+          refetch();
         }}
-        editingUser={user}
+        editingCustomer={user}
       />
     </div>
   );
@@ -127,7 +156,7 @@ function StatsCard({ title, value, icon, color, isCurrency }: any) {
   const colors: any = {
     blue: "text-blue-600 bg-blue-50 border-blue-100",
     indigo: "text-indigo-600 bg-indigo-50 border-indigo-100",
-    red: "text-red-600 bg-red-50 border-red-100",
+    amber: "text-amber-600 bg-amber-50 border-amber-100",
     emerald: "text-emerald-600 bg-emerald-50 border-emerald-100",
   };
 
@@ -142,20 +171,17 @@ function StatsCard({ title, value, icon, color, isCurrency }: any) {
         <div className={`p-2 rounded-lg border ${colors[color]}`}>{icon}</div>
       </div>
       <p className="text-2xl font-bold text-slate-900 mt-2">
-        {isCurrency ? `₹${Math.abs(value).toLocaleString()}` : value}
-        {isCurrency && value < 0 && (
-          <span className="text-xs text-red-500 ml-1">(Debt)</span>
-        )}
+        {isCurrency ? `₹${value.toLocaleString()}` : value}
       </p>
     </div>
   );
 }
 
-function AttendanceTable({ data }: { data: any[] }) {
+function OrdersTable({ data }: { data: any[] }) {
   if (!data?.length)
     return (
       <div className="py-10 text-center text-slate-400 italic">
-        No attendance records recorded.
+        No orders found.
       </div>
     );
 
@@ -164,45 +190,39 @@ function AttendanceTable({ data }: { data: any[] }) {
       <table className="w-full text-left text-sm">
         <thead>
           <tr className="text-slate-400 border-b border-slate-100">
+            <th className="pb-4 font-bold uppercase text-[10px]">Order #</th>
             <th className="pb-4 font-bold uppercase text-[10px]">Date</th>
-            <th className="pb-4 font-bold uppercase text-[10px]">Check In</th>
-            <th className="pb-4 font-bold uppercase text-[10px]">Check Out</th>
-            <th className="pb-4 font-bold uppercase text-[10px]">Status</th>
+            <th className="pb-4 font-bold uppercase text-[10px]">Amount</th>
+            <th className="pb-4 font-bold uppercase text-[10px]">Payment</th>
+            <th className="pb-4 font-bold uppercase text-[10px]">Notes</th>
           </tr>
         </thead>
         <tbody className="divide-y divide-slate-50">
-          {data.map((record) => (
+          {data.map((order) => (
             <tr
-              key={record.id}
+              key={order.id}
               className="group hover:bg-slate-50/50 transition-colors"
             >
+              <td className="py-4 font-mono text-xs text-slate-600">
+                #{order.orderNumber}
+              </td>
               <td className="py-4 font-medium text-slate-900">
-                {new Date(record.date).toLocaleDateString("en-GB", {
+                {new Date(order.createdAt).toLocaleDateString("en-GB", {
                   day: "numeric",
                   month: "short",
                   year: "numeric",
                 })}
               </td>
-              <td className="py-4 text-emerald-600 font-mono text-xs">
-                {new Date(record.checkIn).toLocaleTimeString([], {
-                  hour: "2-digit",
-                  minute: "2-digit",
-                })}
-              </td>
-              <td className="py-4 text-slate-500 font-mono text-xs">
-                {record.checkOut
-                  ? new Date(record.checkOut).toLocaleTimeString([], {
-                      hour: "2-digit",
-                      minute: "2-digit",
-                    })
-                  : "—"}
+              <td className="py-4 font-bold text-slate-900">
+                ₹{order.totalAmount}
               </td>
               <td className="py-4">
-                <span
-                  className={`px-2 py-0.5 rounded text-[10px] font-bold ${record.checkOut ? "bg-slate-100 text-slate-600" : "bg-emerald-100 text-emerald-700 animate-pulse"}`}
-                >
-                  {record.checkOut ? "COMPLETED" : "PRESENT"}
+                <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-slate-100 text-slate-600">
+                  {order.paymentMode}
                 </span>
+              </td>
+              <td className="py-4 text-xs text-slate-500 italic">
+                {order.note || "—"}
               </td>
             </tr>
           ))}
@@ -212,34 +232,56 @@ function AttendanceTable({ data }: { data: any[] }) {
   );
 }
 
-function AdvanceLogs({ data }: { data: any[] }) {
+function BookingsTable({ data }: { data: any[] }) {
   if (!data?.length)
     return (
       <div className="py-10 text-center text-slate-400 italic">
-        No salary advances recorded.
+        No booking history.
       </div>
     );
 
   return (
-    <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-      {data.map((log) => (
+    <div className="space-y-3">
+      {data.map((booking) => (
         <div
-          key={log.id}
-          className="flex justify-between items-center p-4 bg-white rounded-xl border border-slate-100 hover:border-red-200 transition-all shadow-sm"
+          key={booking.id}
+          className="flex flex-col md:flex-row md:items-center justify-between p-4 bg-white rounded-xl border border-slate-100 hover:border-blue-100 transition-all shadow-sm gap-4"
         >
-          <div className="flex items-center gap-4">
-            <div className="p-3 bg-red-50 rounded-full text-red-500">
-              <Wallet size={18} />
+          <div className="flex items-start gap-4">
+            <div className="p-3 bg-blue-50 rounded-full text-blue-500 mt-1">
+              <Bed size={18} />
             </div>
             <div>
-              <p className="text-sm font-bold text-slate-900">
-                ₹{log.amount.toLocaleString()}
+              <div className="flex items-center gap-2">
+                <p className="text-sm font-bold text-slate-900">Room Booking</p>
+                <span
+                  className={`text-[10px] font-bold px-2 py-0.5 rounded ${booking.status === "CHECKED_IN" ? "bg-emerald-100 text-emerald-700" : "bg-slate-100 text-slate-600"}`}
+                >
+                  {booking.status.replace("_", " ")}
+                </span>
+              </div>
+              <p className="text-[11px] text-slate-500 mt-0.5 flex items-center gap-1">
+                <Calendar size={12} />
+                {new Date(booking.checkIn).toLocaleDateString()} →{" "}
+                {new Date(booking.checkOut).toLocaleDateString()}
               </p>
-              <p className="text-[10px] text-slate-400 uppercase font-medium">
-                {new Date(log.createdAt).toDateString()}
+            </div>
+          </div>
+          <div className="flex items-center gap-6 px-4 border-l border-slate-50">
+            <div className="text-right">
+              <p className="text-[10px] text-slate-400 uppercase font-bold tracking-wider">
+                ID Provided
               </p>
-              <p className="text-xs text-slate-500 mt-1 line-clamp-1 italic">
-                "{log.reason}"
+              <p className="text-xs font-medium text-slate-700 uppercase">
+                {booking.documentType}: {booking.documentId}
+              </p>
+            </div>
+            <div className="text-right">
+              <p className="text-[10px] text-slate-400 uppercase font-bold tracking-wider">
+                Advance
+              </p>
+              <p className="text-sm font-bold text-emerald-600">
+                ₹{booking.advanceAmount}
               </p>
             </div>
           </div>

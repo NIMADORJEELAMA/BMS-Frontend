@@ -113,6 +113,48 @@ export default function CheckInModal({ isOpen, onClose, gridData }: any) {
     control: form.control,
     name: "secondaryGuests",
   });
+  const [searchResults, setSearchResults] = useState<any[]>([]);
+  const [selectedCustomerId, setSelectedCustomerId] = useState<string | null>(
+    null,
+  );
+  const [isSearching, setIsSearching] = useState(false);
+
+  const guestPhone = form.watch("guestPhone");
+  useEffect(() => {
+    // Guard: If we just selected a customer, don't trigger search again
+    if (selectedCustomerId) {
+      setSearchResults([]);
+      return;
+    }
+
+    const delayDebounceFn = setTimeout(async () => {
+      if (guestPhone?.length >= 3) {
+        setIsSearching(true);
+        try {
+          const { data } = await api.get(`/customers/search?q=${guestPhone}`);
+          setSearchResults(data);
+        } catch (err) {
+          console.error("Search failed", err);
+        } finally {
+          setIsSearching(false);
+        }
+      } else {
+        setSearchResults([]);
+      }
+    }, 300);
+
+    return () => clearTimeout(delayDebounceFn);
+  }, [guestPhone, selectedCustomerId]);
+
+  const handleSelectCustomer = (customer: any) => {
+    form.setValue("guestName", customer.name);
+    form.setValue("guestPhone", customer.phone);
+    // Optional: if your customer model has address/IDs
+    if (customer.address) form.setValue("address", customer.address);
+
+    setSelectedCustomerId(customer.id);
+    setSearchResults([]);
+  };
 
   // Watch amounts to calculate total display
   const cashPortion = form.watch("cashAmount") || 0;
@@ -205,6 +247,7 @@ export default function CheckInModal({ isOpen, onClose, gridData }: any) {
     const payload = {
       ...data,
       advanceAmount: totalAdvance,
+      customerId: selectedCustomerId,
       type: actionType,
     };
 
@@ -370,6 +413,61 @@ export default function CheckInModal({ isOpen, onClose, gridData }: any) {
                       control={form.control}
                       name="guestPhone"
                       render={({ field }) => (
+                        <FormItem className="relative">
+                          {" "}
+                          {/* Add relative for dropdown positioning */}
+                          <FormLabel className="text-[10px] font-bold text-slate-800 uppercase flex justify-between">
+                            <span>Phone</span>
+                            {isSearching && (
+                              <Loader2 size={10} className="animate-spin" />
+                            )}
+                          </FormLabel>
+                          <Input
+                            placeholder="Enter phone number"
+                            className="h-12 bg-slate-50 border-slate-200 rounded-xl"
+                            {...field}
+                            onChange={(e) => {
+                              field.onChange(e);
+                              if (selectedCustomerId)
+                                setSelectedCustomerId(null); // Unlock search if they type
+                            }}
+                          />
+                          {/* SEARCH RESULTS DROPDOWN */}
+                          {searchResults.length > 0 && (
+                            <div className="absolute z-50 w-full mt-1 bg-white border border-slate-200 rounded-xl shadow-xl max-h-48 overflow-y-auto">
+                              {searchResults.map((c) => (
+                                <button
+                                  key={c.id}
+                                  type="button"
+                                  onClick={() => handleSelectCustomer(c)}
+                                  className="w-full text-left px-4 py-3 hover:bg-indigo-50 border-b border-slate-50 last:border-0 flex justify-between items-center"
+                                >
+                                  <div>
+                                    <p className="text-xs font-bold text-slate-800">
+                                      {c.name}
+                                    </p>
+                                    <p className="text-[10px] text-slate-500">
+                                      {c.phone}
+                                    </p>
+                                  </div>
+                                  <Badge
+                                    variant="outline"
+                                    className="text-[8px] border-indigo-200 text-indigo-600"
+                                  >
+                                    EXISTING
+                                  </Badge>
+                                </button>
+                              ))}
+                            </div>
+                          )}
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                    {/* <FormField
+                      control={form.control}
+                      name="guestPhone"
+                      render={({ field }) => (
                         <FormItem>
                           <FormLabel className="text-[10px] font-bold text-slate-800 uppercase">
                             Phone
@@ -382,7 +480,7 @@ export default function CheckInModal({ isOpen, onClose, gridData }: any) {
                           <FormMessage />
                         </FormItem>
                       )}
-                    />
+                    /> */}
                     <FormField
                       control={form.control}
                       name="address"
