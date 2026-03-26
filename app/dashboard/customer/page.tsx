@@ -116,7 +116,7 @@ export default function CustomerPage() {
             <div className="flex justify-center items-center gap-1 h-full">
               <button
                 onClick={() =>
-                  router.push(`/dashboard/staff/${params.data.id}`)
+                  router.push(`/dashboard/customer/${params.data.id}`)
                 }
                 className="p-1.5 text-indigo-500 hover:bg-indigo-50 rounded-md"
               >

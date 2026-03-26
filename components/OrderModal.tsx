@@ -3,7 +3,7 @@ import { useEffect, useState, useCallback } from "react";
 import api from "@/lib/axios";
 import toast from "react-hot-toast";
 import { io } from "socket.io-client";
-import { Beer, X, Utensils, Printer } from "lucide-react";
+import { Beer, X, Utensils, Printer, Loader2 } from "lucide-react";
 import { Button } from "./ui/button";
 
 import {
@@ -52,14 +52,52 @@ export default function OrderModal({
     "FULL_CASH" | "FULL_UPI" | "DUE"
   >("FULL_CASH");
   // Update amounts whenever order total changes or split is toggled
+  // Inside OrderModal component, add these states:
+  const [searchResults, setSearchResults] = useState<any[]>([]);
+  const [selectedCustomerId, setSelectedCustomerId] = useState<string | null>(
+    null,
+  );
+  const [isSearching, setIsSearching] = useState(false);
+  const [pointsToRedeem, setPointsToRedeem] = useState<number>(0);
+  const [availablePoints, setAvailablePoints] = useState<number>(0);
+  // Add a search effect for the phone number
+  useEffect(() => {
+    const delayDebounceFn = setTimeout(async () => {
+      if (customerPhone.length >= 3) {
+        setIsSearching(true);
+        try {
+          const { data } = await api.get(
+            `/customers/search?q=${customerPhone}`,
+          );
+          setSearchResults(data);
+        } catch (err) {
+          console.error("Search failed", err);
+        } finally {
+          setIsSearching(false);
+        }
+      } else {
+        setSearchResults([]);
+      }
+    }, 300); // Debounce to prevent hitting API on every keystroke
 
+    return () => clearTimeout(delayDebounceFn);
+  }, [customerPhone]);
+
+  const handleSelectCustomer = (customer: any) => {
+    setCustomerName(customer.name);
+    setCustomerPhone(customer.phone);
+    setSelectedCustomerId(customer.id);
+    setAvailablePoints(customer.loyaltyPoints || 0);
+    setSearchResults([]); // Close dropdown
+  };
   const calculateFinalPayable = () => {
     // Ensure we are working with numbers to avoid "3700" + "0" = "37000"
     const baseTotal = Number(order?.totalAmount || calculateTotal());
     const misc = Number(miscCharges) || 0;
     const disc = Number(discount) || 0;
+    const pointsDisc = Number(pointsToRedeem) || 0;
 
-    return Math.max(0, baseTotal + misc - disc);
+    return Math.max(0, baseTotal + misc - disc - pointsDisc);
   };
   useEffect(() => {
     if (order) {
@@ -255,12 +293,15 @@ export default function OrderModal({
       cash: 0,
       online: 0,
       isDue: false,
+      customerId: selectedCustomerId,
       customerName,
       customerPhone,
       discount: Number(discount) || 0,
       miscCharges: Number(miscCharges) || 0,
       finalAmount: finalPayableAmount,
+      redeemedPoints: Number(pointsToRedeem),
     };
+    console.log("payload", payload);
 
     if (type === "FULL_CASH") {
       payload.cash = finalPayableAmount;
@@ -557,18 +598,48 @@ export default function OrderModal({
                     className="w-full h-8 px-4 rounded-xl border border-gray-400 bg-gray-100 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all"
                   />
                 </div>
-
-                <div className="space-y-1">
-                  <label className="text-[10px] uppercase font-bold text-gray-700 ml-1">
-                    Phone Number
+                <div className="space-y-1 relative">
+                  <label className="text-[10px] uppercase font-bold text-gray-700 ml-1 flex justify-between">
+                    <span>Phone Number</span>
+                    {isSearching && (
+                      <Loader2 size={10} className="animate-spin" />
+                    )}
                   </label>
                   <input
                     type="tel"
                     value={customerPhone}
-                    onChange={(e) => setCustomerPhone(e.target.value)}
-                    placeholder="Enter 10-digit mobile"
-                    className="w-full h-8 px-4 rounded-xl border border-gray-400 bg-gray-100 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all"
+                    onChange={(e) => {
+                      setCustomerPhone(e.target.value);
+                      if (selectedCustomerId) setSelectedCustomerId(null); // Reset ID if they type a new number
+                    }}
+                    placeholder="Search by phone..."
+                    className="w-full h-10 px-4 rounded-xl border border-gray-400 bg-gray-100 text-sm focus:ring-2 focus:ring-blue-500 transition-all"
                   />
+
+                  {/* Search Results Dropdown */}
+                  {searchResults.length > 0 && (
+                    <div className="absolute z-[100] w-full mt-1 bg-white border border-slate-200 rounded-xl shadow-xl max-h-40 overflow-y-auto">
+                      {searchResults.map((c) => (
+                        <button
+                          key={c.id}
+                          onClick={() => handleSelectCustomer(c)}
+                          className="w-full text-left px-4 py-3 hover:bg-indigo-50 border-b border-slate-50 last:border-0 flex justify-between items-center"
+                        >
+                          <div>
+                            <p className="text-xs font-bold text-slate-800">
+                              {c.name}
+                            </p>
+                            <p className="text-[10px] text-slate-500">
+                              {c.phone}
+                            </p>
+                          </div>
+                          <span className="text-[10px] bg-indigo-100 text-indigo-600 px-2 py-0.5 rounded-full font-bold">
+                            Link
+                          </span>
+                        </button>
+                      ))}
+                    </div>
+                  )}
                 </div>
               </div>
               <div className="space-y-3 bg-white p-2 rounded-xl border border-slate-100 shadow-sm">
@@ -647,7 +718,36 @@ export default function OrderModal({
                   />
                 </div>
               </div>
-
+              {selectedCustomerId && availablePoints > 0 && (
+                <div className="bg-indigo-50 p-3 rounded-xl border border-indigo-100 flex justify-between items-center mb-4">
+                  <div>
+                    <p className="text-[10px] font-bold text-indigo-700 uppercase">
+                      Available Points
+                    </p>
+                    <p className="text-lg font-black text-indigo-900">
+                      {availablePoints} PTS
+                    </p>
+                  </div>
+                  <div className="w-24">
+                    <label className="text-[9px] font-bold text-indigo-400 uppercase">
+                      Redeem
+                    </label>
+                    <input
+                      type="number"
+                      max={availablePoints}
+                      value={pointsToRedeem}
+                      onChange={(e) => {
+                        const val = Math.min(
+                          availablePoints,
+                          Number(e.target.value),
+                        );
+                        setPointsToRedeem(val);
+                      }}
+                      className="w-full h-8 px-2 rounded-lg border border-indigo-200 text-sm font-bold focus:ring-indigo-500"
+                    />
+                  </div>
+                </div>
+              )}
               {/* Update the Grand Total Display */}
               <div className="pt-6 border-t border-gray-100">
                 <div className="flex justify-between items-end">
