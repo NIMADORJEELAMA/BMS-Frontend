@@ -45,7 +45,7 @@ export default function MenuPage() {
     requiresPreparation: true,
   });
   const fileInputRef = useRef<HTMLInputElement>(null);
-
+  console.log("formData", formData);
   const queryClient = useQueryClient();
   const [isMenuItemFormOpen, setIsMenuItemFormOpen] = useState<boolean>(false); // Toggle for create form
   const [previewData, setPreviewData] = useState<any[]>([]);
@@ -119,8 +119,15 @@ export default function MenuPage() {
   };
   const downloadMenuTemplate = () => {
     const data = [
-      ["Name", "Price", "Category", "Type (FOOD|DRINKS)", "IsVeg (TRUE|FALSE)"],
-      ["Margherita Pizza", "12.99", "PIZZA", "FOOD", "TRUE"],
+      [
+        "Name",
+        "Price",
+        "Category",
+        "Type (FOOD|DRINKS)",
+        "IsVeg (TRUE|FALSE)",
+        "requiresPreration (TRUE|FALSE)",
+      ],
+      ["Margherita Pizza", "12.99", "PIZZA", "FOOD", "TRUE", "TRUE"],
     ];
 
     const worksheet = XLSX.utils.aoa_to_sheet(data);
@@ -131,6 +138,7 @@ export default function MenuPage() {
       { wch: 12 }, // Price
       { wch: 20 }, // Category
       { wch: 20 }, // Type
+      { wch: 18 }, // IsVeg
       { wch: 18 }, // IsVeg
     ];
 
@@ -149,6 +157,7 @@ export default function MenuPage() {
         category: formData.category.toUpperCase().trim(),
         inventoryItemId: formData.inventoryItemId || null,
         portionSize: formData.portionSize || 1,
+        requiresPreparation: formData.requiresPreparation,
       },
       {
         onSuccess: () => {
@@ -277,6 +286,9 @@ export default function MenuPage() {
           category: item["Category"],
           type: item["Type (FOOD|DRINKS)"] || "FOOD",
           isVeg: String(item["IsVeg (TRUE|FALSE)"]).toUpperCase() === "TRUE",
+          requiresPreparation:
+            String(item["requiresPreparation (TRUE|FALSE)"]).toUpperCase() ===
+            "TRUE",
         }));
 
         setPreviewData(sanitizedData);

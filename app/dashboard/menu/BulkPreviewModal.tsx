@@ -24,7 +24,11 @@ export default function BulkPreviewModal({
     if (isOpen) setLocalData(data);
   }, [isOpen, data]);
 
-  const handleInputChange = (index: number, field: string, value: string) => {
+  const handleInputChange = (
+    index: number,
+    field: string,
+    value: string | boolean,
+  ) => {
     const updated = [...localData];
     updated[index] = { ...updated[index], [field]: value };
     setLocalData(updated);
@@ -56,6 +60,8 @@ export default function BulkPreviewModal({
                 <th className="p-3 text-left font-medium">Category</th>
                 <th className="p-3 text-left font-medium w-[15%]">Price</th>
                 <th className="p-3 text-left font-medium">Type</th>
+                <th className="p-3 text-left font-medium">Veg</th>
+
                 <th className="p-3 text-center font-medium w-[50px]"></th>
               </tr>
             </thead>
@@ -107,6 +113,24 @@ export default function BulkPreviewModal({
                     >
                       <option value="FOOD">FOOD</option>
                       <option value="DRINKS">DRINKS</option>
+                    </select>
+                  </td>
+                  <td className="p-2">
+                    <select
+                      className="w-full px-2 py-1 border-transparent hover:border-slate-200 focus:border-blue-500 bg-transparent rounded outline-none cursor-pointer"
+                      // Convert the boolean to a string for the select value
+                      value={item.isVeg ? "true" : "false"}
+                      onChange={(e) =>
+                        // Convert the string back to a boolean when saving
+                        handleInputChange(
+                          idx,
+                          "isVeg",
+                          e.target.value === "true",
+                        )
+                      }
+                    >
+                      <option value="true">Veg</option>
+                      <option value="false">Non-Veg</option>
                     </select>
                   </td>
                   <td className="p-2 text-center">
