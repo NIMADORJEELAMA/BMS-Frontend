@@ -13,6 +13,7 @@ import OrderModal from "../../components/OrderModal";
 import { twMerge } from "tailwind-merge";
 import { ClassValue, clsx } from "clsx";
 import api from "@/lib/axios";
+import { Menu } from "lucide-react";
 
 const SOCKET_URL =
   process.env.NEXT_PUBLIC_SOCKET_URL || "http://localhost:3000";
@@ -24,6 +25,7 @@ export default function DashboardPage() {
   const [categoryFilter, setCategoryFilter] = useState<string>("ALL");
   const [areaType, setAreaType] = useState<"all" | "rooms" | "tables">("all");
 
+  const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const [statusFilter, setStatusFilter] = useState<string>("all");
 
   // TanStack Query replaces fetchLayout, tables state, and loading states
@@ -221,7 +223,12 @@ export default function DashboardPage() {
   return (
     <div className="flex h-[92vh] bg-gray-50 overflow-hidden font-sans no-scrollbar">
       <Toaster position="top-right" />
-
+      {isSidebarOpen && (
+        <div
+          className="fixed inset-0 bg-black/50 z-40 lg:hidden"
+          onClick={() => setIsSidebarOpen(false)}
+        />
+      )}
       <div className="flex-1 flex flex-col min-w-0">
         {/* Unified Header with all props */}
         <DashboardHeader
@@ -235,7 +242,12 @@ export default function DashboardPage() {
           categoryFilter={categoryFilter}
           setCategoryFilter={setCategoryFilter}
         />
-
+        <button
+          onClick={() => setIsSidebarOpen(true)}
+          className="lg:hidden fixed bottom-6 right-6 z-30 bg-blue-600 text-white p-4 rounded-full shadow-xl"
+        >
+          <Menu size={24} />
+        </button>
         <main className="flex-1 overflow-y-auto p-6 no-scrollbar">
           {/* Subtle result counter */}
           <div className="mb-4 flex justify-end items-center">
@@ -259,8 +271,10 @@ export default function DashboardPage() {
 
       <LiveOrderFeed
         orders={liveOrders}
+        isSidebarOpen={isSidebarOpen}
         onClear={() => setLiveOrders([])}
         onSelectOrder={handleViewTableFromFeed}
+        onClose={() => setIsSidebarOpen(false)}
       />
 
       {selectedTable && (

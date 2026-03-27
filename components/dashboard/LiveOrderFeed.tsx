@@ -64,15 +64,20 @@
 
 "use client";
 import { useEffect, useRef } from "react";
-import { Bell, Trash2, Clock } from "lucide-react";
+import { Bell, Trash2, Clock, X } from "lucide-react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import api from "@/lib/axios";
 import { io } from "socket.io-client";
+import { cn } from "@/lib/utils";
 
 const SOCKET_URL =
   process.env.NEXT_PUBLIC_SOCKET_URL || "http://localhost:3000";
 
-export default function LiveOrderFeed({ onSelectOrder }: any) {
+export default function LiveOrderFeed({
+  onSelectOrder,
+  onClose,
+  isSidebarOpen,
+}: any) {
   const scrollRef = useRef<HTMLDivElement>(null);
   const queryClient = useQueryClient();
 
@@ -135,9 +140,23 @@ export default function LiveOrderFeed({ onSelectOrder }: any) {
   };
 
   return (
-    <aside className="w-80   bg-white/70 backdrop-blur-xl border-l border-gray-200 flex flex-col shadow-2xl min-h-screen sticky top-0">
+    <aside
+      className={cn(
+        // Base styles: Fixed on mobile, relative on desktop
+        "fixed inset-y-0 right-0 z-50 w-80 bg-white/70 backdrop-blur-xl border-l border-gray-200 flex flex-col shadow-2xl transition-transform duration-300 ease-in-out",
+        "lg:relative lg:translate-x-0 lg:z-auto lg:h-[92vh] lg:sticky lg:top-0",
+        // Mobile toggle state
+        isSidebarOpen ? "translate-x-0" : "translate-x-full lg:translate-x-0",
+      )}
+    >
       <div className="p-5 border-b border-gray-200 bg-white/80 flex justify-between items-center">
         <div className="flex items-center gap-3">
+          <button
+            onClick={onClose}
+            className="lg:hidden -ml-2 p-2 text-gray-400"
+          >
+            <X size={20} />
+          </button>
           <Bell className="text-blue-600" size={18} />
           <h3 className="text-lg font-black text-gray-800">Live Activity</h3>
         </div>

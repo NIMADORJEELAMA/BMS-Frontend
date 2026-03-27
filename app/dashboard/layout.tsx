@@ -1,14 +1,18 @@
 // app/dashboard/layout.tsx
+
+"use client";
 import Sidebar from "@/components/Sidebar";
 import Navbar from "@/components/Navbar";
 import ProtectedRoute from "@/components/ProtectedRoute";
 import { Toaster } from "react-hot-toast"; // 1. Import the Toaster
+import { useState } from "react";
 
 export default function DashboardLayout({
   children,
 }: {
   children: React.ReactNode;
 }) {
+  const [mobileOpen, setMobileOpen] = useState(false);
   return (
     <ProtectedRoute>
       <div className="flex h-screen bg-gray-50">
@@ -25,9 +29,10 @@ export default function DashboardLayout({
           }}
         />
 
-        <Sidebar />
+        <Sidebar mobileOpen={mobileOpen} setMobileOpen={setMobileOpen} />
+        {/* <Sidebar /> */}
         <div className="flex-1 flex flex-col overflow-hidden">
-          <Navbar />
+          <Navbar onMenuClick={() => setMobileOpen((prev) => !prev)} />
           <main className="flex-1 overflow-x-hidden overflow-y-auto p-0">
             {children}
           </main>

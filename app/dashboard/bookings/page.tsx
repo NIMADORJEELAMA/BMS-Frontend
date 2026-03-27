@@ -235,10 +235,10 @@ export default function ReservationTimeline() {
           {filteredRooms.map((room: any) => (
             <div
               key={room.id}
-              className="flex border-b border-slate-200 group transition-colors hover:bg-slate-50/80"
+              className="flex border-b border-slate-200 group transition-colors hover:bg-slate-50/80 relative  "
             >
               {/* Room Info Sidebar (Sticky left) */}
-              <div className="w-42 flex-shrink-0 border-r h-16 border-slate-200 px-4 py-2 bg-white sticky left-0 z-20 shadow-[4px_0_8px_-4px_rgba(0,0,0,0.05)] flex flex-col justify-center">
+              <div className="w-42 flex-shrink-0 border-r h-16 border-slate-200 px-4 py-2 bg-white sticky left-0 z-50 shadow-[4px_0_8px_-4px_rgba(0,0,0,0.05)] flex flex-col justify-center">
                 {/* Top Row: Room Number and Category */}
                 <div className="flex items-center justify-between w-full">
                   <div className="flex items-center gap-2 overflow-hidden">
