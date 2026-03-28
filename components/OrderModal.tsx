@@ -3,7 +3,7 @@ import { useEffect, useState, useCallback } from "react";
 import api from "@/lib/axios";
 import toast from "react-hot-toast";
 import { io } from "socket.io-client";
-import { Beer, X, Utensils, Printer, Loader2 } from "lucide-react";
+import { Beer, X, Utensils, Printer, Loader2, XCircle } from "lucide-react";
 import { Button } from "./ui/button";
 
 import {
@@ -48,6 +48,8 @@ export default function OrderModal({
   const [isConfirmOpen, setIsConfirmOpen] = useState(false);
   const [discount, setDiscount] = useState<number>(0);
   const [miscCharges, setMiscCharges] = useState<number>(0);
+  const [isCancelModalOpen, setIsCancelModalOpen] = useState(false);
+  const [cancelReason, setCancelReason] = useState("");
   const [paymentType, setPaymentType] = useState<
     "FULL_CASH" | "FULL_UPI" | "DUE"
   >("FULL_CASH");
@@ -60,6 +62,7 @@ export default function OrderModal({
   const [isSearching, setIsSearching] = useState(false);
   const [pointsToRedeem, setPointsToRedeem] = useState<number>(0);
   const [availablePoints, setAvailablePoints] = useState<number>(0);
+  const [tips, setTips] = useState<number>(0);
   // Add a search effect for the phone number
   useEffect(() => {
     // 1. Add this check: If the phone matches the selected customer, don't search
@@ -121,6 +124,7 @@ export default function OrderModal({
   //     setCashAmount(0);
   //   }
   // }, [order, isSplitPay]);
+
   const handleCashChange = (val: number) => {
     // Use the function that accounts for discount and misc charges
     const finalTotal = calculateFinalPayable();
@@ -131,12 +135,6 @@ export default function OrderModal({
     const remainder = Math.max(0, finalTotal - val);
     setOnlineAmount(remainder);
   };
-  // Helper to auto-calculate the other field
-  // const handleCashChange = (val: number) => {
-  //   const total = Number(order.totalAmount || calculateTotal());
-  //   setCashAmount(val);
-  //   setOnlineAmount(Math.max(0, total - val));
-  // };
 
   const [isBilled, setIsBilled] = useState(false);
   const fetchActiveOrder = useCallback(async () => {
@@ -289,6 +287,27 @@ export default function OrderModal({
     order?.items?.filter((i: any) => i.status === "SERVED") || [];
   const hasPending = pendingItems?.length > 0;
 
+  const handleCancelOrder = async () => {
+    if (!order || !cancelReason.trim()) return;
+
+    const loadingToast = toast.loading("Processing cancellation...");
+
+    try {
+      await api.patch(`/orders/${order.id}/cancel`, {
+        reason: cancelReason, // Send the reason from state
+      });
+
+      toast.dismiss(loadingToast);
+      toast.success("Order cancelled successfully");
+
+      setIsCancelModalOpen(false);
+      onRefresh();
+      onClose();
+    } catch (err: any) {
+      toast.dismiss(loadingToast);
+      toast.error(err.response?.data?.message || "Failed to cancel");
+    }
+  };
   const handlePayment = async (
     type: "FULL_CASH" | "FULL_UPI" | "SPLIT" | "DUE",
   ) => {
@@ -300,6 +319,7 @@ export default function OrderModal({
     let payload: any = {
       cash: 0,
       online: 0,
+      tips: Number(tips),
       isDue: false,
       customerId: selectedCustomerId,
       customerName,
@@ -338,12 +358,12 @@ export default function OrderModal({
       const currentSplitTotal = Number(cashAmount) + Number(onlineAmount);
 
       // 3. Compare using Math.round to handle JS floating point math (e.g., 0.1 + 0.2)
-      if (Math.round(currentSplitTotal) !== Math.round(currentFinalPayable)) {
-        toast.error(
-          `Split total (₹${currentSplitTotal}) must equal Grand Total (₹${currentFinalPayable})`,
-        );
-        return;
-      }
+      // if (Math.round(currentSplitTotal) !== Math.round(currentFinalPayable)) {
+      //   toast.error(
+      //     `Split total (₹${currentSplitTotal}) must equal Grand Total (₹${currentFinalPayable})`,
+      //   );
+      //   return;
+      // }
 
       payload.cash = Number(cashAmount);
       payload.online = Number(onlineAmount);
@@ -556,6 +576,9 @@ export default function OrderModal({
       }
     }
   };
+  {
+    /* Cancellation Reason Modal */
+  }
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
@@ -605,14 +628,23 @@ export default function OrderModal({
                     type="tel"
                     value={customerPhone}
                     onChange={(e) => {
-                      setCustomerPhone(e.target.value);
-                      if (selectedCustomerId) setSelectedCustomerId(null); // Reset ID if they type a new number
+                      // Regex: Replace anything that is NOT a digit (0-9) with an empty string
+                      const onlyNums = e.target.value.replace(/[^0-9]/g, "");
+
+                      // Limit to 10 digits (optional, but standard for phone numbers)
+                      const limitedNums = onlyNums.slice(0, 10);
+
+                      setCustomerPhone(limitedNums);
+
+                      if (selectedCustomerId) setSelectedCustomerId(null);
                     }}
                     placeholder="Search by phone..."
+                    // Added inputMode for better mobile keyboard experience
+                    inputMode="numeric"
                     className="w-full h-10 px-4 rounded-xl border border-gray-400 bg-gray-100 text-sm focus:ring-2 focus:ring-blue-500 transition-all"
                   />
 
-                  {/* Search Results Dropdown */}
+                  {/* Search Results Dropdown remains the same */}
                   {searchResults.length > 0 && (
                     <div className="absolute z-[100] w-full mt-1 bg-white border border-slate-200 rounded-xl shadow-xl max-h-40 overflow-y-auto">
                       {searchResults.map((c) => (
@@ -708,23 +740,42 @@ export default function OrderModal({
                     Discount (₹)
                   </label>
                   <input
-                    type="number"
-                    value={discount}
-                    onChange={(e) => setDiscount(Number(e.target.value))}
+                    type="text"
+                    // Handle the display so it shows empty instead of 0 if desired
+                    value={discount === 0 ? "" : discount}
+                    onChange={(e) => {
+                      const val = e.target.value;
+                      // Allow only numbers and handle empty string
+                      if (val === "") {
+                        setDiscount(0);
+                      } else if (!isNaN(Number(val))) {
+                        setDiscount(Number(val));
+                      }
+                    }}
                     className="w-full h-8 px-2 rounded-lg border border-gray-300 text-sm font-bold focus:ring-red-500"
                     placeholder="0"
+                    inputMode="numeric"
                   />
                 </div>
+
                 <div className="space-y-1">
                   <label className="text-[10px] uppercase font-bold text-gray-700">
                     Misc Charges (₹)
                   </label>
                   <input
-                    type="number"
-                    value={miscCharges}
-                    onChange={(e) => setMiscCharges(Number(e.target.value))}
+                    type="text"
+                    value={miscCharges === 0 ? "" : miscCharges}
+                    onChange={(e) => {
+                      const val = e.target.value;
+                      if (val === "") {
+                        setMiscCharges(0);
+                      } else if (!isNaN(Number(val))) {
+                        setMiscCharges(Number(val));
+                      }
+                    }}
                     className="w-full h-8 px-2 rounded-lg border border-gray-300 text-sm font-bold focus:ring-blue-500"
                     placeholder="0"
+                    inputMode="numeric"
                   />
                 </div>
               </div>
@@ -862,6 +913,16 @@ export default function OrderModal({
                           Print
                         </span>
                       </Button>
+                      <Button
+                        variant="outline"
+                        className="flex-[0.2] h-12 flex flex-col items-center justify-center p-0 border-red-100 text-red-500 hover:bg-red-50 hover:border-red-500 hover:text-red-600 transition-colors"
+                        onClick={() => setIsCancelModalOpen(true)} // Just open the modal
+                      >
+                        <XCircle size={18} />
+                        <span className="text-[8px] uppercase font-bold">
+                          Cancel
+                        </span>
+                      </Button>
 
                       <Button
                         variant={
@@ -906,6 +967,16 @@ export default function OrderModal({
                           className="w-full bg-white border border-gray-200 rounded-xl p-2 text-sm font-bold outline-none focus:ring-2 focus:ring-blue-500"
                         />
                       </div>
+                      {cashAmount > calculateFinalPayable() && (
+                        <div className="mt-2 p-2 bg-green-50 border border-green-200 rounded-xl flex justify-between items-center animate-in slide-in-from-top-1">
+                          <span className="text-[10px] font-bold text-green-700 uppercase">
+                            Excess Cash (Tip)
+                          </span>
+                          <span className="text-sm font-black text-green-700">
+                            ₹{cashAmount - calculateFinalPayable()}
+                          </span>
+                        </div>
+                      )}
                     </div>
                     <button
                       onClick={() => handlePayment("SPLIT")}
@@ -966,6 +1037,7 @@ export default function OrderModal({
                         </button>
                       )}
                     </div>
+
                     {pendingItems.length > 0 ? (
                       pendingItems.map((item: any) => (
                         <div
@@ -1191,6 +1263,60 @@ export default function OrderModal({
           )}
         </div>
       </div>
+      {isCancelModalOpen && (
+        <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/50 backdrop-blur-sm animate-in fade-in duration-200">
+          <div className="bg-white rounded-3xl p-6 w-full max-w-md shadow-2xl border border-gray-100 animate-in zoom-in-95 duration-200">
+            <div className="flex items-center gap-3 mb-4 text-red-600">
+              <XCircle size={24} />
+              <h3 className="text-lg font-black uppercase tracking-tight">
+                Cancel Billed Order
+              </h3>
+            </div>
+
+            <p className="text-sm text-gray-500 mb-4 leading-relaxed">
+              This will mark the order as{" "}
+              <span className="font-bold text-gray-800">CANCELLED</span> and
+              immediately{" "}
+              <span className="font-bold text-gray-800">
+                FREE Table {order?.table?.number}
+              </span>
+              . This action cannot be undone.
+            </p>
+
+            <label className="text-[10px] font-black text-gray-400 uppercase mb-2 block ml-1">
+              Reason for Cancellation
+            </label>
+            <textarea
+              value={cancelReason}
+              onChange={(e) => setCancelReason(e.target.value)}
+              placeholder="e.g., Customer walked out, Entered wrong items..."
+              className="w-full h-24 bg-gray-50 border border-gray-200 rounded-2xl p-3 text-sm focus:ring-2 focus:ring-red-500 outline-none transition-all resize-none"
+            />
+
+            <div className="flex gap-3 mt-6">
+              <Button
+                variant="terminalGhost"
+                className="flex-1 rounded-xl font-bold uppercase text-xs"
+                onClick={() => {
+                  setIsCancelModalOpen(false);
+                  setCancelReason("");
+                }}
+              >
+                Go Back
+              </Button>
+              <Button
+                variant="destructive"
+                className="flex-[1.5] h-12 rounded-xl font-black uppercase text-xs tracking-[0.1em] shadow-lg shadow-red-200 hover:bg-red-700 transition-all"
+                disabled={!cancelReason.trim()}
+                onClick={handleCancelOrder}
+              >
+                Confirm Void
+              </Button>
+            </div>
+          </div>
+        </div>
+      )}
+
       <AlertDialog open={isConfirmOpen} onOpenChange={setIsConfirmOpen}>
         <AlertDialogOverlay className="fixed inset-0 z-50 bg-white/30  " />
         <AlertDialogContent className="fixed left-[50%] top-[50%] z-50 w-full max-w-md translate-x-[-50%] translate-y-[-50%] rounded-2xl border-2 border-slate-900 bg-white p-6 shadow-xl duration-200 data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 data-[state=closed]:zoom-out-95 data-[state=open]:zoom-in-95">
