@@ -1,5 +1,7 @@
 @import "tailwindcss";
 
+@tailwind utilities;
+
 /* @import "ag-grid-community/styles/ag-theme-quartz.css"; */
 @plugin "tailwindcss-animate";
 

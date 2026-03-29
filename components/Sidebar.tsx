@@ -20,6 +20,8 @@ import {
   ChevronRight,
   Settings,
   Printer,
+  Proportions,
+  BookUser,
 } from "lucide-react";
 import { twMerge } from "tailwind-merge";
 import clsx, { ClassValue } from "clsx";
@@ -45,7 +47,14 @@ export default function Sidebar({
   const menuGroups = [
     {
       label: "Main",
-      items: [{ name: "Dashboard", href: "/dashboard", icon: LayoutDashboard }],
+      items: [
+        { name: "Dashboard", href: "/dashboard", icon: LayoutDashboard },
+        {
+          name: "Food Order",
+          href: "/dashboard/foodOrder",
+          icon: UtensilsCrossed,
+        },
+      ],
     },
     {
       label: "Hospitality",
@@ -67,7 +76,7 @@ export default function Sidebar({
       label: "Reports ",
       items: [
         { name: "Bill", href: "/dashboard/bills", icon: FileText },
-        { name: "Table Report", href: "/dashboard/reports", icon: FileText },
+        { name: "Table Report", href: "/dashboard/reports", icon: Proportions },
         {
           name: "Sales Report",
           href: "/dashboard/salesReport",
@@ -88,7 +97,7 @@ export default function Sidebar({
       label: "Inventory & Staff",
       items: [
         { name: "Users", href: "/dashboard/staff", icon: Users },
-        { name: "Customers", href: "/dashboard/customer", icon: Users },
+        { name: "Customers", href: "/dashboard/customer", icon: BookUser },
         { name: "Operations", href: "/dashboard/operations", icon: Clock },
       ],
     },

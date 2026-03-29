@@ -61,3 +61,16 @@ export const useUploadMenuCsv = () => {
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ["menu"] }),
   });
 };
+
+export const useCategories = () => {
+  return useQuery({
+    queryKey: ["unified-categories"],
+    queryFn: async () => {
+      const res = await api.get("/tables/categories/unified");
+      console.log("res", res);
+      return res.data;
+    },
+    // Optional: add a default value in the component or use select
+    initialData: [],
+  });
+};
