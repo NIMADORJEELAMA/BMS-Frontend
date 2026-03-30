@@ -17,7 +17,13 @@ import api from "@/lib/axios";
 import toast from "react-hot-toast";
 
 // Icons & UI
-import { Search, ShoppingCart, X, ChevronRight } from "lucide-react";
+import {
+  Search,
+  ShoppingCart,
+  X,
+  ChevronRight,
+  ListOrdered,
+} from "lucide-react";
 import { MenuItemCard } from "../../../components/orderingPage/MenuItemCard";
 import { CartItem } from "../../../components/orderingPage/CartItem";
 import TableSelector from "../../../components/orderingPage/TableSelector";
@@ -29,6 +35,7 @@ import GenericDropdown from "@/components/ui/GenericDropdown";
 import { cn } from "@/lib/utils"; // Assuming you have a cn utility for tailwind classes
 import { twMerge } from "tailwind-merge";
 import { error } from "console";
+import ActiveOrderModal from "./ActiveOrderModal";
 
 export default function FoodOrderingPage() {
   const dispatch = useDispatch();
@@ -43,7 +50,7 @@ export default function FoodOrderingPage() {
   const { data: tables = [] } = useTableLayout();
   const { data: categoriesTable = [], refetch } = useCategories();
   const { data: menuData = [] } = useMenu();
-
+  const [isActiveOrderModalOpen, setIsActiveOrderModalOpen] = useState(false);
   const categories = useMemo(() => {
     const unique = Array.from(new Set(menuData.map((i: any) => i.category)));
     return ["ALL", ...unique];
@@ -120,7 +127,6 @@ export default function FoodOrderingPage() {
             />
           </div>
 
-          {/* 2. Scrollable Container for Search and Dropdown */}
           {/* We remove overflow-x-auto from the MAIN header and put it here */}
           <div className="flex items-center gap-4 flex-1 overflow-visible">
             {/* Desktop Search Bar */}
@@ -148,6 +154,13 @@ export default function FoodOrderingPage() {
               />
             </div>
           </div>
+          {/* Inside your TableSelector or Header */}
+
+          <ActiveOrderModal
+            isOpen={isActiveOrderModalOpen}
+            onClose={() => setIsActiveOrderModalOpen(false)}
+            table={selectedTable} // Passing the table you selected in TableSelector
+          />
         </div>
       </header>
 
@@ -166,11 +179,20 @@ export default function FoodOrderingPage() {
               />
             </div>
 
+            {selectedTable && (
+              <Button
+                variant="outline"
+                onClick={() => setIsActiveOrderModalOpen(true)}
+                className="ml-2 border-orange-200 text-orange-600 bg-orange-50"
+              >
+                <ListOrdered size={20} />
+              </Button>
+            )}
             {/* Button Container - shrink-0 ensures it doesn't get squashed */}
             <div className="shrink-0">
               <Button
                 variant="outline"
-                className="relative p-2.5 rounded-xl border-blue-100 bg-blue-50 text-blue-600 active:scale-90 transition-transform"
+                className="relative   rounded-xl border-blue-100 bg-blue-50 text-blue-600 active:scale-90 transition-transform"
                 onClick={() => setIsCartOpen(true)}
               >
                 <ShoppingCart size={20} />
@@ -226,7 +248,7 @@ export default function FoodOrderingPage() {
 
         <aside
           className={cn(
-            "fixed inset-y-0 max-h-[85vh] right-0 w-[90%] max-w-[400px] bg-white z-[50] flex flex-col shadow-2xl transition-transform duration-300 ease-in-out transform lg:relative lg:translate-x-0 lg:w-[380px] lg:z-10 lg:shadow-none lg:border-l lg:border-gray-200",
+            "fixed inset-y-0 max-h-[100vh] right-0 w-[90%] max-w-[400px] bg-white z-[50] flex flex-col shadow-2xl transition-transform duration-300 ease-in-out transform lg:relative lg:translate-x-0 lg:w-[380px] lg:z-10 lg:shadow-none lg:border-l lg:border-gray-200",
             isCartOpen ? "translate-x-0" : "translate-x-full",
           )}
         >

@@ -93,12 +93,12 @@ export default function FoodOrderingPage() {
           )}
         >
           <div className="text-left">
-            <p className="text-[10px] text-gray-500 uppercase font-black">
+            <p className="text-[8px] text-gray-500 uppercase font-black">
               Current Table
             </p>
             <p
               className={twMerge(
-                "text-sm font-bold",
+                "text-[6px] font-bold",
                 selectedTable ? "text-blue-700" : "text-orange-600",
               )}
             >
@@ -108,7 +108,7 @@ export default function FoodOrderingPage() {
             </p>
           </div>
           <div className="bg-blue-600 text-white p-1.5 rounded-lg">
-            <Menu size={16} />
+            <Menu size={6} />
           </div>
         </button>
       </div>
