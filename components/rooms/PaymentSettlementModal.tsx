@@ -17,7 +17,7 @@
 //   onConfirm,
 //   isPending,
 // }: any) {
-//   const [paymentMode, setPaymentMode] = useState<"CASH" | "ONLINE" | "SPLIT">(
+//   const [paymentMode, setPaymentMode] = useState<"CASH" | "UPI" | "SPLIT">(
 //     "CASH",
 //   );
 //   const receiptRef = useRef<HTMLDivElement>(null);
@@ -234,7 +234,7 @@
 //             {/* 6. PAYMENT SLIDER & INPUTS - NOT PRINTED */}
 //             <div className="mt-8 space-y-4 non-printable">
 //               <div className="p-1 bg-slate-100 rounded-xl flex gap-1 h-11 relative items-center">
-//                 {(["CASH", "ONLINE", "SPLIT"] as const).map((mode) => (
+//                 {(["CASH", "UPI", "SPLIT"] as const).map((mode) => (
 //                   <button
 //                     key={mode}
 //                     onClick={() => setPaymentMode(mode)}
@@ -321,7 +321,7 @@
 //                     onlineAmount:
 //                       paymentMode === "SPLIT"
 //                         ? splitOnline
-//                         : paymentMode === "ONLINE"
+//                         : paymentMode === "UPI"
 //                           ? billData.grandTotal
 //                           : 0,
 //                   })
@@ -365,7 +365,7 @@ export default function PaymentSettlementModal({
   onConfirm,
   isPending,
 }: any) {
-  const [paymentMode, setPaymentMode] = useState<"CASH" | "ONLINE" | "SPLIT">(
+  const [paymentMode, setPaymentMode] = useState<"CASH" | "UPI" | "SPLIT">(
     "CASH",
   );
   const [splitOnline, setSplitOnline] = useState<number>(0);
@@ -486,7 +486,7 @@ export default function PaymentSettlementModal({
         CENTER,
         `PAYMENT MODE: ${paymentMode}\n`,
         paymentMode === "SPLIT"
-          ? `CASH: ${splitCash} | ONLINE: ${splitOnline}\n`
+          ? `CASH: ${splitCash} | UPI: ${splitOnline}\n`
           : "",
         "THANK YOU FOR VISITING!\n",
         "\n\n\n\x1Bm",
@@ -625,7 +625,7 @@ export default function PaymentSettlementModal({
           {/* 4. PAYMENT MODE SELECTOR */}
           <div className="mt-8 space-y-4">
             <div className="p-1 bg-slate-100 rounded-xl flex gap-1 h-11 relative items-center">
-              {(["CASH", "ONLINE", "SPLIT"] as const).map((mode) => (
+              {(["CASH", "UPI", "SPLIT"] as const).map((mode) => (
                 <button
                   key={mode}
                   onClick={() => setPaymentMode(mode)}
@@ -709,7 +709,7 @@ export default function PaymentSettlementModal({
                   onlineAmount:
                     paymentMode === "SPLIT"
                       ? splitOnline
-                      : paymentMode === "ONLINE"
+                      : paymentMode === "UPI"
                         ? billData.grandTotal
                         : 0,
                 })
