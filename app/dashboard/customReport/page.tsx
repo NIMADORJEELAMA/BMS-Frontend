@@ -102,6 +102,8 @@ export default function EnterprisePerformanceReport() {
     <div className="bg-[#f8fafc] p-6 min-h-screen">
       <div className="mx-auto space-y-6">
         {/* HEADER SECTION */}
+        {/* HEADER SECTION */}
+
         <div className="flex flex-col md:flex-row justify-between items-center gap-4">
           <SearchBar
             placeholder="Filter by product name..."
