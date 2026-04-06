@@ -248,7 +248,10 @@ export default function FoodOrderingPage() {
 
         <aside
           className={cn(
-            "fixed inset-y-0 max-h-[100vh] right-0 w-[90%] max-w-[400px] bg-white z-[50] flex flex-col shadow-2xl transition-transform duration-300 ease-in-out transform lg:relative lg:translate-x-0 lg:w-[380px] lg:z-10 lg:shadow-none lg:border-l lg:border-gray-200",
+            // 1. Ensure the container itself fills the height but doesn't overflow
+            "fixed inset-y-0 right-0 w-[90%] max-w-[400px] bg-white z-[50] flex flex-col shadow-2xl transition-transform duration-300 ease-in-out transform",
+            // 2. Desktop overrides: Use h-screen or calc to fit your layout
+            "lg:relative lg:translate-x-0 lg:w-[380px] lg:z-10 lg:shadow-none lg:border-l lg:border-gray-200 lg:h-[calc(100vh-theme(spacing.16))] lg:max-h-screen",
             isCartOpen ? "translate-x-0" : "translate-x-full",
           )}
         >
