@@ -191,6 +191,8 @@ function OrdersTable({ data }: { data: any[] }) {
         <thead>
           <tr className="text-slate-400 border-b border-slate-100">
             <th className="pb-4 font-bold uppercase text-[10px]">Order #</th>
+            <th className="pb-4 font-bold uppercase text-[10px]">Order ID</th>
+
             <th className="pb-4 font-bold uppercase text-[10px]">Date</th>
             <th className="pb-4 font-bold uppercase text-[10px]">Amount</th>
             <th className="pb-4 font-bold uppercase text-[10px]">Payment</th>
@@ -205,6 +207,9 @@ function OrdersTable({ data }: { data: any[] }) {
             >
               <td className="py-4 font-mono text-xs text-slate-600">
                 #{order.orderNumber}
+              </td>
+              <td className="py-4 font-medium text-slate-900">
+                {order.id.slice(-5)}
               </td>
               <td className="py-4 font-medium text-slate-900">
                 {new Date(order.createdAt).toLocaleDateString("en-GB", {
