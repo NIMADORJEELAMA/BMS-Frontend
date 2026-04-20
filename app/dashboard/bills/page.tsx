@@ -174,6 +174,32 @@ export default function BillHistoryPage() {
         },
       },
       {
+        headerName: "Customer Name",
+        field: "customerName", // 1. Add this so the filter knows which key to look at
+        flex: 1,
+        filter: "agTextColumnFilter",
+        floatingFilter: true,
+        // 2. Use valueGetter if your data is nested, e.g., params.data.customer?.name
+        valueGetter: (params) => {
+          return params.data?.customerName || "N/A";
+        },
+        cellRenderer: (params: any) => {
+          const row = params.data;
+          if (!row) return null;
+
+          // We can use params.value here because valueGetter/field populated it
+          const customerName = params.value;
+
+          return (
+            <div className="flex flex-col leading-tight justify-center h-full">
+              <span className="font-bold text-slate-800 text-sm">
+                {customerName}
+              </span>
+            </div>
+          );
+        },
+      },
+      {
         headerName: "Status",
         field: "status",
         width: 180,
